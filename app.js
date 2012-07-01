@@ -335,26 +335,26 @@ _.mixin({
         }
     },
     //exclude All
-    exclAll: function(atts){//not all
+    exclAll: function(atts){
         return function(x){
             var args = _.rest(atts);
             return _.intersection(_[atts[0]](x.data),args).length !== args.length;
         }
     },
     //include Any
-    inclAny: function(atts){//any
+    inclAny: function(atts){
         return function(x){
             return !!_.intersection(_[atts[0]](x.data),_.rest(atts)).length;
         }
     },
     //exclude Any
-    exclAny: function(atts){//not any
+    exclAny: function(atts){
         return function(x){
             return !!!_.intersection(_[atts[0]](x.data),_.rest(atts)).length;
         }
     },
     //exact element match
-    same: function(atts){//not any
+    same: function(atts){
 
         return function(x){
             var args = _.rest(atts);
