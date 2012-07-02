@@ -1,22 +1,149 @@
 //var g = _.createGraph(database)  
-//g.v(1).out().as('step').where('same',['keys','lang','name']).back('step')._().value()
-//g.v(1).out().aggregate('step').where('same',['keys','lang','name']).except('step')._().value()
-//g.v(1).out().aggregate('step').out().except('step')._().value()
-//g.v(1).out().aggregate('step').out().where('inclAny',['keys','lang']).except('step')._().value()
+//_graph.v(1).out().as('step').where('same',['keys','lang','name']).back('step')._().value()
+//_graph.v(1).out().aggregate('step').where('same',['keys','lang','name']).except('step')._().value()
+//_graph.v(1).out().aggregate('step').out().except('step')._().value()
+//_graph.v(1).out().aggregate('step').out().where('inclAny',['keys','lang']).except('step')._().value()
 
+
+;(function(window) {
+    'use strict';
+
+/** Detect free variable `exports` */
+var freeExports = typeof exports == 'object' && exports &&
+    (typeof global == 'object' && global && global == global.global && (window = global), exports);
+
+var Helios = Helios || {}, _graph = {}; 
+
+Helios.VERSION = '0.0.1';
+Helios.ENV = 'undefined' === typeof ENV ? {} : ENV;
+Helios.CONF = 'undefined' === typeof CONFIG ? {} : CONFIG;
+
+Helios.toString = function() { return "Helios"; };
+
+Helios.createGraph = function(data){ //Add conf param
+    //TODO: Cater for optional params
+    
+    //TODO: Transform data from standard format to Helios format
+    //then pass to _.chain()
+
+    var helios = helios || {};
+
+    if(_.isString(data)){
+        var xmlhttp = new XMLHttpRequest();
+        xmlhttp.onreadystatechange = function() {
+                if(xmlhttp.readyState == 4){
+                    data = JSON.parse(xmlhttp.response);
+                }
+        };
+        xmlhttp.open("GET",data,false);
+        xmlhttp.send(null);
+    }
+
+    helios = _.chain(Helios.db.loadJson(data));
+
+    _graph.vertices = helios._wrapped.vertices;
+    _graph.edges = helios._wrapped.edges;
+
+    // //These indexes need to be built based on parameters passed to CONFIG
+    // //_graph.v_index = helios._wrapped.v_index;
+    // //_graph.e_index = helios._wrapped.e_index;
+
+    _graph.step = [];
+    _graph.namedStep = {};
+
+    // //Add Helios database functions
+    helios.db = Helios.db;
+
+    return helios;
+};
+
+Helios.db = {
+//Other Helios Database type functions
+/*
+buildIndex\DeleteIndex
+save\commit\etc...
+
+*******>>>>
+create\update\delete\retrieve (CRUD)
+have been pushed into Mogwai
+
+*/  
+    loadJson:function(jsonData){
+        var data = {}, i, l, rows = [], edge = {};
+        //process vertices
+        data.vertices = {};
+        rows = jsonData.vertices;
+        l = rows.length; 
+
+        for(i=0; i<l;i+=1) {
+            data.vertices[rows[i]._id] = { 'data': rows[i], '_type': 'vertex', '_outE': {}, '_inE': {} };
+        }
+
+        //process edges
+        data.edges = {};
+        rows = jsonData.edges;
+        l = rows.length; 
+
+        for(i=0; i<l;i+=1) {
+            data.edges[rows[i]._id] = { 'data': rows[i], '_type': 'edge' };
+            edge = data.edges[rows[i]._id].data;
+
+            //add edges to vertices
+            data.vertices[edge._outV]._outE[edge._label] ? data.vertices[edge._outV]._outE[edge._label].push(edge._id) :
+                data.vertices[edge._outV]._outE[edge._label] = [edge._id];
+            data.vertices[edge._inV]._inE[edge._label] ? data.vertices[edge._inV]._inE[edge._label].push(edge._id) :
+                data.vertices[edge._inV]._inE[edge._label] = [edge._id];
+
+        }
+        return data;
+    },
+    commit: function(){
+        return null;
+    },
+    rollback: function(){
+        return null;
+    }
+};
+
+//lodash Helios extension -> mogwai
 _.mixin({
 
-    createGraph: function(database){
-        g = _.chain(database);
-        g.vertices = g._wrapped.vertices;
-        g.edges = g._wrapped.edges;
-        g.v_index = g._wrapped.v_index;
-        g.e_index = g._wrapped.e_index;
-        g.step = [];
-        g.namedStep = {};
-        return g;
+    addVertex: function(){
+        return null;
     },
+    addEdge: function(){
+        return null;
+    },
+    delete: function(){
+        return null;
+    },
+    update: function(){
+        return null;
+    },
+    //Suggestion: create CRUD mixin functions that CRUDs returned items???
+    /*
+        eg. g.v(1).out().addEdge(label, VertexObj)
+                OR
+            g.v(1).as('v1').out('knows').addEdge('hates', 'v1');
+            //all the people the v1 knows now hate him
 
+            g.v(1,4).addVertex(EdgeObjArr, NewVertexObj);
+            //This will add the newly created vertex to db and create relevant Edges based on EdgeArr
+            //for all vertecies v1, v4
+            //  EdgeObjArr = [{
+                    'direction': 'in',
+                    '_label': 'knows',
+                    'weight': 0.3
+                }];
+
+        ********>>>>
+        *Can store in variable and run any time??? Need to review and test this
+        
+        var toBeDeleted = g.v(1,4);
+        toBeDeleted.remove();
+    */
+
+    //TODO: Need a function that returns that data in a format that allows lodash to perform its functions on the data
     stringify: function(){
         return JSON.stringify(_.flatten(arguments));
     },
@@ -34,41 +161,40 @@ _.mixin({
 
     //shorthand for uniq().prop().stringify()
     _: function(){
-        args = _.flatten(_.rest(arguments));
-        return	_.chain(arguments[0]).uniq().props(args).stringify().value();
+        return  _.chain(arguments[0]).uniq().props(_.flatten(_.rest(arguments))).stringify().value();
     },
     v: function(_id){
 
         var emitVal = [], length, args = _.flatten(_.rest(arguments));
-        g.step = [];
-        g.namedStep = {};
+        _graph.step = [];
+        _graph.namedStep = {};
 
         length = args.length;
         while(length){
-            emitVal.push(g.vertices[length--]);
+            emitVal.push(_graph.vertices[length--]);
         }
-        g.step.push(emitVal);
+        _graph.step.push(emitVal);
         return emitVal;
 
     },
     V: function(){
         var emitVal = [];
-        g.step = [];
-        g.namedStep = {};
+        _graph.step = [];
+        _graph.namedStep = {};
 
-        emitVal = _.toArray(g.vertices);
-        g.step.push(emitVal);
+        emitVal = _.toArray(_graph.vertices);
+        _graph.step.push(emitVal);
 
         return emitVal;
     },
 
     E: function() {
         var emitVal = [];
-        g.step = [];
-        g.namedStep = {};
+        _graph.step = [];
+        _graph.namedStep = {};
 
-        emitVal = _.toArray(g.edges);
-        g.step.push(emitVal);
+        emitVal = _.toArray(_graph.edges);
+        _graph.step.push(emitVal);
 
         return emitVal;
     },
@@ -81,7 +207,7 @@ _.mixin({
         });
 
         emitVal = _.flatten(_.compact(emitVal));
-        g.step.push(emitVal);
+        _graph.step.push(emitVal);
         return emitVal;
     },
     label: function(){
@@ -93,7 +219,7 @@ _.mixin({
         });
 
         emitVal = _.flatten(_.compact(emitVal));
-        g.step.push(emitVal);
+        _graph.step.push(emitVal);
         return emitVal;
     },
     out : function() {
@@ -102,16 +228,16 @@ _.mixin({
             args = _.flatten(_.rest(arguments));
 
         emitVal = _.map(arguments[0], function(vertex, key, list) {
-            if (!_.isEmpty(vertex.outE)) {
-                var value = !!args.length ? _.pick(vertex.outE, args) : vertex.outE;
+            if (!_.isEmpty(vertex._outE)) {
+                var value = !!args.length ? _.pick(vertex._outE, args) : vertex._outE;
                 return _.map(_.flatten(_.values(value)), function(eid) {
-                    return g.vertices[g.edges[eid].inV];
+                    return _graph.vertices[_graph.edges[eid].data._inV];
                 });
             }
         });
 
         emitVal = _.flatten(_.compact(emitVal));
-        g.step.push(emitVal);
+        _graph.step.push(emitVal);
         return emitVal;
     },
 
@@ -121,16 +247,16 @@ _.mixin({
             args = _.flatten(_.rest(arguments));
 
         emitVal = _.map(arguments[0], function(vertex, key, list) {
-            if (!_.isEmpty(vertex.inE)) {
-                var value = !!args.length ? _.pick(vertex.inE, args) : vertex.inE;
+            if (!_.isEmpty(vertex._inE)) {
+                var value = !!args.length ? _.pick(vertex._inE, args) : vertex._inE;
                 return _.map(_.flatten(_.values(value)), function(eid) {
-                    return g.vertices[g.edges[eid].outV];
+                    return _graph.vertices[_graph.edges[eid].data._outV];
                 });
             }
         });
 
         emitVal = _.flatten(_.compact(emitVal));
-        g.step.push(emitVal);
+        _graph.step.push(emitVal);
         return emitVal;
     },
 
@@ -140,16 +266,16 @@ _.mixin({
             args = _.flatten(_.rest(arguments));
 
         emitVal = _.map(arguments[0], function(vertex, key, list) {
-            if (!_.isEmpty(vertex.outE)) {
-                var value = !!args.length ? _.pick(vertex.outE, args) : vertex.outE;
+            if (!_.isEmpty(vertex._outE)) {
+                var value = !!args.length ? _.pick(vertex._outE, args) : vertex._outE;
                 return _.map(_.flatten(_.values(value)), function(eid) {
-                    return g.edges[eid];
+                    return _graph.edges[eid];
                 });
             }
         });
 
         emitVal = _.flatten(_.compact(emitVal));
-        g.step.push(emitVal);
+        _graph.step.push(emitVal);
         return emitVal;
 
     },
@@ -159,33 +285,33 @@ _.mixin({
             args = _.flatten(_.rest(arguments));
 
         emitVal = _.map(arguments[0], function(vertex, key, list) {
-            if (!_.isEmpty(vertex.inE)) {
-                var value = !!args.length ? _.pick(vertex.inE, args) : vertex.inE;
+            if (!_.isEmpty(vertex._inE)) {
+                var value = !!args.length ? _.pick(vertex._inE, args) : vertex._inE;
                 return _.map(_.flatten(_.values(value)), function(eid) {
-                    return g.edges[eid];
+                    return _graph.edges[eid];
                 });
             }
         });
 
         emitVal = _.flatten(_.compact(emitVal));
-        g.step.push(emitVal);
+        _graph.step.push(emitVal);
         return emitVal;
     },
     outV: function(){
 
         var emitVal = _.map(arguments[0], function(edge, key, list) {
-            return g.vertices[edge.outV];
+            return _graph.vertices[edge.data._outV];
         });
         emitVal = _.flatten(_.compact(emitVal));
-        g.step.push(emitVal);
+        _graph.step.push(emitVal);
         return emitVal;
     },
     inV: function(){
         var emitVal = _.map(arguments[0], function(edge, key, list) {
-            return g.vertices[edge.inV];
+            return _graph.vertices[edge.data._inV];
         });
         emitVal = _.flatten(_.compact(emitVal));
-        g.step.push(emitVal);
+        _graph.step.push(emitVal);
         return emitVal;
     },
     both : function() {
@@ -195,7 +321,7 @@ _.mixin({
         emitVal.push(_.out.apply(this, arguments));
         emitVal.push(_.in.apply(this, arguments));
         emitVal = _.flatten(emitVal);
-        g.step.push(emitVal);
+        _graph.step.push(emitVal);
         return emitVal;
     },
     bothE : function() {
@@ -205,7 +331,7 @@ _.mixin({
         emitVal.push(_.outE.apply(this, arguments));
         emitVal.push(_.inE.apply(this, arguments));
         emitVal = _.flatten(emitVal);
-        g.step.push(emitVal);
+        _graph.step.push(emitVal);
         return emitVal;
     },
     bothV : function() {
@@ -215,7 +341,7 @@ _.mixin({
         emitVal.push(_.outV.apply(this, arguments));
         emitVal.push(_.inV.apply(this, arguments));
         emitVal = _.flatten(emitVal);
-        g.step.push(emitVal);
+        _graph.step.push(emitVal);
         return emitVal;
     },
     where: function(){
@@ -234,7 +360,7 @@ _.mixin({
             emitVal = _.filter(emitVal,_[args[length]](args[length + 1]));
         }
         emitVal = _.flatten(_.compact(emitVal));
-        g.step.push(emitVal);
+        _graph.step.push(emitVal);
         return emitVal;
 
     },
@@ -335,26 +461,26 @@ _.mixin({
         }
     },
     //exclude All
-    exclAll: function(atts){
+    exclAll: function(atts){//not all
         return function(x){
             var args = _.rest(atts);
             return _.intersection(_[atts[0]](x.data),args).length !== args.length;
         }
     },
     //include Any
-    inclAny: function(atts){
+    inclAny: function(atts){//any
         return function(x){
             return !!_.intersection(_[atts[0]](x.data),_.rest(atts)).length;
         }
     },
     //exclude Any
-    exclAny: function(atts){
+    exclAny: function(atts){//not any
         return function(x){
             return !!!_.intersection(_[atts[0]](x.data),_.rest(atts)).length;
         }
     },
     //exact element match
-    same: function(atts){
+    same: function(atts){//not any
 
         return function(x){
             var args = _.rest(atts);
@@ -370,128 +496,91 @@ _.mixin({
 
         var arg = arguments[1], dSet, diff, emitVal = [];
 
-        dSet = g.step[g.namedStep[arg] - 1];
+        dSet = _graph.step[_graph.namedStep[arg] - 1];
         emitVal = _.difference(arguments[0],dSet);
         emitVal = _.flatten(_.compact(emitVal));
-        g.step.push(emitVal);
+        _graph.step.push(emitVal);
         return emitVal;
     },
     retain: function(){
 
         var arg = arguments[1], dSet, diff, emitVal = [];
 
-        dSet = g.step[g.namedStep[arg] - 1];
+        dSet = _graph.step[_graph.namedStep[arg] - 1];
         emitVal = _.intersection(arguments[0],dSet);
         emitVal = _.flatten(_.compact(emitVal));
-        g.step.push(emitVal);
+        _graph.step.push(emitVal);
         return emitVal;
     },
     as: function(){
 
-        g.namedStep[arguments[1]] = g.step.length;
+        _graph.namedStep[arguments[1]] = _graph.step.length;
         return arguments[0];
     },
     back: function(){
         var arg = arguments[1],
-            length = g.step.length, steps = 0;
+            length = _graph.step.length, steps = 0;
         if(_.isUndefined(arg))
         {
             arg = 1;
         }
         if(_.isString(arg)){
-            if(_.isUndefined(g.namedStep[arg])){
+            if(_.isUndefined(_graph.namedStep[arg])){
                 //raise error
-                g.tap(function(){
+                _graph.tap(function(){
                     alert('Error!! - No step called "' + arg + '"');
                 });
                 return;
             }
-            arg = length - g.namedStep[arg];
+            arg = length - _graph.namedStep[arg];
         }
 
         steps = arg > length ? length - 1 : arg;
         while(steps){
-            g.step.pop();
+            _graph.step.pop();
             steps--;
         }
-        return _.last(g.step);
+        return _.last(_graph.step);
     },
 
     //TODO:Need to look at aggregate to apply {closure}
     aggregate: function(){
         return _.as.apply(this, arguments);
     }
+});//lodash mixin end
+    
+    // From Lo-Dash >>>
+    // expose Helios
+    // some AMD build optimizers, like r.js, check for specific condition patterns like the following:
+    if (typeof define == 'function' && typeof define.amd == 'object' && define.amd) {
+    // Expose Helios to the global object even when an AMD loader is present in
+    // case Helios was injected by a third-party script and not intended to be
+    // loaded as a module. The global assignment can be reverted in the Helios
+    // module via its `noConflict()` method.
+    window.Helios = Helios;
 
+    // define as an anonymous module so, through path mapping, it can be
+    // referenced as the "underscore" module
+    define(function() {
+      return Helios;
+    });
+    }
+    // check for `exports` after `define` in case a build optimizer adds an `exports` object
+    else if (freeExports) {
+    // in Node.js or RingoJS v0.8.0+
+    if (typeof module == 'object' && module && module.exports == freeExports) {
+      (module.exports = Helios).Helios = Helios;
+    }
+    // in Narwhal or RingoJS v0.7.0-
+    else {
+      freeExports.Helios = Helios;
+    }
+    }
+    else {
+    // in a browser or Rhino
+    window.Helios = Helios;
+    }
+  
+    //<<< From Lo-Dash
 
-});
-
-
-
-
-
-;(function(window, undefined) {
-    'use strict';
-
-    var DB = {
-
-        "vertices":{
-            1 : {
-                "data" : { '_id': 1, "name": 'marko', "age": 29, "_type" : "person"},
-                "outE" : { "knows":[7,8], "created":[9] },
-                "inE": {},
-                "type": "vertex"
-            },
-            2 : {
-                "data" : { '_id': 2, "name": 'vadas', "age": 27, "_type" : "person"},
-                "outE": {},
-                "inE": { "knows":[7]},
-                "type": "vertex"
-            },
-            3 : {
-                "data" : { '_id': 3, "name": 'lop', "lang": 'java', "_type" : "language"},
-                "outE": {},
-                "inE": { "created":[9,11,12] },
-                "type": "vertex"
-            },
-            4 : {
-                "data" : { '_id': 4, "name": 'josh', "age": 32, "_type" : "person"},
-                "outE": {"created":[11,10]},
-                "inE": { "knows":[8] },
-                "type": "vertex"
-            },
-            5 : {
-                "data" : { '_id': 5, "name": 'ripple', "lang": 'java', "_type" : "language"},
-                "outE": {},
-                "inE": { "created":[10] },
-                "type": "vertex"
-            },
-            6 : {
-                "data" : { '_id': 6, "name": 'peter', "age": 35, "_type" : "person"},
-                "outE": { "created":[12] },
-                "inE": {},
-                "type": "vertex"
-            }
-        },
-
-        "edges":{
-            7 : { "data" : { '_id': 7, '_label': 'knows', "weight": 0.5, "_type" : "edge"}, "outV": 1, "inV": 2, "type":"edge" },
-            8 : { "data" : { '_id': 8, '_label': 'knows', "weight": 1.0, "_type" : "edge"}, "outV": 1, "inV": 4, "type":"edge" },
-            9 : { "data" : { '_id': 9, '_label': 'created', "weight": 0.4, "_type" : "edge"}, "outV": 1, "inV": 3, "type":"edge" },
-            10: { "data" : { '_id': 10, '_label': 'created', "weight": 1.0, "_type" : "edge"}, "outV": 4, "inV": 5, "type":"edge" },
-            11: { "data" : { '_id': 11, '_label': 'created', "weight": 0.4, "_type" : "edge"}, "outV": 4, "inV": 3, "type":"edge" },
-            12: { "data" : { '_id': 12, '_label': 'created', "weight": 0.2, "_type" : "edge"}, "outV": 6, "inV": 3, "type":"edge" }
-        },
-
-        "v_index":
-        {
-            "name":{"marko":["1"],"vadas":["2"],"lop":["3"],"josh":["4"],"ripple":["5"],"peter":["6"]}
-        },
-
-        "e_index":
-        {
-            
-        }
-    };
-
-    return window.database = DB;
 }(this));
