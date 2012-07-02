@@ -33,6 +33,7 @@ Helios.createGraph = function(data){ //Add conf param
         xmlhttp.onreadystatechange = function() {
                 if(xmlhttp.readyState == 4){
                     data = JSON.parse(xmlhttp.response);
+;
                 }
         };
         xmlhttp.open("GET",data,false);
@@ -114,7 +115,7 @@ _.mixin({
     addEdge: function(){
         return null;
     },
-    delete: function(){
+    remove: function(){
         return null;
     },
     update: function(){
@@ -153,7 +154,7 @@ _.mixin({
             args = _.flatten(_.rest(arguments));
 
         emitVal = _.map(arguments[0], function(element, key, list) {
-            return !!args.length ? _.pick(element.data, args) : element.data;
+            return !!args.length ? _.pick(element, args) : element;
         });
 
         return _.flatten(_.compact(emitVal));
@@ -171,7 +172,7 @@ _.mixin({
 
         length = args.length;
         while(length){
-            emitVal.push(_graph.vertices[length--]);
+            emitVal.push(_graph.vertices[length--].data);
         }
         _graph.step.push(emitVal);
         return emitVal;
@@ -182,7 +183,7 @@ _.mixin({
         _graph.step = [];
         _graph.namedStep = {};
 
-        emitVal = _.toArray(_graph.vertices);
+        emitVal = _.toArray(_.pluck(_graph.vertices,'data'));
         _graph.step.push(emitVal);
 
         return emitVal;
@@ -193,7 +194,7 @@ _.mixin({
         _graph.step = [];
         _graph.namedStep = {};
 
-        emitVal = _.toArray(_graph.edges);
+        emitVal = _.toArray(_.pluck(_graph.edges,'data'));
         _graph.step.push(emitVal);
 
         return emitVal;
@@ -203,7 +204,7 @@ _.mixin({
         var emitVal = [];
 
         emitVal = _.map(arguments[0], function(element, key, list) {
-            return element.data._id;
+            return element._id;
         });
 
         emitVal = _.flatten(_.compact(emitVal));
@@ -215,7 +216,7 @@ _.mixin({
         var emitVal = [];
 
         emitVal = _.map(arguments[0], function(element, key, list) {
-            return element.data._label;
+            return element._label;
         });
 
         emitVal = _.flatten(_.compact(emitVal));
@@ -224,14 +225,16 @@ _.mixin({
     },
     out : function() {
 
-        var emitVal = [],
+        var vertex = {},
+            emitVal = [],
             args = _.flatten(_.rest(arguments));
 
-        emitVal = _.map(arguments[0], function(vertex, key, list) {
+        emitVal = _.map(arguments[0], function(vtex, key, list) {
+            vertex = _graph.vertices[vtex._id];
             if (!_.isEmpty(vertex._outE)) {
                 var value = !!args.length ? _.pick(vertex._outE, args) : vertex._outE;
                 return _.map(_.flatten(_.values(value)), function(eid) {
-                    return _graph.vertices[_graph.edges[eid].data._inV];
+                    return _graph.vertices[_graph.edges[eid].data._inV].data;
                 });
             }
         });
@@ -243,14 +246,16 @@ _.mixin({
 
     'in': function(){
 
-        var emitVal = [],
+        var vertex = {},
+            emitVal = [],
             args = _.flatten(_.rest(arguments));
 
-        emitVal = _.map(arguments[0], function(vertex, key, list) {
+        emitVal = _.map(arguments[0], function(vtex, key, list) {
+            vertex = _graph.vertices[vtex._id];
             if (!_.isEmpty(vertex._inE)) {
                 var value = !!args.length ? _.pick(vertex._inE, args) : vertex._inE;
                 return _.map(_.flatten(_.values(value)), function(eid) {
-                    return _graph.vertices[_graph.edges[eid].data._outV];
+                    return _graph.vertices[_graph.edges[eid].data._outV].data;
                 });
             }
         });
@@ -262,14 +267,16 @@ _.mixin({
 
     outE: function(){
 
-        var emitVal = [],
+        var vertex = {},
+            emitVal = [],
             args = _.flatten(_.rest(arguments));
 
-        emitVal = _.map(arguments[0], function(vertex, key, list) {
+        emitVal = _.map(arguments[0], function(vtex, key, list) {
+            vertex = _graph.vertices[vtex._id];
             if (!_.isEmpty(vertex._outE)) {
                 var value = !!args.length ? _.pick(vertex._outE, args) : vertex._outE;
                 return _.map(_.flatten(_.values(value)), function(eid) {
-                    return _graph.edges[eid];
+                    return _graph.edges[eid].data;
                 });
             }
         });
@@ -281,14 +288,16 @@ _.mixin({
     },
     inE: function(){
 
-        var emitVal = [],
+        var vertex = {},
+            emitVal = [],
             args = _.flatten(_.rest(arguments));
 
-        emitVal = _.map(arguments[0], function(vertex, key, list) {
+        emitVal = _.map(arguments[0], function(vtex, key, list) {
+            vertex = _graph.vertices[vtex._id];
             if (!_.isEmpty(vertex._inE)) {
                 var value = !!args.length ? _.pick(vertex._inE, args) : vertex._inE;
                 return _.map(_.flatten(_.values(value)), function(eid) {
-                    return _graph.edges[eid];
+                    return _graph.edges[eid].data;
                 });
             }
         });
@@ -300,7 +309,7 @@ _.mixin({
     outV: function(){
 
         var emitVal = _.map(arguments[0], function(edge, key, list) {
-            return _graph.vertices[edge.data._outV];
+            return _graph.vertices[edge._outV].data;
         });
         emitVal = _.flatten(_.compact(emitVal));
         _graph.step.push(emitVal);
@@ -308,7 +317,7 @@ _.mixin({
     },
     inV: function(){
         var emitVal = _.map(arguments[0], function(edge, key, list) {
-            return _graph.vertices[edge.data._inV];
+            return _graph.vertices[edge._inV].data;
         });
         emitVal = _.flatten(_.compact(emitVal));
         _graph.step.push(emitVal);
@@ -370,7 +379,7 @@ _.mixin({
             var length = atts.length;
             while(length){
                 length -= 2;
-                if(x.data[atts[length]] === atts[length + 1]){
+                if(x[atts[length]] === atts[length + 1]){
                     return true;
                 }
             }
@@ -382,7 +391,7 @@ _.mixin({
             var length = atts.length;
             while(length){
                 length -= 2;
-                if(x.data[atts[length]] !== atts[length + 1]){
+                if(x[atts[length]] !== atts[length + 1]){
                     return true;
                 }
             }
@@ -394,7 +403,7 @@ _.mixin({
             var length = atts.length;
             while(length){
                 length -= 2;
-                if(x.data[atts[length]] > atts[length + 1]){
+                if(x[atts[length]] > atts[length + 1]){
                     return true;
                 }
             }
@@ -407,7 +416,7 @@ _.mixin({
             var length = atts.length;
             while(length){
                 length -= 2;
-                if(x.data[atts[length]] < atts[length + 1]){
+                if(x[atts[length]] < atts[length + 1]){
                     return true;
                 }
             }
@@ -419,7 +428,7 @@ _.mixin({
             var length = atts.length;
             while(length){
                 length -= 2;
-                if(x.data[atts[length]] >= atts[length + 1]){
+                if(x[atts[length]] >= atts[length + 1]){
                     return true;
                 }
             }
@@ -431,7 +440,7 @@ _.mixin({
             var length = atts.length;
             while(length){
                 length -= 2;
-                if(x.data[atts[length]] <= atts[length + 1]){
+                if(x[atts[length]] <= atts[length + 1]){
                     return true;
                 }
             }
@@ -443,7 +452,7 @@ _.mixin({
             var length = atts.length;
             while(length){
                 length -= 3;
-                if(x.data[atts[length]] > atts[length + 1] && x.data[atts[length]] < atts[length + 2]){
+                if(x[atts[length]] > atts[length + 1] && x[atts[length]] < atts[length + 2]){
                     return true;
                 }
             }
@@ -457,26 +466,26 @@ _.mixin({
     inclAll: function(atts){ //all
         return function(x){
             var args = _.rest(atts);
-            return _.intersection(_[atts[0]](x.data),args).length === args.length;
+            return _.intersection(_[atts[0]](x),args).length === args.length;
         }
     },
     //exclude All
     exclAll: function(atts){//not all
         return function(x){
             var args = _.rest(atts);
-            return _.intersection(_[atts[0]](x.data),args).length !== args.length;
+            return _.intersection(_[atts[0]](x),args).length !== args.length;
         }
     },
     //include Any
     inclAny: function(atts){//any
         return function(x){
-            return !!_.intersection(_[atts[0]](x.data),_.rest(atts)).length;
+            return !!_.intersection(_[atts[0]](x),_.rest(atts)).length;
         }
     },
     //exclude Any
     exclAny: function(atts){//not any
         return function(x){
-            return !!!_.intersection(_[atts[0]](x.data),_.rest(atts)).length;
+            return !!!_.intersection(_[atts[0]](x),_.rest(atts)).length;
         }
     },
     //exact element match
@@ -488,7 +497,7 @@ _.mixin({
             //TODO: Allow for user specified _id ie. config
             args.push('_type');
             args.push('_id');
-            return !!!_.difference(_[atts[0]](x.data),args).length;
+            return !!!_.difference(_[atts[0]](x),args).length;
         }
     },
 
@@ -553,17 +562,16 @@ _.mixin({
     // expose Helios
     // some AMD build optimizers, like r.js, check for specific condition patterns like the following:
     if (typeof define == 'function' && typeof define.amd == 'object' && define.amd) {
-    // Expose Helios to the global object even when an AMD loader is present in
-    // case Helios was injected by a third-party script and not intended to be
-    // loaded as a module. The global assignment can be reverted in the Helios
-    // module via its `noConflict()` method.
-    window.Helios = Helios;
+        // Expose Helios to the global object even when an AMD loader is present in
+        // case Helios was injected by a third-party script and not intended to be
+        // loaded as a module..
+        window.Helios = Helios;
 
-    // define as an anonymous module so, through path mapping, it can be
-    // referenced as the "underscore" module
-    define(function() {
-      return Helios;
-    });
+        // define as an anonymous module so, through path mapping, it can be
+        // referenced.
+        define(function() {
+          return Helios;
+        });
     }
     // check for `exports` after `define` in case a build optimizer adds an `exports` object
     else if (freeExports) {
