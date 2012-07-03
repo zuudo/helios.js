@@ -1,8 +1,9 @@
-//var g = _.createGraph(database)  
+//var g = _.createGraph(jsonData)  
 //_graph.v(1).out().as('step').where('same',['keys','lang','name']).back('step')._().value()
 //_graph.v(1).out().aggregate('step').where('same',['keys','lang','name']).except('step')._().value()
 //_graph.v(1).out().aggregate('step').out().except('step')._().value()
 //_graph.v(1).out().aggregate('step').out().where('inclAny',['keys','lang']).except('step')._().value()
+//Array.prototype.splice.call(arguments, 0, 1);
 
 
 ;(function(window) {
@@ -12,47 +13,31 @@
 var freeExports = typeof exports == 'object' && exports &&
     (typeof global == 'object' && global && global == global.global && (window = global), exports);
 
-var Helios = Helios || {}, _graph = {}; 
+var Helios = Helios || {}; 
 
 Helios.VERSION = '0.0.1';
 Helios.ENV = 'undefined' === typeof ENV ? {} : ENV;
 Helios.CONF = 'undefined' === typeof CONFIG ? {} : CONFIG;
+
+var _graph = {
+    vertices: {},
+    edges: {},
+    step: [],
+    namedStep: {}
+    //,v_index: {}
+    //,e_index: {}
+};
 
 Helios.toString = function() { return "Helios"; };
 
 Helios.createGraph = function(data){ //Add conf param
     //TODO: Cater for optional params
     
-    //TODO: Transform data from standard format to Helios format
-    //then pass to _.chain()
-
     var helios = helios || {};
+    
+    helios = data ? Helios.db.loadJson(data): _.chain(null);
 
-    if(_.isString(data)){
-        var xmlhttp = new XMLHttpRequest();
-        xmlhttp.onreadystatechange = function() {
-                if(xmlhttp.readyState == 4){
-                    data = JSON.parse(xmlhttp.response);
-;
-                }
-        };
-        xmlhttp.open("GET",data,false);
-        xmlhttp.send(null);
-    }
-
-    helios = _.chain(Helios.db.loadJson(data));
-
-    _graph.vertices = helios._wrapped.vertices;
-    _graph.edges = helios._wrapped.edges;
-
-    // //These indexes need to be built based on parameters passed to CONFIG
-    // //_graph.v_index = helios._wrapped.v_index;
-    // //_graph.e_index = helios._wrapped.e_index;
-
-    _graph.step = [];
-    _graph.namedStep = {};
-
-    // //Add Helios database functions
+    //Add Helios database functions
     helios.db = Helios.db;
 
     return helios;
@@ -70,33 +55,67 @@ have been pushed into Mogwai
 
 */  
     loadJson:function(jsonData){
-        var data = {}, i, l, rows = [], edge = {};
+        var i, l, rows = [], edge = {};
+    
+        if(_.isString(jsonData)){
+            var xmlhttp = new XMLHttpRequest();
+            xmlhttp.onreadystatechange = function() {
+                    if(xmlhttp.readyState == 4){
+                        jsonData = JSON.parse(xmlhttp.response);
+                    }
+            };
+            xmlhttp.open("GET",jsonData,false);
+            xmlhttp.send(null);
+        }
+
+
         //process vertices
-        data.vertices = {};
-        rows = jsonData.vertices;
-        l = rows.length; 
+        if(jsonData.vertices){
+            rows = jsonData.vertices;
+            l = rows.length; 
 
-        for(i=0; i<l;i+=1) {
-            data.vertices[rows[i]._id] = { 'data': rows[i], '_type': 'vertex', '_outE': {}, '_inE': {} };
+            for(i=0; i<l;i+=1) {
+                _graph.vertices[rows[i]._id] = { 'data': rows[i], 'type': 'vertex'/*, '_outE': {}, '_inE': {} */};
+            }
         }
-
+        
         //process edges
-        data.edges = {};
-        rows = jsonData.edges;
-        l = rows.length; 
+        //_graph.edges = _graph.edges || {};
+        if(jsonData.edges){
+            rows = jsonData.edges;
+            l = rows.length; 
 
-        for(i=0; i<l;i+=1) {
-            data.edges[rows[i]._id] = { 'data': rows[i], '_type': 'edge' };
-            edge = data.edges[rows[i]._id].data;
+            for(i=0; i<l;i+=1) {
+                _graph.edges[rows[i]._id] = { 'data': rows[i], 'type': 'edge' };
+                edge = _graph.edges[rows[i]._id].data;
 
-            //add edges to vertices
-            data.vertices[edge._outV]._outE[edge._label] ? data.vertices[edge._outV]._outE[edge._label].push(edge._id) :
-                data.vertices[edge._outV]._outE[edge._label] = [edge._id];
-            data.vertices[edge._inV]._inE[edge._label] ? data.vertices[edge._inV]._inE[edge._label].push(edge._id) :
-                data.vertices[edge._inV]._inE[edge._label] = [edge._id];
+                //add edges to vertices
 
+                if(!!!_graph.vertices[edge._outV]){
+                    //get vertex from server and add to data.vertices
+                }
+
+                _graph.vertices[edge._outV]._outE = _graph.vertices[edge._outV]._outE ? _graph.vertices[edge._outV]._outE : {};
+                if(_.isUndefined(_graph.vertices[edge._outV]._outE[edge._label])){
+                    _graph.vertices[edge._outV]._outE[edge._label] = [];
+                }
+                if(_.indexOf(_graph.vertices[edge._outV]._outE[edge._label], edge._id) === -1) {
+                    _graph.vertices[edge._outV]._outE[edge._label].push(edge._id);
+                }
+
+                if(!!!_graph.vertices[edge._inV]){
+                    //get vertex from server
+                }
+                _graph.vertices[edge._inV]._inE = _graph.vertices[edge._inV]._inE ? _graph.vertices[edge._inV]._inE : {};
+                if(_.isUndefined(_graph.vertices[edge._inV]._inE[edge._label])){
+                    _graph.vertices[edge._inV]._inE[edge._label] = [];
+                } 
+                if(_.indexOf(_graph.vertices[edge._inV]._inE[edge._label],edge._id) === -1 ){
+                    _graph.vertices[edge._inV]._inE[edge._label].push(edge._id);
+                }
+            }
         }
-        return data;
+        return _.chain(null);
     },
     commit: function(){
         return null;
@@ -231,6 +250,10 @@ _.mixin({
 
         emitVal = _.map(arguments[0], function(vtex, key, list) {
             vertex = _graph.vertices[vtex._id];
+            if(!!!vertex._outE){
+                //Get vertex edges and load from the service
+                Helios.db.loadJson({"edges":[{"weight":0.2,"_id":7,"_type":"edge","_outV":vtex._id,"_inV":3,"_label":"created"}]});
+            }
             if (!_.isEmpty(vertex._outE)) {
                 var value = !!args.length ? _.pick(vertex._outE, args) : vertex._outE;
                 return _.map(_.flatten(_.values(value)), function(eid) {
@@ -252,6 +275,10 @@ _.mixin({
 
         emitVal = _.map(arguments[0], function(vtex, key, list) {
             vertex = _graph.vertices[vtex._id];
+            if(!!!vertex._inE){
+                //Get vertex edges and load from the service
+                Helios.db.loadJson({"edges":[{"weight":0.2,"_id":8,"_type":"edge","_outV":6,"_inV":vtex._id,"_label":"created"}]});
+            }
             if (!_.isEmpty(vertex._inE)) {
                 var value = !!args.length ? _.pick(vertex._inE, args) : vertex._inE;
                 return _.map(_.flatten(_.values(value)), function(eid) {
@@ -273,6 +300,10 @@ _.mixin({
 
         emitVal = _.map(arguments[0], function(vtex, key, list) {
             vertex = _graph.vertices[vtex._id];
+            if(!!!vertex._outE){
+                //Get vertex edges and load from the service
+                Helios.db.loadJson({"edges":[{"weight":0.2,"_id":9,"_type":"edge","_outV":vtex._id,"_inV":3,"_label":"created"}]});
+            }           
             if (!_.isEmpty(vertex._outE)) {
                 var value = !!args.length ? _.pick(vertex._outE, args) : vertex._outE;
                 return _.map(_.flatten(_.values(value)), function(eid) {
@@ -294,6 +325,10 @@ _.mixin({
 
         emitVal = _.map(arguments[0], function(vtex, key, list) {
             vertex = _graph.vertices[vtex._id];
+            if(!!!vertex._inE){
+                //Get vertex edges and load from the service
+                Helios.db.loadJson({"edges":[{"weight":0.2,"_id":15,"_type":"edge","_outV":6,"_inV":vtex._id,"_label":"created"}]});
+            }           
             if (!_.isEmpty(vertex._inE)) {
                 var value = !!args.length ? _.pick(vertex._inE, args) : vertex._inE;
                 return _.map(_.flatten(_.values(value)), function(eid) {
@@ -592,3 +627,4 @@ _.mixin({
     //<<< From Lo-Dash
 
 }(this));
+
