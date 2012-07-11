@@ -1,6 +1,25 @@
-describe("Helios", function() {
+describe("Heliosdb", function() {
 
-  var g = Helios.newGraph('../../data/graph-example-1.json');
+  var testData = {
+    "vertices":[
+      {"name":"marko","age":29,"_id":1,"_type":"vertex"},
+      {"name":"vadas","age":27,"_id":2,"_type":"vertex"},
+      {"name":"lop","lang":"java","_id":3,"_type":"vertex"},
+      {"name":"josh","age":32,"_id":4,"_type":"vertex"},
+      {"name":"ripple","lang":"java","_id":5,"_type":"vertex"},
+      {"name":"peter","age":35,"_id":6,"_type":"vertex"}
+    ],
+    "edges":[
+      {"weight":0.5,"_id":7,"_type":"edge","_outV":1,"_inV":2,"_label":"knows"},
+      {"weight":1.0,"_id":8,"_type":"edge","_outV":1,"_inV":4,"_label":"knows"},
+      {"weight":0.4,"_id":9,"_type":"edge","_outV":1,"_inV":3,"_label":"created"},
+      {"weight":1.0,"_id":10,"_type":"edge","_outV":4,"_inV":5,"_label":"created"},
+      {"weight":0.4,"_id":11,"_type":"edge","_outV":4,"_inV":3,"_label":"created"},
+      {"weight":0.2,"_id":12,"_type":"edge","_outV":6,"_inV":3,"_label":"created"}
+    ]
+  };
+
+  var g = Helios.newGraph(testData);
 
   beforeEach(function() {
     this.addMatchers({
@@ -415,28 +434,69 @@ describe("Helios", function() {
 
       var results = g.v(1).outE().inV().aggregate('x').outE().inV()
                     .filter(function(x) { 
-                              var retVal = [];
+                      var retVal = [], isContained = false;
+                      _.each(this, function(element){
+                        isContined = false;
+                        _.each(x, function(item){ 
+                             if(item.obj._id === element.obj._id) {
+                               isContained = true;
+                              }
+                           });
+                        if(!isContained){
+                          retVal.push(element);
+                        }
+                      });
+                      return retVal;}, 'x').value();
 
-                          _.each(this, function(element){
-                            _.each(x, function(item){ 
-                                if(item.obj._id !== element.obj._id) {
-                                  retVal.push(item);
-                                }
-                              }); 
-                          });
-                             
-                          return _.uniq(retVal);}, 'x').value();
       expect(results.length).toEqual(1);
       expect(results).toContainKeyValue('_id',5);
 
-      results = [];
-      results = g.v(1).outE().inV().aggregate('x').value();
-      var results2 = g.v(1).outE().inV().value();
-      expect(results.length).toEqual(results2.length);
+      ///////////////////////////////////////////
 
-      for(var i = 0, len = results.length; i < len; i++){
-        expect(results[i].obj._id).toEqual(results2[i].obj._id);
-      }
+      results = [];
+      results = g.v(1).outE().inV().aggregate().value();
+      var results2 = g.v(1).outE().inV().value();
+      expect(results).toEqual(results2);
+
+      ////////////////////////////////////////////
+
+      results = [];
+      var x = [];
+      results = g.v(1).outE().inV().aggregate(x).value();
+      
+      expect(results).toEqual(x);
+
+      ////////////////////////////////////////////
+
+      results = [];
+      x = [];
+      results = g.v(1).out('knows').aggregate(x, function(incAge){
+                      var retVal = [];
+                        _.each(this, function(element){
+                          element.obj.age += incAge;
+                          retVal.push(element);
+                        });
+                      return retVal;}, 10).value();
+      
+      expect(results[0].obj.age).toEqual(37);
+      expect(results[1].obj.age).toEqual(42);
+      expect(results[0].obj.age).toEqual(x[0].obj.age);
+      expect(results[1].obj.age).toEqual(x[1].obj.age);
+
+      ////////////////////////////////////////////
+
+      results = [];
+      results = g.v(1).out('knows').aggregate(function(decAge){
+                      var retVal = [];
+                        _.each(this, function(element){
+                          element.obj.age -= decAge;
+                          retVal.push(element);
+                        });
+                      return retVal;}, 10).value();
+      
+      expect(results[0].obj.age).toEqual(27);
+      expect(results[1].obj.age).toEqual(32);
+
     });
   
     // it("aggregation Cap", function(){
