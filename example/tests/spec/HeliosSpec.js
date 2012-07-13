@@ -1,5 +1,6 @@
 describe("Heliosdb", function() {
 
+  var results = [];
   var testData = {
     "vertices":[
       {"name":"marko","age":29,"_id":1,"_type":"vertex"},
@@ -55,10 +56,10 @@ describe("Heliosdb", function() {
     });
   });
 
-  it("Basic Traversals and Transforms", function() {
+describe("Transform-Based Steps", function() {
+  it("Basic", function() {
 
-    var results = [];
-
+        results = [];
 
         expect(g.V().value().length).toEqual(6);
 
@@ -219,19 +220,19 @@ describe("Heliosdb", function() {
         expect(g.v(2).in('knows', 'created').value()[0].obj._id).toEqual(1);
         expect(g.v(4).both('knows', 'created').value().length).toEqual(3);
   });
-
+});
   describe("Filter-Based Steps", function() {
     it("closure", function(){
-      var results = g.v(1).outE().inV().filter(function() { return this; }).value();
+      results = g.v(1).outE().inV().filter(function() { return this; }).value();
       expect(results.length).toEqual(3);
       expect(results).toContainKeyValue('_id', 2);
       expect(results).toContainKeyValue('_id', 3);
       expect(results).toContainKeyValue('_id', 4);
 
-      var results = g.v(1).outE().inV().filter(function() { return []; }).value();
+      results = g.v(1).outE().inV().filter(function() { return []; }).value();
       expect(results.length).toEqual(0);
 
-      var results = g.v(1).outE().inV().filter(function() {   
+      results = g.v(1).outE().inV().filter(function() {   
                                                               var arr = [];
                                                               _.each(this, function(element){
                                                                 if(_.isEqual(element.obj, g.v(2).value()[0].obj)){
@@ -243,7 +244,7 @@ describe("Heliosdb", function() {
       expect(results.length).toEqual(1);
       expect(results).toContainKeyValue('_id', 2);
 
-      var results = g.v(1).outE().inV().filter(function() { return false; })
+      results = g.v(1).outE().inV().filter(function() { return false; })
                     .orFilter(function() {
                       var arr = [];
                       _.each(this, function(element){
@@ -255,7 +256,7 @@ describe("Heliosdb", function() {
       expect(results.length).toEqual(1);
       expect(results).toContainKeyValue('_id', 2);
 
-      var results = g.v(1).outE().inV().filter(function() { return false; })
+      results = g.v(1).outE().inV().filter(function() { return false; })
                     .orFilter(function() {
                       var arr = [];
                       _.each(this, function(element){
@@ -274,7 +275,7 @@ describe("Heliosdb", function() {
       expect(results.length).toEqual(1);
       expect(results).toContainKeyValue('_id', 2);
 
-      var results = g.v(1).outE().inV().filter(function() { return false; })
+      results = g.v(1).outE().inV().filter(function() { return false; })
                     .orFilter(function() {
                       var arr = [];
                       _.each(this, function(element){
@@ -299,7 +300,7 @@ describe("Heliosdb", function() {
     });
 
     it("eq", function() {
-      var results = g.v(1).out().filter('eq',['name','vadas']).value();
+      results = g.v(1).out().filter('eq',['name','vadas']).value();
       expect(results.length).toEqual(1);
       expect(results).toContainKeyValue('name','vadas');
 
@@ -307,38 +308,38 @@ describe("Heliosdb", function() {
 
     });
     it("neq", function() {
-      var results = g.v(1).out().filter('neq',['name','vadas']).value();
+      results = g.v(1).out().filter('neq',['name','vadas']).value();
       expect(results.length).toEqual(2);
         expect(results).toContainKeyValue('name','josh');
         expect(results).toContainKeyValue('name','lop');
     });
     it("lt", function() {
-      var results = g.v(1).out().filter('lt',['age',30]).value();
+      results = g.v(1).out().filter('lt',['age',30]).value();
       expect(results.length).toEqual(1);
       expect(results).toContainKeyValue('name','vadas');
     });
     it("lte", function() {
-      var results = g.v(1).out().filter('lte',['age',27]).value();
+      results = g.v(1).out().filter('lte',['age',27]).value();
       expect(results.length).toEqual(1);
       expect(results).toContainKeyValue('name','vadas');
     });
     it("gt", function() {
-      var results = g.v(1).out().filter('gt',['age',30]).value();
+      results = g.v(1).out().filter('gt',['age',30]).value();
       expect(results.length).toEqual(1);
       expect(results).toContainKeyValue('name','josh');
     });
     it("gte", function() {
-      var results = g.v(1).out().filter('gte',['age',32]).value();
+      results = g.v(1).out().filter('gte',['age',32]).value();
       expect(results.length).toEqual(1);
       expect(results).toContainKeyValue('name','josh');
     });
     it("btwn", function() {
-      var results = g.v(1).out().filter('btwn',['age',30, 33]).value();
+      results = g.v(1).out().filter('btwn',['age',30, 33]).value();
       expect(results.length).toEqual(1);
       expect(results).toContainKeyValue('name','josh');
     });
     it("has", function() {
-      var results = g.v(1).out().filter('has',['keys','name', 'age']).value();
+      results = g.v(1).out().filter('has',['keys','name', 'age']).value();
       expect(results.length).toEqual(2);
       expect(results).toContainKeyValue('name','josh');
       expect(results).toContainKeyValue('name','vadas');
@@ -349,7 +350,7 @@ describe("Heliosdb", function() {
 
     });
     it("hasNot", function() {
-      var results = g.v(1).out().filter('hasNot',['keys','name', 'age']).value();
+      results = g.v(1).out().filter('hasNot',['keys','name', 'age']).value();
       expect(results.length).toEqual(1);
       expect(results).toContainKeyValue('name','lop');
 
@@ -361,7 +362,7 @@ describe("Heliosdb", function() {
 
     });
     it("hasAny", function() {
-      var results = g.v(1).out().filter('hasAny',['keys', 'age', 'lang']).value();
+      results = g.v(1).out().filter('hasAny',['keys', 'age', 'lang']).value();
       expect(results.length).toEqual(3);
       expect(results).toContainKeyValue('name','josh');
       expect(results).toContainKeyValue('name','vadas');
@@ -369,11 +370,11 @@ describe("Heliosdb", function() {
     });
 
     it("hasNotAny", function() {
-      var results = g.v(1).out().filter('hasNotAny',['keys', 'name', 'age']).value();
+      results = g.v(1).out().filter('hasNotAny',['keys', 'name', 'age']).value();
       expect(results.length).toEqual(0);
     });
     it("match", function() {
-      var results = g.v(1).out().filter('match',['keys', 'name', 'age']).value();
+      results = g.v(1).out().filter('match',['keys', 'name', 'age']).value();
       expect(results.length).toEqual(2);
       expect(results).toContainKeyValue('name','josh');
       expect(results).toContainKeyValue('name','vadas');
@@ -383,7 +384,7 @@ describe("Heliosdb", function() {
       expect(results.length).toEqual(0);
     });
     it("and queries", function() {
-      var results = g.v(1).out().filter('eq',['name','vadas'], 'gt', ['age', 25]).value();
+      results = g.v(1).out().filter('eq',['name','vadas'], 'gt', ['age', 25]).value();
       expect(results.length).toEqual(1);
       expect(results).toContainKeyValue('name','vadas');
 
@@ -398,7 +399,7 @@ describe("Heliosdb", function() {
 
     });
     it("or queries", function() {
-      var results = g.v(1).out().filter('eq',['name','vadas', 'age', 32]).value();
+      results = g.v(1).out().filter('eq',['name','vadas', 'age', 32]).value();
       expect(results.length).toEqual(2);
       expect(results).toContainKeyValue('name','josh');
       expect(results).toContainKeyValue('name','vadas');
@@ -427,104 +428,45 @@ describe("Heliosdb", function() {
       expect(results.length).toEqual(0);
 
     });
+    it("dedup", function() {
+      results = g.v(1).out().in().dedup().value();
+      expect(results.length).toEqual(3);
+    });
+
+    it("back", function(){
+      results = g.v(1).out().in().back(1).value();
+      expect(results.length).toEqual(3);
+      expect(results).toContainKeyValue('_id',2);
+      expect(results).toContainKeyValue('_id',3);
+      expect(results).toContainKeyValue('_id',4);
+
+      results = g.v(1).out().in().back(2).value();
+      expect(results.length).toEqual(1);
+      expect(results[0].obj._id).toEqual(1);            
+
+    });
+
+
   });
 
   describe("SideEffect-Based Steps", function() {
-    it("aggregation No Cap", function(){
 
-      var results = g.v(1).outE().inV().aggregate('x').outE().inV()
-                    .filter(function(x) { 
-                      var retVal = [], isContained = false;
-                      _.each(this, function(element){
-                        isContined = false;
-                        _.each(x, function(item){ 
-                             if(item.obj._id === element.obj._id) {
-                               isContained = true;
-                              }
-                           });
-                        if(!isContained){
-                          retVal.push(element);
-                        }
-                      });
-                      return retVal;}, 'x').value();
 
-      expect(results.length).toEqual(1);
-      expect(results).toContainKeyValue('_id',5);
+    it("as", function(){
+      results = g.v(1).out().as('x').in().back('x').value();
+      expect(results.length).toEqual(3);
+      expect(results).toContainKeyValue('_id',2);
+      expect(results).toContainKeyValue('_id',3);
+      expect(results).toContainKeyValue('_id',4);
 
-      ///////////////////////////////////////////
-
-      results = [];
-      results = g.v(1).outE().inV().aggregate().value();
-      var results2 = g.v(1).outE().inV().value();
-      expect(results).toEqual(results2);
-
-      ////////////////////////////////////////////
-
-      results = [];
-      var x = [];
-      results = g.v(1).outE().inV().aggregate(x).value();
-      
-      expect(results).toEqual(x);
-
-      ////////////////////////////////////////////
-
-      results = [];
-      x = [];
-      results = g.v(1).out('knows').aggregate(x, function(incAge){
-                      var retVal = [];
-                        _.each(this, function(element){
-                          element.obj.age += incAge;
-                          retVal.push(element);
-                        });
-                      return retVal;}, 10).value();
-      
-      expect(results[0].obj.age).toEqual(37);
-      expect(results[1].obj.age).toEqual(42);
-      expect(results[0].obj.age).toEqual(x[0].obj.age);
-      expect(results[1].obj.age).toEqual(x[1].obj.age);
-
-      ////////////////////////////////////////////
-
-      results = [];
-      results = g.v(1).out('knows').aggregate(function(decAge){
-                      var retVal = [];
-                        _.each(this, function(element){
-                          element.obj.age -= decAge;
-                          retVal.push(element);
-                        });
-                      return retVal;}, 10).value();
-      
-      expect(results[0].obj.age).toEqual(27);
-      expect(results[1].obj.age).toEqual(32);
+       results = g.v(1).as('y').out().in().back('y').value();
+       expect(results.length).toEqual(1);
+       expect(results).toContainKeyValue('_id',1);
 
     });
-  
-    // it("aggregation Cap", function(){
-
-    //   var results = g.v(1).outE().inV().aggregate('x').outE().inV()
-    //                 .filter(function(x) { 
-    //                           var retVal = true;
-    //                           _.each(x, function(item){ 
-    //                             if(retVal) {
-    //                               retVal = item.obj._id !== this.obj._id;
-    //                             }
-    //                           }, this); 
-    //                         return retVal;}, 'x').value();
-    //   expect(results.length).toEqual(1);
-    //   expect(results).toContainKeyValue('_id',5);
-
-    //   results = [];
-    //   results = g.v(1).outE().inV().aggregate().value();
-    //   var results2 = g.v(1).outE().inV().value();
-    //   expect(results.length).toEqual(results2.length);
-
-    //   for(var i = 0, len = results.length; i < len; i++){
-    //     expect(results[i].obj._id).toEqual(results2[i].obj._id);
-    //   }
-    // });
 
     it("generic step", function(){
-      var results = g.v(1).out().step(function(){ 
+      results = g.v(1).out().step(function(){ 
                                 var arr = []; 
                                 _.each(this, function(element){
                                   arr.push(element.obj.name)}); 
@@ -548,8 +490,77 @@ describe("Heliosdb", function() {
 
     });
 
+    it("store", function(){
+
+      results = g.v(1).outE().inV().store('x').outE().inV()
+                    .filter(function(x) { 
+                      var retVal = [], isContained = false;
+                      _.each(this, function(element){
+                        isContined = false;
+                        _.each(x, function(item){ 
+                             if(item.obj._id === element.obj._id) {
+                               isContained = true;
+                              }
+                           });
+                        if(!isContained){
+                          retVal.push(element);
+                        }
+                      });
+                      return retVal;}, 'x').value();
+
+      expect(results.length).toEqual(1);
+      expect(results).toContainKeyValue('_id',5);
+
+      ///////////////////////////////////////////
+
+      results = [];
+      results = g.v(1).outE().inV().store().value();
+      results2 = g.v(1).outE().inV().value();
+      expect(results).toEqual(results2);
+
+      ////////////////////////////////////////////
+
+      results = [];
+      var x = [];
+      results = g.v(1).outE().inV().store(x).value();
+      
+      expect(results).toEqual(x);
+
+      ////////////////////////////////////////////
+
+      results = [];
+      x = [];
+      results = g.v(1).out('knows').store(x, function(incAge){
+                      var retVal = [];
+                        _.each(this, function(element){
+                          element.obj.age += incAge;
+                          retVal.push(element);
+                        });
+                      return retVal;}, 10).value();
+      
+      expect(results[0].obj.age).toEqual(37);
+      expect(results[1].obj.age).toEqual(42);
+      expect(results[0].obj.age).toEqual(x[0].obj.age);
+      expect(results[1].obj.age).toEqual(x[1].obj.age);
+
+      ////////////////////////////////////////////
+
+      results = [];
+      results = g.v(1).out('knows').store(function(decAge){
+                      var retVal = [];
+                        _.each(this, function(element){
+                          element.obj.age -= decAge;
+                          retVal.push(element);
+                        });
+                      return retVal;}, 10).value();
+      
+      expect(results[0].obj.age).toEqual(27);
+      expect(results[1].obj.age).toEqual(32);
+
+    });
+
     it("map", function(){
-      var results = g.v(1).out().map();
+      results = g.v(1).out().map();
       expect(results.length).toEqual(3);
 
       results = [];
@@ -569,6 +580,26 @@ describe("Heliosdb", function() {
 
   });
 
+  describe("Branch-Based Steps", function() {
+    it('loop', function(){
+
+      results = g.v(1).out().loop(1, 2).value();
+      expect(results.length).toEqual(2);
+      expect(results).toContainKeyValue('_id',5);
+      expect(results).toContainKeyValue('_id',3);      
+
+      results = g.v(4).out().in().loop(2, 1).value();
+      expect(results.length).toEqual(4);
+      expect(results).toContainKeyValue('_id',4);
+      expect(results).toContainKeyValue('_id',1);
+      expect(results).toContainKeyValue('_id',6);
+
+      results = g.v(4).out().in().loop(2, 3).value();
+      expect(results.length).toEqual(66);
+
+    });
+
+  });
 
 });
 

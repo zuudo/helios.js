@@ -3,42 +3,47 @@
 //graph.v(1).out().aggregate('step').where('same',['keys','lang','name']).except('step')._().value()
 //graph.v(1).out().aggregate('step').out().except('step')._().value()
 //graph.v(1).out().aggregate('step').out().where('inclAny',['keys','lang']).except('step')._().value()
-//;(function(window, undefined) {
 ;(function (window, undefined) {
     'use strict';
 
-/** Detect free variable `exports` */
+    /** Detect free variable 'exports' */
     var freeExports = typeof exports == 'object' && exports &&
             (typeof global == 'object' && global && global == global.global && (window = global), exports);
 
-    var ArrayProto = Array.prototype,
+    var toString = Object.prototype.toString,
+        ArrayProto = Array.prototype,
         push = ArrayProto.push,
         pop = ArrayProto.pop,
         slice = ArrayProto.slice,
         shift = ArrayProto.shift,
         indexOf = ArrayProto.indexOf,
         concat = ArrayProto.concat,
-        graph = {},
+        graph = { 'vertices': {}, 'edges': {} }, //,v_index: {} ,e_index: {}
         fn = {},
         comparable = {},
         util = {},
-        defaultPrototype = {},  /////////?????
-        pipeline = {},
-        pipedValue = [],
-        unchainedFuncs = ["value", "stringify", "map"];
+        pipeline = { 'steps': { 'currentStep': 0 }, 'namedStep': {} },
+        pipedObjects = [],
+        lastStepFuncs = ['value', 'stringify', 'map', 'clone', 'path'];
 
+//pipeline = pipelinePrototype;
     Function.prototype.pipe = function () {
         var that = this;
         return function () {
-            // New function runs the old function
-            var retVal = [];
-            push.call(retVal, pipedValue);
+            var pipedArgs = [],
+            isStep = !fn.include(['as', 'back', 'loop', 'groupCount', 'groupBy'], that.name);
 
-            fn.each(arguments, function (arg) {
-                push.call(retVal, arg);
-            });
-            pipedValue = [];
-            pipedValue = that.apply(this, retVal);
+            push.call(pipedArgs, pipedObjects);
+            push.apply(pipedArgs, arguments);
+            
+            if(isStep){
+                pipeline.steps[pipeline.steps.currentStep += 1] = { 'pipedInArgs': pipedArgs, 'func': that, 'pipedOutArgs':[] };
+            }
+            //New piped Objects to be passed to the next step
+            pipedObjects = that.apply(this, pipedArgs);
+            if(isStep && pipeline.steps.currentStep !== 0){
+                  push.call(pipeline.steps[pipeline.steps.currentStep].pipedOutArgs, pipedObjects);
+            }
             return this;
         };
     };
@@ -47,7 +52,7 @@
     function pipe() {
         var func;
         for (func in this) {
-            if (typeof this[func] == "function" && !fn.include(unchainedFuncs, func)) {
+            if (typeof this[func] == "function" && !fn.include(lastStepFuncs, func)) {
                 this[func] = this[func].pipe();
             }
         }
@@ -78,21 +83,6 @@
             Helios.ENV = 'undefined' === typeof ENV ? {} : ENV;
             Helios.CONF = 'undefined' === typeof CONFIG ? {} : CONFIG;
 
-
-    graph = {
-    	
-        vertices: {}
-        ,edges: {}
-    	//,v_index: {}
-    	//,e_index: {}
-    };
-
-    pipeline = {
-        steps: []
-        ,namedStep: {}
-    };
-
-
     Helios.newGraph = function(obj){ //Add conf param
     	//TODO: Cater for optional params
     	loadGraphSON(obj);
@@ -120,7 +110,7 @@
     			l = rows.length; 
 
     			for(i=0; i<l;i+=1) {
-    				graph.vertices[rows[i]._id] = { 'obj': rows[i], 'type': 'vertex', 'outE': {}, 'inE': {} };
+    				graph.vertices[rows[i]._id] = { 'obj': rows[i], 'type': 'vertex', 'outE': {}, 'inE': {}, 'path': {} };
     			}
     		}
     		
@@ -134,7 +124,7 @@
     				
     				if(!graph.vertices[edge.obj._outV]){
     					//create a dummy vertex then go get it from server async
-    					graph.vertices[edge.obj._outV] = { 'obj': {}, 'type': 'vertex', 'outE': {}, 'inE': {} };
+    					graph.vertices[edge.obj._outV] = { 'obj': {}, 'type': 'vertex', 'outE': {}, 'inE': {}, 'path': {} };
     					
     				}
     				vertex = graph.vertices[edge.obj._outV];
@@ -146,7 +136,7 @@
 
     				if(!graph.vertices[edge.obj._inV]){
     					//create a dummy vertex then go get it from server async
-    					graph.vertices[edge.obj._inV] = { 'obj': {}, 'type': 'vertex', 'outE': {}, 'inE': {} };
+    					graph.vertices[edge.obj._inV] = { 'obj': {}, 'type': 'vertex', 'outE': {}, 'inE': {}, 'path': {} };
     					
     				}
     				vertex = graph.vertices[edge.obj._inV];
@@ -164,11 +154,62 @@
     };
 
     util.resetPipe = function (){
-    	pipedValue = [];
-    	pipeline.steps = [];
-    	pipeline.namedStep = {};
+    	pipedObjects = [];
+        pipeline = {};
+        pipeline = {
+            'steps': {
+                'currentStep': 0
+            },
+            'namedStep': {}            
+        };
     }
 
+    util.toArray = function(o){
+        var k, r = [];
+        for(k in o) {
+            r.push(o[k]);
+        }
+        return r;        
+    }
+    
+    util.isArray = function(o){
+        return toString.call(o) === '[object Array]';
+    }
+
+    util.isString = function(o){
+        return toString.call(o) === '[object String]';
+    }
+    util.isNumber = function(o){
+        return toString.call(o) === '[object Number]';
+    }
+    
+    util.isDate = function(o){
+        return toString.call(o) === '[object Date]';
+    }
+    
+    util.isEmpty = function(o){
+        for(var key in o){
+            return !o[key];
+        }
+    }
+
+    util.isFunction = function(o){
+        return toString.call(o) === '[object Function]';    
+    }
+    util.isNull = function(o){
+        return toString.call(o) === '[object Null]';
+    }
+
+    util.isUndefined = function(o){
+        return toString.call(o) === '[object Undefined]';
+    }
+/*    util.isFalsey = function(o){
+        return  !!!o;
+    }
+    util.isTruthy = function(o){
+        return  !!o;
+    }*/
+    
     fn.intersection = function (arr1, arr2){
         var r = [], o = {}, i;
         for (i = 0; i < arr2.length; i++) {
@@ -205,6 +246,47 @@
         return r;
 
     }
+    fn.uniqueObject = function(array){
+
+        var o = {}, i, l = array.length, r = [];
+        for(i=0; i<l;i+=1) o[array[i].obj._id] = array[i];
+        for(i in o) r.push(o[i]);
+        return r;
+
+    }
+    
+    fn.countBy = function(array, prop, o){
+
+        var i, l = array.length, clone = {};
+        if(!o){
+            o = {};
+        }
+        for(i=0; i<l;i+=1) {
+            clone = fn.clone(array[i].obj);
+            !o[clone[prop]] ? o[clone[prop]] = 1 : o[clone[prop]] += 1;
+        }
+        return o;
+
+    }
+
+    fn.groupBy = function(array, prop, o){
+
+        var i, l = array.length, clone = {};
+        if(!o){
+            o = {};
+        }
+        for(i=0; i<l;i+=1) {
+            clone = fn.clone(array[i].obj);
+            !o[clone[prop]] ? o[clone[prop]] = [clone] : push.call(o[clone[prop]], clone);
+            delete clone[prop];
+        }
+        return o;
+
+    }
+    fn.clone = function(o){
+        return JSON.parse(JSON.stringify(o));
+    }
+
     fn.include = function(array, i){
         return indexOf.call(array, i) === -1 ? false : true;
     }
@@ -267,8 +349,7 @@
         for (var i = 0; i < len; i++)
         {
             val = array[i]; // in case func mutates this
-            
-              retVal.push(func.call(null, val));
+            retVal.push(func.call(null, val));
         }
               
         return retVal;
@@ -304,46 +385,8 @@
         {
             val = array[i]; // in case func mutates this
             func.call(null, val);
-              //retVal.push(val);
-        }
-              
-        //return retVal;
-
-    }
-    util.isArray = function(o){
-        return Object.prototype.toString.call(o) === '[object Array]';
-    }
-
-    util.isString = function(o){
-        return Object.prototype.toString.call(o) === '[object String]';
-    }
-    util.isNumber = function(o){
-        return Object.prototype.toString.call(o) === '[object Number]';
-    }
-    util.isEmpty = function(o){
-        for(var key in o){
-            return !o[key];
         }
     }
-    util.isFalsey = function(){}
-    util.isFunction = function(o){
-        return Object.prototype.toString.call(o) === '[object Function]';    
-    }
-    util.isUndefined = function(o){
-        return Object.prototype.toString.call(o) === '[object Undefined]';
-    }
-    util.toArray = function(o){
-        var k, r = [];
-        for(k in o) {
-            r.push(o[k]);
-        }
-        return r;        
-    }
-    
-
-
-
-//object.hasOwnProperty(proName)
 
     /**
        * Extracts the wrapped value.
@@ -357,8 +400,8 @@
        * _([1, 2, 3]).value();
        * // => [1, 2, 3]
        */
-    function wrapperValue(){
-    	var retVal = pipedValue;
+    function pipedValue(){
+    	var retVal = pipedObjects;
     	util.resetPipe();
     	return retVal;
     }
@@ -366,12 +409,36 @@
     //TODO: Need a function that returns that obj in a format that allows lodash to perform its functions on the obj
     function stringify(){
         var retVal = [], args = arguments;
-        if(!!pipedValue[0].obj){
+        if(!!pipedObjects[0] && !!pipedObjects[0].obj){
     		return JSON.stringify(map.apply(null, args));
     	}
-    	retVal = pipedValue;
+    	retVal = pipedObjects;
     	util.resetPipe();
     	return JSON.stringify(retVal);
+    }
+
+    function path() {
+
+
+        var retVal = [], stepPaths, stepsObj = pipeline.steps, retVal = [], o={}, edge, edgeStr, i, j, stepRecs, len;
+
+        for(i = 1; i <= stepsObj.currentStep; i++){
+            stepRecs = stepsObj[i].pipedOutArgs[0];
+            stepPaths = o['step '+i] = [];
+            for(j=0, len = stepRecs.length; j<len;j++){
+                if(stepRecs[j].type === 'vertex'){
+                    push.call(stepPaths,'v['+stepRecs[j].obj._id+']');
+                } else {
+                    edge = stepRecs[j].obj;
+                    edgeStr = 'v['+ edge._outV + '], e[' + edge._id + '][' + edge._outV + '-' + edge._label + '->' + edge._inV + '], v[' + edge._inV +']';
+                    push.call(stepPaths,edgeStr);
+                }
+            }
+        }
+        push.call(retVal,JSON.stringify(o));
+        push.apply(retVal, pipedObjects);
+        util.resetPipe();
+        return retVal;
     }
 
     function v() {
@@ -383,7 +450,7 @@
         	length--;
             push.call(retVal, graph.vertices[args[length]]);
         }
-        pipeline.steps.push(retVal);
+         
         return retVal;
 
     }
@@ -396,7 +463,7 @@
             length--;
             push.call(retVal, graph.edges[args[length]]);
         }
-        pipeline.steps.push(retVal);
+         
         return retVal;
     }
 
@@ -406,7 +473,7 @@
         retVal = fn.map(arguments[0], function(element, key, list) {
             return element.obj._id;
         });
-        pipeline.steps.push(retVal);
+         
         return retVal;
     }
 
@@ -418,7 +485,7 @@
             return element.obj._label;
         });
 
-        pipeline.steps.push(retVal);
+         
         return retVal;
     }
 
@@ -439,8 +506,7 @@
                 });
             }
         });
-
-        push.call(pipeline.steps,retVal);
+         
         return retVal;
     }
 
@@ -448,11 +514,11 @@
         var retVal = fn.map(arguments[0], function(edge, key, list) {
         	return edge.outV;
         });
-        pipeline.steps.push(retVal);
+         
         return retVal;
     }
 
-    function in_() {
+     function _in () {
 
         var retVal = [],
             args = slice.call(arguments, 1);
@@ -470,7 +536,7 @@
             }
         });
 
-        pipeline.steps.push(retVal);
+         
         return retVal;
     }
 
@@ -478,7 +544,7 @@
         var retVal = fn.map(arguments[0], function(edge, key, list) {
             return edge.inV;
         });
-        pipeline.steps.push(retVal);
+         
         return retVal;
     }
 
@@ -510,7 +576,7 @@
             }
         });
     	
-        pipeline.steps.push(retVal);
+         
         return retVal;
     }
 
@@ -518,21 +584,10 @@
         var retVal = [];
 
         fn.each(arguments[0], function(edge, key, list) {
-
-
-                    push.call(retVal, edge.inV);
-
-                    push.call(retVal, edge.outV);
+            push.call(retVal, edge.inV);
+            push.call(retVal, edge.outV);
        });
-        
-        pipeline.steps.push(retVal);
-        return retVal;
-
-    	// var retVal = fn.map(arguments[0], function(edge, key, list) {
-     //        return edge.outV;
-     //    });
-     //    graph.step.push(retVal);
-     //    return retVal;
+       return retVal;
     }
 
     function outE() {
@@ -552,10 +607,7 @@
                 });
             }
         });
-
-        pipeline.steps.push(retVal);
         return retVal;
-
     }
 
     function inE() {
@@ -576,7 +628,7 @@
             }
         });
 
-        pipeline.steps.push(retVal);
+         
         return retVal;
     }
 
@@ -609,7 +661,7 @@
             }
         });
 
-        pipeline.steps.push(retVal);
+         
         return retVal;
     }
 
@@ -617,7 +669,7 @@
         var retVal = [];
 
         retVal = util.toArray(graph.vertices);
-        pipeline.steps.push(retVal);
+         
 
         return retVal;
     }
@@ -626,24 +678,19 @@
         var retVal = [];
 
         retVal = util.toArray(graph.edges);
-        pipeline.steps.push(retVal);
+         
 
         return retVal;
     }
 
-    function __(){
-    	pipeline.steps.push(arguments);
-        return arguments[0]; 
-    }
-
-    //TODO: Need to look at aggregate to apply {closure}
-    function aggregate(){
+    //fill array with objects emitted from this step
+    function store(){
         var retVal = arguments[0],
             args = slice.call(arguments, 1), func, funcArgs = [];
 
             if(!!args.length){
-                //if passwd in argument is an Array populate it and move on else store as a named pipe 
-                util.isArray(args[0]) ? push.apply(args[0],arguments[0]) : pipeline.namedStep[args[0]] = pipeline.steps.length;
+                //if pass an Array populate it and move on else store as a named pipe 
+                util.isArray(args[0]) ? push.apply(args[0],arguments[0]) : pipeline.namedStep[args[0]] = pipeline.steps.currentStep;
 
                 if(util.isFunction(args[1]) || util.isFunction(args[0])){
                     if(util.isFunction(args[1])) {
@@ -657,62 +704,48 @@
                     retVal = func.apply(arguments[0] ,funcArgs);
                 }           
             }
-        pipeline.steps.push(retVal);
+         
         return retVal;
     }
 
-    //function andFilter() {}
-
     function as(){
 
-        pipeline.namedStep[arguments[1]] = pipeline.steps.length;
+        pipeline.namedStep[arguments[1]] = pipeline.steps.currentStep;
         return arguments[0];
     }
 
     function back(){
-        var arg = arguments[1],
-            length = pipeline.steps.length, steps = 0;
-        if(util.isUndefined(arg))
-        {
-            arg = 1;
-        }
-        if(util.isString(arg)){
-            if(util.isUndefined(pipeline.namedStep[arg])){
-                //raise error
-                // graph.tap(function(){
-                //     alert('Error!! - No step called "' + arg + '"');
-                // });
-                return;
+        var backSteps = arguments[1],
+            stepBackTo;
+        
+        
+            if(util.isString(backSteps)){
+                if(util.isUndefined(pipeline.namedStep[backSteps])){
+                    //raise error
+                    // graph.tap(function(){
+                    //     alert('Error!! - No step called "' + arg + '"');
+                    // });
+                    return;
+                }
+                stepBackTo = pipeline.namedStep[backSteps];
+            } else {
+                stepBackTo = pipeline.steps.currentStep - backSteps;
+                
             }
-            arg = length - pipeline.namedStep[arg];
-        }
 
-        steps = arg > length ? length - 1 : arg;
-        while(steps){
-            pipeline.steps.pop();
-            steps--;
-        }
-        return slice.call(pipeline.steps, -1);
+        return pipeline.steps[stepBackTo].pipedOutArgs[0];
     }
-
-    //function cap() {}
-
-    function copySplit() {}
 
     function except(){
 
         var arg = arguments[1], dSet, diff, retVal = [];
 
-        dSet = pipeline.steps[pipeline.namedStep[arg] - 1];
+        dSet = pipeline.steps[pipeline.namedStep[arg]];
         retVal = fn.difference(arguments[0],dSet);
-        pipeline.steps.push(retVal);
+         
         return retVal;
     }
 
-    function exhaustMerge() {}
-    function fairMerge() {}
-    function sideEffect() {}
-    //function transform() {}
 
     function filter(){
         var  retVal = []
@@ -731,7 +764,7 @@
             argLen = funcArgs.length;
 
             for(var i=0; i < argLen; i++){
-                funcParam.push(pipeline.steps[pipeline.namedStep[funcArgs[i]]-1]);
+                funcParam.push(pipeline.steps[pipeline.namedStep[funcArgs[i]]].pipedInArgs[0]);
             }
             retVal = func.apply(records ,funcParam);
             
@@ -745,42 +778,16 @@
             }
         }
         
-        pipeline.namedStep.filter = pipeline.steps.length;    
-        pipeline.steps.push(retVal);
+        pipeline.namedStep.filter = pipeline.steps.currentStep;    
+         
         return retVal;
     }
-
-    //function gather() {}
-    function groupCount() {}
-    function ifThenElse() {}
-    function loop() {}
-
-    function map(){
-    	var retVal, params = [], args = arguments;
-        //if args passed need to do fn.pick()
-    	!!args.length ? 
-    		retVal = fn.map(pipedValue, function(element){
-    			 params = [];
-    			 push.call(params, element.obj);
-    			 push.apply(params, args);
-    			return fn.pick.apply(this, params);
-    		}) :
-    		retVal = fn.map(pipedValue, function(element){
-    			return element.obj;
-    		})
-
-    	util.resetPipe();
-        return retVal;
-    }
-
-    //function memoize() {}
-    //function optional() {}
 
     function orFilter() {
         var  retVal = []
-            ,lastStep = arguments[0]
+            ,prevObjs = arguments[0]
             ,args = slice.call(arguments, 1)
-            ,filterStep = pipeline.steps[pipeline.namedStep.filter - 1]
+            ,filterObjs = pipeline.steps[pipeline.namedStep.filter].pipedInArgs[0]
             ,func
             ,funcArgs = []
             ,funcParam = []
@@ -794,16 +801,16 @@
             argLen = funcArgs.length;
 
             for(var i=0; i < argLen; i++){
-                funcParam.push(pipeline.steps[pipeline.namedStep[funcArgs[i]]-1]);
+                funcParam.push(pipeline.steps[pipeline.namedStep[funcArgs[i]].pipedInArgs[0]]);
             }
 
-            retVal = func.apply(filterStep ,funcParam);
+            retVal = func.apply(filterObjs ,funcParam);
         } else {
 
             argLen = args.length;
             while(argLen){
                 argLen -= 2;
-                retVal = fn.filter(filterStep, comparable[args[argLen]](args[argLen + 1]));
+                retVal = fn.filter(filterObjs, comparable[args[argLen]](args[argLen + 1]));
             }
 
         }
@@ -813,39 +820,48 @@
         }
         ids = fn.unique(ids);
 
-        for (var i = 0, len = lastStep.length; i < len; i++){
-            if(!fn.include(ids, lastStep[i].obj._id)){
-                push.call(retVal, lastStep[i]);
+        for (var i = 0, len = prevObjs.length; i < len; i++){
+            if(!fn.include(ids, prevObjs[i].obj._id)){
+                push.call(retVal, prevObjs[i]);
             }
         }
-        
-
-        pipeline.steps.push(retVal);
+         
         return retVal;    
     }
-    function paths() {}
-    function propertyFilter() {}
-    //function random() {}
+
+    function map(){
+        var retVal, params = [], args = arguments;
+        //if args passed need to do fn.pick()
+        !!args.length ? 
+            retVal = fn.map(pipedObjects, function(element){
+                 params = [];
+                 push.call(params, element.obj);
+                 push.apply(params, args);
+                return fn.pick.apply(this, params);
+            }) :
+            retVal = fn.map(pipedObjects, function(element){
+                return element.obj;
+            })
+
+        util.resetPipe();
+        return retVal;
+    }
 
     function retain(){
 
         var arg = arguments[1], dSet, diff, retVal = [];
 
-        dSet = pipeline.steps[pipeline.namedStep[arg] - 1];
+        dSet = pipeline.steps[pipeline.namedStep[arg]];
         retVal = fn.intersection(arguments[0],dSet);
-        pipeline.steps.push(retVal);
+         
         return retVal;
     }
-
-    //function scatter() {}
 
     function step() {
         var  retVal
             ,args = slice.call(arguments, 1)
-            ,prevStep = slice.call(pipeline.steps, -1)
             ,func
-            ,funcArgs = []
-            ,argLen;
+            ,funcArgs = [];
 
         if(util.isFunction(args[0])){
             func = args[0];
@@ -854,19 +870,71 @@
         } else {
             retVal = "Invalid function";
         }
-        
-        push.call(pipeline.steps, retVal);
         return retVal;    
 
     }
 
-    function reduce() {}
-    //function table() {}
-    function uniqueObject() {}
-    function uniquePath() {}
+    function groupCount() {
+        var retVal,
+            args = slice.call(arguments,1);
+        if(args.length > 1) {
+            retVal = arguments[0];
+            fn.countBy(arguments[0],args[1], args[0]);
+        } else {
+            retVal = fn.countBy(arguments[0],args[0]);
+        }
+        return retVal;
+    }
+
+    function groupBy() {
+        var retVal,
+            args = slice.call(arguments,1);
+        if(args.length > 1) {
+            retVal = arguments[0];
+            fn.groupBy(arguments[0],args[1], args[0]);
+        } else {
+            retVal = fn.groupBy(arguments[0],args[0]);
+        }
+        return retVal;        
+    }
+    //function ifThenElse() {}
+    function loop() {
+
+        var backSteps = arguments[1],
+            iterations = arguments[2] - 1, //Reduce the iterations because one has already been done
+            func,
+            funcName,
+            fromStep,
+            toStep;
+        
+            while(iterations--){
+                fromStep = pipeline.steps.currentStep + 1 - backSteps; //Need to add one to allow for loop step which is not counted
+                toStep = pipeline.steps.currentStep;
+                for(var j=fromStep; j<=toStep; j++){
+                    func = pipeline.steps[j].func;
+                    funcName = func.name === '_in'? 'in' : func.name;
+                    this[funcName].apply(pipeline.steps[j].pipedInArgs[0], slice.call(pipeline.steps[j].pipedInArgs, 1));
+                }
+                
+            }
+
+        return pipeline.steps[pipeline.steps.currentStep].pipedOutArgs[0];        
+
+    }
+    
+    function dedup() {
+        var  retVal = fn.uniqueObject(arguments[0]);
+        return retVal;  
+    }
+
+    function clone() {
+        return JSON.parse(stringify());
+    }
+
+    //function sideEffect() {}
+    //function transform() {}
 
     //comparables
-
     comparable.eq = function(atts){
         return function(x){
 
@@ -1001,18 +1069,19 @@
         }
     }
 
+    //Generic Step
+    Helios.prototype.step = step;
 
-    Helios.prototype._ = __;
+    //Transform-Based Steps
+    Helios.prototype.transform = step;
     Helios.prototype.map = map;
     Helios.prototype.id = id;
     Helios.prototype.label = label;
 
-    Helios.prototype.v = v;
-    Helios.prototype.e = e;
     Helios.prototype.V = V;
     Helios.prototype.E = E;
     Helios.prototype.out = out;
-    Helios.prototype.in = in_;
+    Helios.prototype.in = _in;
     Helios.prototype.outV = outV;
     Helios.prototype.outE = outE;
     Helios.prototype.inV = inV;
@@ -1020,25 +1089,55 @@
     Helios.prototype.both = both;
     Helios.prototype.bothV = bothV;
     Helios.prototype.bothE = bothE;
+    Helios.prototype.path = path;
+    Helios.prototype.stringify = stringify;
+    Helios.prototype.value = pipedValue;
 
+    //Filter-Based Steps
     Helios.prototype.filter = filter;
     Helios.prototype.andFilter = filter;
     Helios.prototype.orFilter = orFilter;
-
-    Helios.prototype.as = as;
     Helios.prototype.back = back;
-    Helios.prototype.aggregate = aggregate;
-    Helios.prototype.store = aggregate;
     Helios.prototype.except = except;
     Helios.prototype.retain = retain;
+    Helios.prototype.dedup = dedup;
 
-    Helios.prototype.stringify = stringify;
-    Helios.prototype.value = wrapperValue;
-    Helios.prototype.step = step;
-    Helios.prototype.transform = step;
-    Helios.prototype.gather = step;
+    //SideEffect-Based Steps
+    Helios.prototype.sideEffect = step;
+    Helios.prototype.as = as;
+    //Helios.prototype.aggregate = aggregate;
+    Helios.prototype.store = store;
+    Helios.prototype.groupCount = groupCount;
+    Helios.prototype.groupBy = groupBy;
 
+    //Branch-Based Steps
+    Helios.prototype.loop = loop;
+    //Helios.prototype.ifThenElse = ifThenElse;
+
+    //Methods
+    Helios.prototype.v = v;
+    Helios.prototype.e = e;
     Helios.prototype.loadGraphSON = loadGraphSON;
+
+    //Misc
+    Helios.prototype.clone = clone;
+
+    /*Not implemented*/
+    //function _(){}
+    //function cap() {}
+    //function copySplit() {}
+    //function exhaustMerge() {}
+    //function fairMerge() {}
+    //function gather() {}
+    //function memoize() {}
+    //function optional() {}
+    //function propertyFilter() {}
+    //function random() {}
+    //function scatter() {}
+    //function reduce() {}
+    //function table() {}
+    //function uniquePath() {}
+
 
     //Helios.prototype.fn = fn;
     	
