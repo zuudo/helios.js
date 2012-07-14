@@ -31,7 +31,7 @@
         var that = this;
         return function () {
             var pipedArgs = [],
-            isStep = !fn.include(['as', 'back', 'loop', 'groupCount', 'groupBy'], that.name);
+            isStep = !fn.include(['as', 'back', 'loop', 'groupCount', 'groupBy', 'groupSum'], that.name);
 
             push.call(pipedArgs, pipedObjects);
             push.apply(pipedArgs, arguments);
@@ -255,34 +255,84 @@
 
     }
     
-    fn.countBy = function(array, prop, o){
+    fn.countBy = function(array, o, props){
 
-        var i, l = array.length, clone = {};
-        if(!o){
+        var retVal = arguments[0],
+            i, j, 
+            l = array.length, 
+            element = {},
+            propsLen;
+
+        if(!props){
+            props = o;
             o = {};
+            retVal = o;
         }
+        propsLen = props.length;
         for(i=0; i<l;i+=1) {
-            clone = fn.clone(array[i].obj);
-            !o[clone[prop]] ? o[clone[prop]] = 1 : o[clone[prop]] += 1;
+            element = array[i].obj;
+            for(j=0; j < propsLen; j++){
+                !o[props[j]] ? o[props[j]] = 1  : o[props[j]] += 1 ;
+            }
         }
-        return o;
+        return retVal;
 
     }
+    fn.sumBy = function(array, o, props){
 
-    fn.groupBy = function(array, prop, o){
+        var retVal = arguments[0],
+            i, j, 
+            l = array.length, 
+            element = {},
+            propsLen;
 
-        var i, l = array.length, clone = {};
-        if(!o){
+        if(!props){
+            props = o;
             o = {};
+            retVal = o;
         }
+        propsLen = props.length;
         for(i=0; i<l;i+=1) {
-            clone = fn.clone(array[i].obj);
-            !o[clone[prop]] ? o[clone[prop]] = [clone] : push.call(o[clone[prop]], clone);
-            delete clone[prop];
+            element = array[i].obj;
+            for(j=0; j < propsLen; j++){
+                !o[props[j]] ? o[props[j]] = element[props[j]] : o[props[j]] += element[props[j]];
+            }
         }
-        return o;
+        return retVal;
 
     }
+    fn.groupBy = function(array, o, props){
+
+        var retVal = arguments[0],
+            i, j,
+            l = array.length,
+            element = {},
+            propsLen,
+            group;
+
+        if(!props){
+            props = o;
+            o = {};
+            retVal = o;
+        }
+        propsLen = props.length;
+        for(i=0; i<l; i+=1) {
+            element = array[i].obj;
+            group = o;
+            for(j=0; j < propsLen; j++){
+                if(j === propsLen - 1){
+                    !group[element[props[j]]] ? group[element[props[j]]] = [element]: push.call(group[element[props[j]]],element);
+                }else {
+                    if(!group[element[props[j]]]) {
+                        group[element[props[j]]] = {};
+                    }                    
+                }
+                group = group[element[props[j]]];
+            }
+        }
+        return retVal;
+    }
+
     fn.clone = function(o){
         return JSON.parse(JSON.stringify(o));
     }
@@ -874,30 +924,45 @@
 
     }
 
+    //var t = {};
+    //g.v(1).out('knows').groupCount(t,['salary','age']).value()
+    //to aggregate call this function multiple times passing in same variable
+    //g.v(1).out('knows').groupCount(t,['salary','age']).in.groupCount(t,['salary','age']).value()
     function groupCount() {
-        var retVal,
-            args = slice.call(arguments,1);
-        if(args.length > 1) {
-            retVal = arguments[0];
-            fn.countBy(arguments[0],args[1], args[0]);
-        } else {
-            retVal = fn.countBy(arguments[0],args[0]);
-        }
-        return retVal;
+        var args = fn.flatten(slice.call(arguments,1)),
+            objVar= args[0], params;
+        
+        util.isString(args[0]) ? objVar = slice.call(args) : params = slice.call(args,1);
+
+        return fn.countBy(arguments[0], objVar, params);
     }
 
-    function groupBy() {
-        var retVal,
-            args = slice.call(arguments,1);
-        if(args.length > 1) {
-            retVal = arguments[0];
-            fn.groupBy(arguments[0],args[1], args[0]);
-        } else {
-            retVal = fn.groupBy(arguments[0],args[0]);
-        }
-        return retVal;        
+    //var t = {};
+    //g.v(1).out('knows').groupSum(t,['salary','age']).value()
+    //to aggregate call this function multiple times passing in same variable
+    //g.v(1).out('knows').groupCount(t,['salary','age']).in.groupSum(t,['salary','age']).value()
+    function groupSum() {
+        var args = fn.flatten(slice.call(arguments,1)),
+            objVar= args[0], params;
+        
+        util.isString(args[0]) ? objVar = slice.call(args) : params = slice.call(args,1);
+
+        return fn.sumBy(arguments[0], objVar, params);
     }
+
+    //var t = {};
+    //g.v(1).out('knows').groupBy(t,['salary','age']).value()
+    function groupBy() {
+        var args = fn.flatten(slice.call(arguments,1)),
+            objVar= args[0], params;
+        
+        util.isString(args[0]) ? objVar = slice.call(args) : params = slice.call(args,1);
+
+        return fn.groupBy(arguments[0], objVar, params);        
+    }
+
     //function ifThenElse() {}
+    //loop(back Step, number of iterations i.e. how many times you would like to see those steps);
     function loop() {
 
         var backSteps = arguments[1],
@@ -1109,6 +1174,7 @@
     Helios.prototype.store = store;
     Helios.prototype.groupCount = groupCount;
     Helios.prototype.groupBy = groupBy;
+    Helios.prototype.groupSum = groupSum;
 
     //Branch-Based Steps
     Helios.prototype.loop = loop;
