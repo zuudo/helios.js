@@ -446,6 +446,17 @@ describe("Transform-Based Steps", function() {
 
     });
 
+    it("except", function(){
+      results = g.v(1).out().store('x').out().except('x').value();
+      expect(results.length).toEqual(1);
+      expect(results).toContainKeyValue('_id',5);
+    });
+    
+    it("retain", function(){
+      results = g.v(1).out().store('x').out().retain('x').value();
+      expect(results.length).toEqual(1);
+      expect(results).toContainKeyValue('_id',3);
+    });
 
   });
 
@@ -492,21 +503,25 @@ describe("Transform-Based Steps", function() {
 
     it("store", function(){
 
-      results = g.v(1).outE().inV().store('x').outE().inV()
+      results = g.v(1).out().store('x').out()
                     .filter(function(x) { 
-                      var retVal = [], isContained = false;
-                      _.each(this, function(element){
-                        isContined = false;
-                        _.each(x, function(item){ 
-                             if(item.obj._id === element.obj._id) {
-                               isContained = true;
+
+                      var difference = function(arr1, arr2, isObj){
+                              var r = [], o = {}, i, comp;
+                              for (i = 0; i < arr2.length; i++) {
+                                  !!isObj ? o[arr2[i].obj._id] = true : o[arr2[i]] = true;
                               }
-                           });
-                        if(!isContained){
-                          retVal.push(element);
-                        }
-                      });
-                      return retVal;}, 'x').value();
+                              
+                              for (i = 0; i < arr1.length; i++) {
+                                  comp = !!isObj ? arr1[i].obj._id : arr1[i];
+                                  if (!o[comp]) {
+                                      r.push(arr1[i]);
+                                  }
+                              }
+                              return r;
+                          }
+
+                      return difference(this, x, true);}, 'x').value();
 
       expect(results.length).toEqual(1);
       expect(results).toContainKeyValue('_id',5);
@@ -575,6 +590,67 @@ describe("Transform-Based Steps", function() {
       expect(results).toContainMap('name','marko');
       expect(results).toContainMap('age',29);
       expect(results).not.toContainMap('_id',1);
+
+    });
+
+    it("groupBy", function(){
+      results = g.V().outE().inV().groupBy('age','name').value();
+      expect(JSON.stringify(results)).toEqual('{"27":{"vadas":[{"name":"vadas","age":27,"_id":2,"_type":"vertex"}]},"32":{"josh":[{"name":"josh","age":32,"_id":4,"_type":"vertex"}]},"undefined":{"lop":[{"name":"lop","lang":"java","_id":3,"_type":"vertex"},{"name":"lop","lang":"java","_id":3,"_type":"vertex"},{"name":"lop","lang":"java","_id":3,"_type":"vertex"}],"ripple":[{"name":"ripple","lang":"java","_id":5,"_type":"vertex"}]}}');
+
+
+    });
+
+    it("groupCount", function(){
+
+      results = g.v(1).out('knows').groupCount('_type').value();
+      expect(JSON.stringify(results)).toEqual('{"_type":2}');
+
+      results = g.v(1).out('knows').groupCount(['_type', '_id']).value();
+      expect(JSON.stringify(results)).toEqual('{"_type":2,"_id":2}');
+
+      results = g.v(1).out('knows').groupCount('_type', '_id').value();
+      expect(JSON.stringify(results)).toEqual('{"_type":2,"_id":2}');
+
+      var t = {};
+      results = g.v(1).out('knows').groupCount(t, ['_type', '_id']).value();
+      expect(results.length).toEqual(2);
+      expect(results).toContainKeyValue('_id',2);
+      expect(results).toContainKeyValue('_id',4);      
+
+      expect(JSON.stringify(t)).toEqual('{"_type":2,"_id":2}');
+
+      var t = {};
+      results = g.v(1).out('knows').groupCount(t, '_type', '_id').value();
+      expect(results.length).toEqual(2);
+      expect(results).toContainKeyValue('_id',2);
+      expect(results).toContainKeyValue('_id',4);      
+
+      expect(JSON.stringify(t)).toEqual('{"_type":2,"_id":2}');
+
+    });
+
+    it("groupSum", function(){
+      results = g.v(1).out('knows').groupSum('age').value();
+      expect(JSON.stringify(results)).toEqual('{"age":59}');
+
+      results = g.v(1).out('knows').groupSum('age', '_id').value();
+      expect(JSON.stringify(results)).toEqual('{"age":59,"_id":6}');
+
+      var t = {};
+      results = g.v(1).out('knows').groupSum(t, 'age', '_id').value();
+      expect(results.length).toEqual(2);
+      expect(results).toContainKeyValue('_id',2);
+      expect(results).toContainKeyValue('_id',4);      
+
+      expect(JSON.stringify(t)).toEqual('{"age":59,"_id":6}');
+
+      var t = {};
+      results = g.v(1).out('knows').groupSum(t, ['age', '_id']).value();
+      expect(results.length).toEqual(2);
+      expect(results).toContainKeyValue('_id',2);
+      expect(results).toContainKeyValue('_id',4);      
+
+      expect(JSON.stringify(t)).toEqual('{"age":59,"_id":6}');
 
     });
 

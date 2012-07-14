@@ -18,20 +18,20 @@
         shift = ArrayProto.shift,
         indexOf = ArrayProto.indexOf,
         concat = ArrayProto.concat,
-        graph = { 'vertices': {}, 'edges': {} }, //,v_index: {} ,e_index: {}
+        graph = { 'vertices': {}, 'edges': {}, 'v_index': {}, 'e_index': {} },
         fn = {},
         comparable = {},
         util = {},
-        pipeline = { 'steps': { 'currentStep': 0 }, 'namedStep': {} },
+        pipeline,
         pipedObjects = [],
         lastStepFuncs = ['value', 'stringify', 'map', 'clone', 'path'];
 
-//pipeline = pipelinePrototype;
+    //pipeline = pipelinePrototype;
     Function.prototype.pipe = function () {
         var that = this;
         return function () {
             var pipedArgs = [],
-            isStep = !fn.include(['as', 'back', 'loop', 'groupCount', 'groupBy', 'groupSum'], that.name);
+            isStep = !fn.include(['as', 'back', 'loop', 'groupCount', 'groupBy', 'groupSum', 'store'], that.name);
 
             push.call(pipedArgs, pipedObjects);
             push.apply(pipedArgs, arguments);
@@ -61,7 +61,8 @@
 
     //Object constructor
     function Helios () {
-       return pipe.call(this);
+        util.resetPipe();
+        return pipe.call(this);
     }
 
     /**
@@ -80,7 +81,7 @@
     Helios.toString = function() { return "Helios"; };
 
             Helios.VERSION = '0.0.1';
-            Helios.ENV = 'undefined' === typeof ENV ? {} : ENV;
+            //Helios.ENV = 'undefined' === typeof ENV ? {} : ENV;
             Helios.CONF = 'undefined' === typeof CONFIG ? {} : CONFIG;
 
     Helios.newGraph = function(obj){ //Add conf param
@@ -110,7 +111,7 @@
     			l = rows.length; 
 
     			for(i=0; i<l;i+=1) {
-    				graph.vertices[rows[i]._id] = { 'obj': rows[i], 'type': 'vertex', 'outE': {}, 'inE': {}, 'path': {} };
+    				graph.vertices[rows[i]._id] = { 'obj': rows[i], 'type': 'vertex', 'outE': {}, 'inE': {} };
     			}
     		}
     		
@@ -124,7 +125,7 @@
     				
     				if(!graph.vertices[edge.obj._outV]){
     					//create a dummy vertex then go get it from server async
-    					graph.vertices[edge.obj._outV] = { 'obj': {}, 'type': 'vertex', 'outE': {}, 'inE': {}, 'path': {} };
+    					graph.vertices[edge.obj._outV] = { 'obj': {}, 'type': 'vertex', 'outE': {}, 'inE': {} };
     					
     				}
     				vertex = graph.vertices[edge.obj._outV];
@@ -136,7 +137,7 @@
 
     				if(!graph.vertices[edge.obj._inV]){
     					//create a dummy vertex then go get it from server async
-    					graph.vertices[edge.obj._inV] = { 'obj': {}, 'type': 'vertex', 'outE': {}, 'inE': {}, 'path': {} };
+    					graph.vertices[edge.obj._inV] = { 'obj': {}, 'type': 'vertex', 'outE': {}, 'inE': {} };
     					
     				}
     				vertex = graph.vertices[edge.obj._inV];
@@ -155,7 +156,6 @@
 
     util.resetPipe = function (){
     	pipedObjects = [];
-        pipeline = {};
         pipeline = {
             'steps': {
                 'currentStep': 0
@@ -203,35 +203,31 @@
     util.isUndefined = function(o){
         return toString.call(o) === '[object Undefined]';
     }
-/*    util.isFalsey = function(o){
-        return  !!!o;
-    }
-    util.isTruthy = function(o){
-        return  !!o;
-    }*/
     
-    fn.intersection = function (arr1, arr2){
-        var r = [], o = {}, i;
+    fn.intersection = function (arr1, arr2, isObj){
+        var r = [], o = {}, i, comp;
         for (i = 0; i < arr2.length; i++) {
-            o[arr2[i]] = true;
+            !!isObj ? o[arr2[i].obj._id] = true : o[arr2[i]] = true;
         }
         
         for (i = 0; i < arr1.length; i++) {
-            if (!!o[arr1[i]]) {
+            comp = !!isObj ? arr1[i].obj._id : arr1[i];
+            if (!!o[comp]) {
                 r.push(arr1[i]);
             }
         }
         return r;
     }
 
-    fn.difference = function(arr1, arr2){
-        var r = [], o = {}, i;
+    fn.difference = function(arr1, arr2, isObj){
+        var r = [], o = {}, i, comp;
         for (i = 0; i < arr2.length; i++) {
-            o[arr2[i]] = true;
+            !!isObj ? o[arr2[i].obj._id] = true : o[arr2[i]] = true;
         }
         
         for (i = 0; i < arr1.length; i++) {
-            if (!o[arr1[i]]) {
+            comp = !!isObj ? arr1[i].obj._id : arr1[i];
+            if (!o[comp]) {
                 r.push(arr1[i]);
             }
         }
@@ -279,6 +275,7 @@
 
     }
     fn.sumBy = function(array, o, props){
+        //TODO: Need to cater for CURRENCIES
 
         var retVal = arguments[0],
             i, j, 
@@ -439,12 +436,12 @@
     }
 
     /**
-       * Extracts the wrapped value.
+       * Extracts the piped value.
        *
        * @name value
        * @memberOf _
        * @category Chaining
-       * @returns {Mixed} Returns the wrapped value.
+       * @returns {Mixed} Returns the piped value.
        * @example
        *
        * _([1, 2, 3]).value();
@@ -734,6 +731,7 @@
     }
 
     //fill array with objects emitted from this step
+    //alias as()
     function store(){
         var retVal = arguments[0],
             args = slice.call(arguments, 1), func, funcArgs = [];
@@ -756,12 +754,6 @@
             }
          
         return retVal;
-    }
-
-    function as(){
-
-        pipeline.namedStep[arguments[1]] = pipeline.steps.currentStep;
-        return arguments[0];
     }
 
     function back(){
@@ -790,8 +782,8 @@
 
         var arg = arguments[1], dSet, diff, retVal = [];
 
-        dSet = pipeline.steps[pipeline.namedStep[arg]];
-        retVal = fn.difference(arguments[0],dSet);
+        dSet = pipeline.steps[pipeline.namedStep[arg]].pipedOutArgs[0];
+        retVal = fn.difference(arguments[0],dSet, true);
          
         return retVal;
     }
@@ -814,7 +806,7 @@
             argLen = funcArgs.length;
 
             for(var i=0; i < argLen; i++){
-                funcParam.push(pipeline.steps[pipeline.namedStep[funcArgs[i]]].pipedInArgs[0]);
+                funcParam.push(pipeline.steps[pipeline.namedStep[funcArgs[i]]].pipedOutArgs[0]);
             }
             retVal = func.apply(records ,funcParam);
             
@@ -901,8 +893,8 @@
 
         var arg = arguments[1], dSet, diff, retVal = [];
 
-        dSet = pipeline.steps[pipeline.namedStep[arg]];
-        retVal = fn.intersection(arguments[0],dSet);
+        dSet = pipeline.steps[pipeline.namedStep[arg]].pipedOutArgs[0];
+        retVal = fn.intersection(arguments[0],dSet, true);
          
         return retVal;
     }
@@ -1169,7 +1161,7 @@
 
     //SideEffect-Based Steps
     Helios.prototype.sideEffect = step;
-    Helios.prototype.as = as;
+    Helios.prototype.as = store;
     //Helios.prototype.aggregate = aggregate;
     Helios.prototype.store = store;
     Helios.prototype.groupCount = groupCount;
