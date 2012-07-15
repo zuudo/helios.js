@@ -18,13 +18,14 @@
         shift = ArrayProto.shift,
         indexOf = ArrayProto.indexOf,
         concat = ArrayProto.concat,
-        graph = { 'vertices': {}, 'edges': {}, 'v_index': {}, 'e_index': {} },
+        graph = {'vertices': {}, 'edges': {}, 'v_idx': {}, 'e_idx': {}} ,
+        graphUtils = {},
         fn = {},
         comparable = {},
-        util = {},
+        utils = {},
         pipeline,
         pipedObjects = [],
-        lastStepFuncs = ['value', 'stringify', 'map', 'clone', 'path'];
+        unpipedFuncs = ['value', 'stringify', 'map', 'clone', 'path'];
 
     //pipeline = pipelinePrototype;
     Function.prototype.pipe = function () {
@@ -52,7 +53,7 @@
     function pipe() {
         var func;
         for (func in this) {
-            if (typeof this[func] == "function" && !fn.include(lastStepFuncs, func)) {
+            if (typeof this[func] == "function" && !fn.include(unpipedFuncs, func)) {
                 this[func] = this[func].pipe();
             }
         }
@@ -61,7 +62,7 @@
 
     //Object constructor
     function Helios () {
-        util.resetPipe();
+        utils.resetPipe();
         return pipe.call(this);
     }
 
@@ -73,28 +74,48 @@
        * @param 
        * @returns {Object} Returns a 'Helios' instance.
        */
-    function helios() {
-    	// allow invoking 'Helios' without the 'new' operator
-    	return new Helios();
-    }
+    // function helios() {
+    //  	// allow invoking 'Helios' without the 'new' operator
+    //  	return new Helios();
+    //  }
 
     Helios.toString = function() { return "Helios"; };
 
-            Helios.VERSION = '0.0.1';
-            //Helios.ENV = 'undefined' === typeof ENV ? {} : ENV;
-            Helios.CONF = 'undefined' === typeof CONFIG ? {} : CONFIG;
+    Helios.VERSION = '0.0.1';
+    Helios.ENV = {
+        'id': '_id',
+        'label': '_label',
+        'type': '_type',
+        'outEid': '_outE',
+        'inEid': '_inE',
+        'outVid': '_outV',
+        'inVid': '_inV'
+    };//'undefined' === typeof ENV ? {} : ENV;
+    //Helios.CONF = 'undefined' === typeof CONFIG ? {} : CONFIG;
 
-    Helios.newGraph = function(obj){ //Add conf param
+    var __env = Helios.ENV;
+    //var __idx = graph.idx;
+    var __ctr = 0;
+
+    Helios.newGraph = function(JSONGraph, conf){ //Add conf param
     	//TODO: Cater for optional params
-    	loadGraphSON(obj);
-    	return helios();
+        
+        if(!!conf){
+            for(var key in conf){
+                Helios.ENV[key] = conf[key];
+            }
+        }
+        if(!!JSONGraph){
+    	   graphUtils.loadGraphSON(JSONGraph);
+        }
+    	return new Helios();
     };
 
-    function loadGraphSON(jsonData){
+    graphUtils.loadGraphSON = function(jsonData){
     		
     		var i, l, rows = [], vertex = {}, edge = {};
-    		if(util.isUndefined(jsonData)) return;
-    		if(util.isString(jsonData)){
+    		if(utils.isUndefined(jsonData)) return;
+    		if(utils.isString(jsonData)){
     			var xmlhttp = new XMLHttpRequest();
     			xmlhttp.onreadystatechange = function() {
     			        if(xmlhttp.readyState == 4){
@@ -111,7 +132,11 @@
     			l = rows.length; 
 
     			for(i=0; i<l;i+=1) {
-    				graph.vertices[rows[i]._id] = { 'obj': rows[i], 'type': 'vertex', 'outE': {}, 'inE': {} };
+                    // if(!graph.vertices[rows[i][__env.id]]){
+                    //     __ctr++;
+                    //     graph.idx[rows[i][__env.id]] = __ctr;
+                    // }
+    				graph.vertices[rows[i][__env.id]] = { 'obj': rows[i], 'type': 'vertex', 'outE': {}, 'inE': {} };
     			}
     		}
     		
@@ -121,40 +146,47 @@
     			l = rows.length; 
 
     			for(i=0; i<l;i+=1) {
+                    // if(!graph.edges[rows[i][__env.id]]){
+                    //     __ctr++;
+                    //     graph.idx[rows[i][__env.id]] = __ctr;
+                    // }
     				edge = { 'obj': rows[i], 'type': 'edge', 'outV': {}, 'inV': {} };
-    				
-    				if(!graph.vertices[edge.obj._outV]){
+    				graph.edges[edge.obj[__env.id]] = edge;
+
+    				if(!graph.vertices[edge.obj[__env.outVid]]){
     					//create a dummy vertex then go get it from server async
-    					graph.vertices[edge.obj._outV] = { 'obj': {}, 'type': 'vertex', 'outE': {}, 'inE': {} };
+    					graph.vertices[edge.obj[__env.outVid]] = { 'obj': {}, 'type': 'vertex', 'outE': {}, 'inE': {} };
     					
     				}
-    				vertex = graph.vertices[edge.obj._outV];
-    				if(!vertex.outE[edge.obj._label]){
-    					vertex.outE[edge.obj._label] = [];
+    				vertex = graph.vertices[edge.obj[__env.outVid]];
+    				if(!vertex.outE[edge.obj[__env.label]]){
+    					vertex.outE[edge.obj[__env.label]] = [];
     				}
     				edge.outV = vertex;
-    				push.call(vertex.outE[edge.obj._label], edge);
+    				push.call(vertex.outE[edge.obj[__env.label]], edge);
 
-    				if(!graph.vertices[edge.obj._inV]){
+    				if(!graph.vertices[edge.obj[__env.inVid]]){
     					//create a dummy vertex then go get it from server async
-    					graph.vertices[edge.obj._inV] = { 'obj': {}, 'type': 'vertex', 'outE': {}, 'inE': {} };
+    					graph.vertices[edge.obj[__env.inVid]] = { 'obj': {}, 'type': 'vertex', 'outE': {}, 'inE': {} };
     					
     				}
-    				vertex = graph.vertices[edge.obj._inV];
-    				if(!vertex.inE[edge.obj._label]){
-    					vertex.inE[edge.obj._label] = [];
+    				vertex = graph.vertices[edge.obj[__env.inVid]];
+    				if(!vertex.inE[edge.obj[__env.label]]){
+    					vertex.inE[edge.obj[__env.label]] = [];
     				}
-    				vertex = graph.vertices[edge.obj._inV];
+    				vertex = graph.vertices[edge.obj[__env.inVid]];
     				edge.inV = vertex;
-    				push.call(vertex.inE[edge.obj._label], edge);
-
-                    graph.edges[edge.obj._id] = edge;
+    				push.call(vertex.inE[edge.obj[__env.label]], edge);
     			}
     		}
-    		return true;
+    		return graph;
     };
 
-    util.resetPipe = function (){
+    graphUtils.close = function(){
+        graph = {'vertices': {}, 'edges': {}, 'v_idx': {}, 'e_idx': {}};
+    }
+
+    utils.resetPipe = function (){
     	pipedObjects = [];
         pipeline = {
             'steps': {
@@ -164,7 +196,7 @@
         };
     }
 
-    util.toArray = function(o){
+    utils.toArray = function(o){
         var k, r = [];
         for(k in o) {
             r.push(o[k]);
@@ -172,46 +204,46 @@
         return r;        
     }
     
-    util.isArray = function(o){
+    utils.isArray = function(o){
         return toString.call(o) === '[object Array]';
     }
 
-    util.isString = function(o){
+    utils.isString = function(o){
         return toString.call(o) === '[object String]';
     }
-    util.isNumber = function(o){
+    utils.isNumber = function(o){
         return toString.call(o) === '[object Number]';
     }
     
-    util.isDate = function(o){
+    utils.isDate = function(o){
         return toString.call(o) === '[object Date]';
     }
     
-    util.isEmpty = function(o){
+    utils.isEmpty = function(o){
         for(var key in o){
             return !o[key];
         }
     }
 
-    util.isFunction = function(o){
+    utils.isFunction = function(o){
         return toString.call(o) === '[object Function]';    
     }
-    util.isNull = function(o){
+    utils.isNull = function(o){
         return toString.call(o) === '[object Null]';
     }
 
-    util.isUndefined = function(o){
+    utils.isUndefined = function(o){
         return toString.call(o) === '[object Undefined]';
     }
     
     fn.intersection = function (arr1, arr2, isObj){
         var r = [], o = {}, i, comp;
         for (i = 0; i < arr2.length; i++) {
-            !!isObj ? o[arr2[i].obj._id] = true : o[arr2[i]] = true;
+            !!isObj ? o[arr2[i].obj[__env.id]] = true : o[arr2[i]] = true;
         }
         
         for (i = 0; i < arr1.length; i++) {
-            comp = !!isObj ? arr1[i].obj._id : arr1[i];
+            comp = !!isObj ? arr1[i].obj[__env.id] : arr1[i];
             if (!!o[comp]) {
                 r.push(arr1[i]);
             }
@@ -222,11 +254,11 @@
     fn.difference = function(arr1, arr2, isObj){
         var r = [], o = {}, i, comp;
         for (i = 0; i < arr2.length; i++) {
-            !!isObj ? o[arr2[i].obj._id] = true : o[arr2[i]] = true;
+            !!isObj ? o[arr2[i].obj[__env.id]] = true : o[arr2[i]] = true;
         }
         
         for (i = 0; i < arr1.length; i++) {
-            comp = !!isObj ? arr1[i].obj._id : arr1[i];
+            comp = !!isObj ? arr1[i].obj[__env.id] : arr1[i];
             if (!o[comp]) {
                 r.push(arr1[i]);
             }
@@ -245,7 +277,7 @@
     fn.uniqueObject = function(array){
 
         var o = {}, i, l = array.length, r = [];
-        for(i=0; i<l;i+=1) o[array[i].obj._id] = array[i];
+        for(i=0; i<l;i+=1) o[array[i].obj[__env.id]] = array[i];
         for(i in o) r.push(o[i]);
         return r;
 
@@ -345,7 +377,7 @@
         return r;  
     }
     fn.values = function(o){
-        return util.toArray(o);
+        return utils.toArray(o);
     }
     
     fn.pick = function(o){
@@ -376,7 +408,7 @@
 
         while (++index < length) {
           value = array[index];
-          if (util.isArray(value)) {
+          if (utils.isArray(value)) {
             push.apply(result, shallow ? value : fn.flatten(value));
           } else {
             result.push(value);
@@ -390,7 +422,7 @@
 
         var len = array.length, val, retVal = [];
         
-        if (!util.isFunction(func))
+        if (!utils.isFunction(func))
           throw new TypeError();
         
         for (var i = 0; i < len; i++)
@@ -407,7 +439,7 @@
 
         var len = array.length, val, retVal = [];
         
-        if (!util.isFunction(func))
+        if (!utils.isFunction(func))
           throw new TypeError();
         
         for (var i = 0; i < len; i++)
@@ -425,7 +457,7 @@
 
         var len = array.length, val, retVal = [];
         
-        if (!util.isFunction(func))
+        if (!utils.isFunction(func))
           throw new TypeError();
         
         for (var i = 0; i < len; i++)
@@ -449,7 +481,7 @@
        */
     function pipedValue(){
     	var retVal = pipedObjects;
-    	util.resetPipe();
+    	utils.resetPipe();
     	return retVal;
     }
 
@@ -460,7 +492,7 @@
     		return JSON.stringify(map.apply(null, args));
     	}
     	retVal = pipedObjects;
-    	util.resetPipe();
+    	utils.resetPipe();
     	return JSON.stringify(retVal);
     }
 
@@ -474,17 +506,17 @@
             stepPaths = o['step '+i] = [];
             for(j=0, len = stepRecs.length; j<len;j++){
                 if(stepRecs[j].type === 'vertex'){
-                    push.call(stepPaths,'v['+stepRecs[j].obj._id+']');
+                    push.call(stepPaths,'v['+stepRecs[j].obj[__env.id]+']');
                 } else {
                     edge = stepRecs[j].obj;
-                    edgeStr = 'v['+ edge._outV + '], e[' + edge._id + '][' + edge._outV + '-' + edge._label + '->' + edge._inV + '], v[' + edge._inV +']';
+                    edgeStr = 'v['+ edge[__env.outVid] + '], e[' + edge[__env.id] + '][' + edge[__env.outVid] + '-' + edge[__env.label] + '->' + edge[__env.inVid] + '], v[' + edge[__env.inVid] +']';
                     push.call(stepPaths,edgeStr);
                 }
             }
         }
         push.call(retVal,JSON.stringify(o));
         push.apply(retVal, pipedObjects);
-        util.resetPipe();
+        utils.resetPipe();
         return retVal;
     }
 
@@ -518,7 +550,7 @@
     function id() {
         var retVal = [];
         retVal = fn.map(arguments[0], function(element, key, list) {
-            return element.obj._id;
+            return element.obj[__env.id];
         });
          
         return retVal;
@@ -529,7 +561,7 @@
         var retVal = [];
 
         retVal = fn.map(arguments[0], function(element, key, list) {
-            return element.obj._label;
+            return element.obj[__env.label];
         });
 
          
@@ -542,11 +574,11 @@
             args = slice.call(arguments, 1);
 
         fn.each(arguments[0], function(vertex, key, list) {
-            // if(!vertex._outE){
+            // if(!vertex[__env.outEid]){
             //  //Get vertex edges and load from the service
-            //  Helios.db.loadJson({"edges":[{"weight":0.2,"_id":7,"_type":"edge","_outV":vtex._id,"_inV":3,"_label":"created"}]});
+            //  Helios.db.loadJson({"edges":[{"weight":0.2,"_id":7,"_type":"edge","[__env.outVid]":vtex[__env.id],"_inV":3,"_label":"created"}]});
             // }
-            if (!util.isEmpty(vertex.outE)) {
+            if (!utils.isEmpty(vertex.outE)) {
                 var value = !!args.length ? fn.pick(vertex.outE, args) : vertex.outE;
                 fn.each(fn.flatten(fn.values(value)), function(edge) {
                     push.call(retVal, edge.inV);
@@ -571,11 +603,11 @@
             args = slice.call(arguments, 1);
 
         fn.each(arguments[0], function(vertex, key, list) {
-        	// if(!vertex._outE){
+        	// if(!vertex[__env.outEid]){
         	// 	//Get vertex edges and load from the service
-        	// 	Helios.db.loadJson({"edges":[{"weight":0.2,"_id":7,"_type":"edge","_outV":vtex._id,"_inV":3,"_label":"created"}]});
+        	// 	Helios.db.loadJson({"edges":[{"weight":0.2,"_id":7,"_type":"edge","[__env.outVid]":vtex[__env.id],"_inV":3,"_label":"created"}]});
         	// }
-            if (!util.isEmpty(vertex.inE)) {
+            if (!utils.isEmpty(vertex.inE)) {
                 var value = !!args.length ? fn.pick(vertex.inE, args) : vertex.inE;
                 fn.each(fn.flatten(fn.values(value)), function(edge) {
                     push.call(retVal, edge.outV);
@@ -601,11 +633,11 @@
             args = slice.call(arguments, 1);
 
         fn.each(arguments[0], function(vertex, key, list) {
-        	// if(!vertex._outE){
+        	// if(!vertex[__env.outEid]){
         	// 	//Get vertex edges and load from the service
-        	// 	Helios.db.loadJson({"edges":[{"weight":0.2,"_id":7,"_type":"edge","_outV":vtex._id,"_inV":3,"_label":"created"}]});
+        	// 	Helios.db.loadJson({"edges":[{"weight":0.2,"_id":7,"_type":"edge","[__env.outVid]":vtex[__env.id],"_inV":3,"_label":"created"}]});
         	// }
-            if (!util.isEmpty(vertex.outE)) {
+            if (!utils.isEmpty(vertex.outE)) {
                 var value = !!args.length ? fn.pick(vertex.outE, args) : vertex.outE;
                 fn.each(fn.flatten(fn.values(value)), function(edge) {
                     push.call(retVal, edge.inV);
@@ -613,9 +645,9 @@
             }
          //    if(!vertex.inE){
         	// 	//Get vertex edges and load from the service
-        	// 	//Helios.db.loadJson({"edges":[{"weight":0.2,"_id":7,"_type":"edge","_outV":vtex._id,"_inV":3,"_label":"created"}]});
+        	// 	//Helios.db.loadJson({"edges":[{"weight":0.2,"_id":7,"_type":"edge","[__env.outVid]":vtex[__env.id],"_inV":3,"_label":"created"}]});
         	// }
-            if (!util.isEmpty(vertex.inE)) {
+            if (!utils.isEmpty(vertex.inE)) {
                 var value = !!args.length ? fn.pick(vertex.inE, args) : vertex.inE;
                 fn.each(fn.flatten(fn.values(value)), function(edge) {
                     push.call(retVal, edge.outV);
@@ -643,11 +675,11 @@
             args = slice.call(arguments, 1);
 
         fn.each(arguments[0], function(vertex, key, list) {
-        	// if(!vertex._outE){
+        	// if(!vertex[__env.outEid]){
         	// 	//Get vertex edges and load from the service
-        	// 	Helios.db.loadJson({"edges":[{"weight":0.2,"_id":9,"_type":"edge","_outV":vtex._id,"_inV":3,"_label":"created"}]});
+        	// 	Helios.db.loadJson({"edges":[{"weight":0.2,"_id":9,"_type":"edge","[__env.outVid]":vtex[__env.id],"_inV":3,"_label":"created"}]});
         	// }	    	
-            if (!util.isEmpty(vertex.outE)) {
+            if (!utils.isEmpty(vertex.outE)) {
                 var value = !!args.length ? fn.pick(vertex.outE, args) : vertex.outE;
                 fn.each(fn.flatten(fn.values(value)), function(edge) {
                     push.call(retVal, edge);
@@ -663,11 +695,11 @@
             args = slice.call(arguments, 1);
 
         fn.each(arguments[0], function(vertex, key, list) {
-        	// if(!vertex._inE){
+        	// if(!vertex[__env.inEid]){
         	// 	//Get vertex edges and load from the service
-        	// 	Helios.db.loadJson({"edges":[{"weight":0.2,"_id":15,"_type":"edge","_outV":6,"_inV":vtex._id,"_label":"created"}]});
+        	// 	Helios.db.loadJson({"edges":[{"weight":0.2,"_id":15,"_type":"edge","[__env.outVid]":6,"_inV":vtex[__env.id],"_label":"created"}]});
         	// }	    	
-            if (!util.isEmpty(vertex.inE)) {
+            if (!utils.isEmpty(vertex.inE)) {
                 var value = !!args.length ? fn.pick(vertex.inE, args) : vertex.inE;
                 fn.each(fn.flatten(fn.values(value)), function(edge) {
                     push.call(retVal, edge);
@@ -686,11 +718,11 @@
 
         fn.each(arguments[0], function(vertex, key, list) {
         	
-        	// if(!vertex._outE){
+        	// if(!vertex[__env.outEid]){
         	// 	//Get vertex edges and load from the service
-        	// 	Helios.db.loadJson({"edges":[{"weight":0.2,"_id":9,"_type":"edge","_outV":vtex._id,"_inV":3,"_label":"created"}]});
+        	// 	Helios.db.loadJson({"edges":[{"weight":0.2,"_id":9,"_type":"edge","[__env.outVid]":vtex[__env.id],"_inV":3,"_label":"created"}]});
         	// }	    	
-            if (!util.isEmpty(vertex.outE)) {
+            if (!utils.isEmpty(vertex.outE)) {
                 var value = !!args.length ? fn.pick(vertex.outE, args) : vertex.outE;
                 fn.each(fn.flatten(fn.values(value)), function(edge) {
                     push.call(retVal, edge);
@@ -698,9 +730,9 @@
             }
          //    if(!vertex.inE){
         	// 	//Get vertex edges and load from the service
-        	// 	Helios.db.loadJson({"edges":[{"weight":0.2,"_id":9,"_type":"edge","_outV":vtex._id,"_inV":3,"_label":"created"}]});
+        	// 	Helios.db.loadJson({"edges":[{"weight":0.2,"_id":9,"_type":"edge","[__env.outVid]":vtex[__env.id],"_inV":3,"_label":"created"}]});
         	// }	    	
-            if (!util.isEmpty(vertex.inE)) {
+            if (!utils.isEmpty(vertex.inE)) {
                 var value = !!args.length ? fn.pick(vertex.inE, args) : vertex.inE;
                 fn.each(fn.flatten(fn.values(value)), function(edge) {
                     push.call(retVal, edge);
@@ -713,21 +745,11 @@
     }
 
     function V() {
-        var retVal = [];
-
-        retVal = util.toArray(graph.vertices);
-         
-
-        return retVal;
+        return utils.toArray(graph.vertices);
     }
 
     function E() {
-        var retVal = [];
-
-        retVal = util.toArray(graph.edges);
-         
-
-        return retVal;
+        return utils.toArray(graph.edges);
     }
 
     //fill array with objects emitted from this step
@@ -738,10 +760,10 @@
 
             if(!!args.length){
                 //if pass an Array populate it and move on else store as a named pipe 
-                util.isArray(args[0]) ? push.apply(args[0],arguments[0]) : pipeline.namedStep[args[0]] = pipeline.steps.currentStep;
+                utils.isArray(args[0]) ? push.apply(args[0],arguments[0]) : pipeline.namedStep[args[0]] = pipeline.steps.currentStep;
 
-                if(util.isFunction(args[1]) || util.isFunction(args[0])){
-                    if(util.isFunction(args[1])) {
+                if(utils.isFunction(args[1]) || utils.isFunction(args[0])){
+                    if(utils.isFunction(args[1])) {
                         func = args[1];
                         args.shift();
                     }
@@ -761,8 +783,8 @@
             stepBackTo;
         
         
-            if(util.isString(backSteps)){
-                if(util.isUndefined(pipeline.namedStep[backSteps])){
+            if(utils.isString(backSteps)){
+                if(utils.isUndefined(pipeline.namedStep[backSteps])){
                     //raise error
                     // graph.tap(function(){
                     //     alert('Error!! - No step called "' + arg + '"');
@@ -799,7 +821,7 @@
             ,argLen;
 
 
-        if(util.isFunction(args[0])){
+        if(utils.isFunction(args[0])){
             func = args[0];
             funcArgs = fn.flatten(slice.call(args, 1),true);
 
@@ -836,7 +858,7 @@
             ,argLen
             ,ids = [];
 
-        if(util.isFunction(args[0])){
+        if(utils.isFunction(args[0])){
             func = args[0];
             funcArgs = fn.flatten(slice.call(args, 1),true);
 
@@ -858,12 +880,12 @@
         }
 
         for (var i = 0, len = retVal.length; i < len; i++){
-            push.call(ids,retVal[i].obj._id);
+            push.call(ids,retVal[i].obj[__env.id]);
         }
         ids = fn.unique(ids);
 
         for (var i = 0, len = prevObjs.length; i < len; i++){
-            if(!fn.include(ids, prevObjs[i].obj._id)){
+            if(!fn.include(ids, prevObjs[i].obj[__env.id])){
                 push.call(retVal, prevObjs[i]);
             }
         }
@@ -885,7 +907,7 @@
                 return element.obj;
             })
 
-        util.resetPipe();
+        utils.resetPipe();
         return retVal;
     }
 
@@ -905,7 +927,7 @@
             ,func
             ,funcArgs = [];
 
-        if(util.isFunction(args[0])){
+        if(utils.isFunction(args[0])){
             func = args[0];
             funcArgs = fn.flatten(slice.call(args, 1),true);
             retVal = func.apply(arguments[0] ,funcArgs)
@@ -924,7 +946,7 @@
         var args = fn.flatten(slice.call(arguments,1)),
             objVar= args[0], params;
         
-        util.isString(args[0]) ? objVar = slice.call(args) : params = slice.call(args,1);
+        utils.isString(args[0]) ? objVar = slice.call(args) : params = slice.call(args,1);
 
         return fn.countBy(arguments[0], objVar, params);
     }
@@ -937,7 +959,7 @@
         var args = fn.flatten(slice.call(arguments,1)),
             objVar= args[0], params;
         
-        util.isString(args[0]) ? objVar = slice.call(args) : params = slice.call(args,1);
+        utils.isString(args[0]) ? objVar = slice.call(args) : params = slice.call(args,1);
 
         return fn.sumBy(arguments[0], objVar, params);
     }
@@ -948,7 +970,7 @@
         var args = fn.flatten(slice.call(arguments,1)),
             objVar= args[0], params;
         
-        util.isString(args[0]) ? objVar = slice.call(args) : params = slice.call(args,1);
+        utils.isString(args[0]) ? objVar = slice.call(args) : params = slice.call(args,1);
 
         return fn.groupBy(arguments[0], objVar, params);        
     }
@@ -1092,39 +1114,29 @@
     comparable.has = function (atts){
         return function(x){
             var args = slice.call(atts, 1);
-            return fn.intersection(_[atts[0]](x.obj),args).length === args.length;
+            return fn.intersection(fn[atts[0]](x.obj),args).length === args.length;
         }
     },
     //exclude All
     comparable.hasNot = function (atts){//not all
         return function(x){
             var args = slice.call(atts, 1);
-            return fn.intersection(_[atts[0]](x.obj),args).length !== args.length;
+            return fn.intersection(fn[atts[0]](x.obj),args).length !== args.length;
         }
     },
     //include Any
     comparable.hasAny = function (atts){//any
         return function(x){
-            return !!fn.intersection(_[atts[0]](x.obj),slice.call(atts, 1)).length;
+            return !!fn.intersection(fn[atts[0]](x.obj),slice.call(atts, 1)).length;
         }
     },
     //exclude Any
     comparable.hasNotAny = function (atts){//not any
         return function(x){
-            return !fn.intersection(_[atts[0]](x.obj),slice.call(atts, 1)).length;
+            return !fn.intersection(fn[atts[0]](x.obj),slice.call(atts, 1)).length;
         }
     },
-    //exact element match
-    comparable.match = function (atts){//not any
 
-        return function(x){
-            var args = slice.call(atts, 1);
-            //TODO: This about whether _type should be in obj
-            //TODO: Allow for user specified _id ie. config
-            push.apply(args,['_type','_id']);
-            return !fn.difference(_[atts[0]](x.obj),args).length;
-        }
-    }
 
     //Generic Step
     Helios.prototype.step = step;
@@ -1175,7 +1187,7 @@
     //Methods
     Helios.prototype.v = v;
     Helios.prototype.e = e;
-    Helios.prototype.loadGraphSON = loadGraphSON;
+    Helios.prototype.graph = graphUtils;
 
     //Misc
     Helios.prototype.clone = clone;
