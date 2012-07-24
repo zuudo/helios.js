@@ -63,7 +63,21 @@ describe("Heliosdb", function() {
     'inVid': '@inV'
   };
   
-  var g= Helios.newGraph(testData, configTest);
+   var g= Helios.newGraph(configTest);
+   g.graph.loadGraphSON(testData);
+
+  Helios.ENV = {
+    'id':'@rid',
+    'label': '@label',
+    'type':'@type',
+    'outEid': '@outE',
+    'inEid': '@inE',
+    'outVid': '@outV',
+    'inVid': '@inV'
+  };
+
+  //var g= Helios.newGraph(testData);
+  
 
   beforeEach(function() {
     this.addMatchers({
@@ -276,88 +290,53 @@ describe("Transform-Based Steps", function() {
   });
 
 
-  // it("Path", function() {
-  //   results = g.v(1).out('knows').path();
-  //   expect(results.length).toEqual(3);
-  //   expect(results).toContainKeyValue(configTest.id, 20);
-  //   expect(results).toContainKeyValue(configTest.id, 30);
-  //   expect(results).toContainKeyValue(configTest.id, 40);
-  // });
+  it("Path", function() {
+    results = g.v(10).out('knows').path();
+    expect(results.length).toEqual(3);
+
+    expect(results[0]).toEqual('{"step 1":["v[10]"],"step 2":["v[20]","v[40]"]}');
+    expect(results[1].obj[configTest.id]).toEqual(20);
+    expect(results[2].obj[configTest.id]).toEqual(40);
+  });
 
 });
   describe("Filter-Based Steps", function() {
     it("closure", function(){
-      results = g.v(10).outE().inV().filter(function() { return this; }).value();
+      
+      results = g.v(10).filter(function(name) {  return this.obj.name === name; },'marko').value();
+      expect(results.length).toEqual(1);
+
+      results = g.v(10).outE().inV().filter(function() { return true; }).value();
       expect(results.length).toEqual(3);
       expect(results).toContainKeyValue(configTest.id, 20);
       expect(results).toContainKeyValue(configTest.id, 30);
       expect(results).toContainKeyValue(configTest.id, 40);
 
-      results = g.v(10).outE().inV().filter(function() { return []; }).value();
+      results = g.v(10).outE().inV().filter(function() { return false; }).value();
       expect(results.length).toEqual(0);
 
-      results = g.v(10).outE().inV().filter(function() {   
-                                                              var arr = [];
-                                                              _.each(this, function(element){
-                                                                if(_.isEqual(element.obj, g.v(20).value()[0].obj)){
-                                                                  arr.push(element);
-                                                                }
-                                                              });
-                                                            return arr;
-                                                          }).value();
+      results = g.v(10).outE().inV().filter(function() { return this.obj[configTest.id] === g.v(20).value()[0].obj[configTest.id]; }).value();
       expect(results.length).toEqual(1);
       expect(results).toContainKeyValue(configTest.id, 20);
 
       results = g.v(10).outE().inV().filter(function() { return false; })
-                    .orFilter(function() {
-                      var arr = [];
-                      _.each(this, function(element){
-                        if(element.obj[configTest.id] === 20){
-                          arr.push(element);
-                        }
-                      });
-                      return arr;}).value();
+                    .orFilter(function() { return this.obj[configTest.id] === 20; }).value();
       expect(results.length).toEqual(1);
       expect(results).toContainKeyValue(configTest.id, 20);
 
+      ///////////////////////////////////////////////////////////////////////////
+   
       results = g.v(10).outE().inV().filter(function() { return false; })
-                    .orFilter(function() {
-                      var arr = [];
-                      _.each(this, function(element){
-                        if(element.obj[configTest.id] === 20){
-                          arr.push(element);
-                        }
-                      });
-                      return arr; })
-                    .andFilter(function() { var arr = [];
-                      _.each(this, function(element){
-                        if(element.obj.name === 'vadas'){
-                          arr.push(element);
-                        }
-                      });
-                      return arr; }).value();
+                    .orFilter(function() { return this.obj[configTest.id] === 20; })
+                    .andFilter(function() { return this.obj.name === 'vadas'; } ).value();
       expect(results.length).toEqual(1);
       expect(results).toContainKeyValue(configTest.id, 20);
 
+      ///////////////////////////////////////////////////////////////////////////
+      
       results = g.v(10).outE().inV().filter(function() { return false; })
-                    .orFilter(function() {
-                      var arr = [];
-                      _.each(this, function(element){
-                        if(element.obj[configTest.id] === 20){
-                          arr.push(element);
-                        }
-                      });
-                      return arr;
-                      })
-                    .andFilter(function() { 
-                      var arr = [];
-                      _.each(this, function(element){
-                        if(element.obj.name === 'josh'){
-                          arr.push(element);
-                        }
-                      });
-                      return arr;
-                     }).value();
+                    .orFilter(function() { return this.obj[configTest.id] === 20; })
+                    .andFilter(function() { return this.obj.name === 'josh';}).value();
 
       expect(results.length).toEqual(0);
 
@@ -368,7 +347,8 @@ describe("Transform-Based Steps", function() {
       expect(results.length).toEqual(1);
       expect(results).toContainKeyValue('name','vadas');
 
-      expect(g.V().outE().inV().filter('eq',['name','lop']).id().value().length).toEqual(3);
+      expect(g.V().outE().inV().filter('eq',['name','lop']).id().length).toEqual(3);
+      expect(g.E().outV().inE().label().length).toEqual(2);
 
     });
     it("neq", function() {
@@ -433,6 +413,13 @@ describe("Transform-Based Steps", function() {
       expect(results).toContainKeyValue('name','lop');
     });
 
+    it("hasAny values", function() {
+      results = g.v(10).out().filter('hasAny',['values', 'josh', 'lop']).value();
+      expect(results.length).toEqual(2);
+      expect(results).toContainKeyValue('name','josh');
+      expect(results).toContainKeyValue('name','lop');
+    });
+
     it("hasNotAny", function() {
       results = g.v(10).out().filter('hasNotAny',['keys', 'name', 'age']).value();
       expect(results.length).toEqual(0);
@@ -473,7 +460,8 @@ describe("Transform-Based Steps", function() {
       expect(results).toContainKeyValue('name','lop');
 
       results = [];
-      results = g.v(10).out().filter('eq',['name','vadas']).orFilter('gt', ['age', 25]).orFilter('eq', ['name', 'lop']).andFilter('eq',['age',32]).value();
+      results = g.v(10).out().filter('eq',['name','vadas']).orFilter('gt', ['age', 25]).orFilter('eq', ['name', 'lop'])
+                              .andFilter('eq',['age',32]).value();
       expect(results.length).toEqual(1);
       expect(results).toContainKeyValue('name','josh');
 
@@ -499,10 +487,24 @@ describe("Transform-Based Steps", function() {
       expect(results.length).toEqual(1);
       expect(results[0].obj[configTest.id]).toEqual(10);            
 
+      results = g.v(10).out().as('x').in().back('x').value();
+      expect(results.length).toEqual(3);
+
+      var x = [];
+      results = g.v(10).out().store(x).in().back(x).value();
+      expect(results.length).toEqual(3);
+
     });
 
     it("except", function(){
       results = g.v(10).out().store('x').out().except('x').value();
+      expect(results.length).toEqual(1);
+      expect(results).toContainKeyValue(configTest.id,50);
+    });
+
+    it("except with Array", function(){
+      var x = [];
+      results = g.v(10).out().store(x).out().except(x).value();
       expect(results.length).toEqual(1);
       expect(results).toContainKeyValue(configTest.id,50);
     });
@@ -513,6 +515,12 @@ describe("Transform-Based Steps", function() {
       expect(results).toContainKeyValue(configTest.id,30);
     });
 
+    it("retain with Array", function(){
+      var x = [];
+      results = g.v(10).out().store(x).out().retain(x).value();
+      expect(results.length).toEqual(1);
+      expect(results).toContainKeyValue(configTest.id,30);
+    });
   });
 
   describe("SideEffect-Based Steps", function() {
@@ -558,31 +566,6 @@ describe("Transform-Based Steps", function() {
 
     it("store", function(){
 
-      results = g.v(10).out().store('x').out()
-                    .filter(function(x) { 
-
-                      var difference = function(arr1, arr2, isObj){
-                              var r = [], o = {}, i, comp;
-                              for (i = 0; i < arr2.length; i++) {
-                                  !!isObj ? o[arr2[i].obj[configTest.id]] = true : o[arr2[i]] = true;
-                              }
-                              
-                              for (i = 0; i < arr1.length; i++) {
-                                  comp = !!isObj ? arr1[i].obj[configTest.id] : arr1[i];
-                                  if (!o[comp]) {
-                                      r.push(arr1[i]);
-                                  }
-                              }
-                              return r;
-                          }
-
-                      return difference(this, x, true);}, 'x').value();
-
-      expect(results.length).toEqual(1);
-      expect(results).toContainKeyValue(configTest.id,50);
-
-      ///////////////////////////////////////////
-
       results = [];
       results = g.v(10).outE().inV().store().value();
       results2 = g.v(10).outE().inV().value();
@@ -606,7 +589,8 @@ describe("Transform-Based Steps", function() {
                           element.obj.age += incAge;
                           retVal.push(element);
                         });
-                      return retVal;}, 10).value();
+                      return retVal;
+                    }, [10]).value();
       
       expect(results[0].obj.age).toEqual(37);
       expect(results[1].obj.age).toEqual(42);
@@ -616,13 +600,14 @@ describe("Transform-Based Steps", function() {
       ////////////////////////////////////////////
 
       results = [];
-      results = g.v(10).out('knows').store(function(decAge){
+      results = g.v(10).out('knows').store('x',function(decAge){
                       var retVal = [];
                         _.each(this, function(element){
                           element.obj.age -= decAge;
                           retVal.push(element);
                         });
-                      return retVal;}, 10).value();
+                      return retVal;
+                    }, 10).value();
       
       expect(results[0].obj.age).toEqual(27);
       expect(results[1].obj.age).toEqual(32);
@@ -646,28 +631,71 @@ describe("Transform-Based Steps", function() {
       expect(results).toContainMap('age',29);
       expect(results).not.toContainMap(configTest.id,10);
 
+      results = [];
+      results = g.v(10).map(['name', 'age']);
+      expect(results.length).toEqual(1);
+      expect(results).toContainMap('name','marko');
+      expect(results).toContainMap('age',29);
+      expect(results).not.toContainMap(configTest.id,10);
     });
 
     it("groupBy", function(){
-      results = g.V().outE().inV().groupBy('age','name').value();
-      expect(JSON.stringify(results)).toEqual('{"27":{"vadas":[{"name":"vadas","age":27,"@rid":20,"@type":"vertex"}]},"32":{"josh":[{"name":"josh","age":32,"@rid":40,"@type":"vertex"}]},"undefined":{"lop":[{"name":"lop","lang":"java","@rid":30,"@type":"vertex"},{"name":"lop","lang":"java","@rid":30,"@type":"vertex"},{"name":"lop","lang":"java","@rid":30,"@type":"vertex"}],"ripple":[{"name":"ripple","lang":"java","@rid":50,"@type":"vertex"}]}}');
+      results = g.V().outE().inV().groupBy('@type').stringify();
+      expect(results).toEqual('{"vertex":[{"name":"vadas","age":27,"@rid":20,"@type":"vertex"},{"name":"lop","lang":"java","@rid":30,"@type":"vertex"},{"name":"josh","age":32,"@rid":40,"@type":"vertex"},{"name":"ripple","lang":"java","@rid":50,"@type":"vertex"}]}');
 
 
+      results = g.V().outE().inV().groupBy('age','name').stringify();
+      expect(results).toEqual('{"27":{"vadas":[{"name":"vadas","age":27,"@rid":20,"@type":"vertex"}]},"32":{"josh":[{"name":"josh","age":32,"@rid":40,"@type":"vertex"}]},"undefined":{"lop":[{"name":"lop","lang":"java","@rid":30,"@type":"vertex"}],"ripple":[{"name":"ripple","lang":"java","@rid":50,"@type":"vertex"}]}}');
+
+      results = g.V().outE().inV().groupBy(['age','name']).stringify();
+      expect(results).toEqual('{"27":{"vadas":[{"name":"vadas","age":27,"@rid":20,"@type":"vertex"}]},"32":{"josh":[{"name":"josh","age":32,"@rid":40,"@type":"vertex"}]},"undefined":{"lop":[{"name":"lop","lang":"java","@rid":30,"@type":"vertex"}],"ripple":[{"name":"ripple","lang":"java","@rid":50,"@type":"vertex"}]}}');
+
+      var t = {};
+      results = g.V().outE().inV().groupBy(t,'age','name').value();
+      expect(JSON.stringify(t)).toEqual('{"27":{"vadas":[{"name":"vadas","age":27,"@rid":20,"@type":"vertex"}]},"32":{"josh":[{"name":"josh","age":32,"@rid":40,"@type":"vertex"}]},"undefined":{"lop":[{"name":"lop","lang":"java","@rid":30,"@type":"vertex"}],"ripple":[{"name":"ripple","lang":"java","@rid":50,"@type":"vertex"}]}}');
+      expect(results.length).toEqual(6);
+
+      var u = {};
+      results = g.V().outE().inV().groupBy(u,['age','name']).value();
+      expect(JSON.stringify(u)).toEqual('{"27":{"vadas":[{"name":"vadas","age":27,"@rid":20,"@type":"vertex"}]},"32":{"josh":[{"name":"josh","age":32,"@rid":40,"@type":"vertex"}]},"undefined":{"lop":[{"name":"lop","lang":"java","@rid":30,"@type":"vertex"}],"ripple":[{"name":"ripple","lang":"java","@rid":50,"@type":"vertex"}]}}');
+      expect(results.length).toEqual(6);
     });
 
     it("groupCount", function(){
+      results = g.V().outE().inV().groupCount('@type').stringify();
+      expect(results).toEqual('{"vertex":[{"name":"vadas","age":27,"@rid":20,"@type":"vertex"},{"name":"lop","lang":"java","@rid":30,"@type":"vertex"},{"name":"josh","age":32,"@rid":40,"@type":"vertex"},{"name":"ripple","lang":"java","@rid":50,"@type":"vertex"}]}');
 
-      results = g.v(10).out('knows').groupCount(configTest.type).value();
+      results = g.V().outE().inV().groupCount('@type','name').stringify();
+      expect(results).toEqual('{"vertex":{"count":4,"vadas":[{"name":"vadas","age":27,"@rid":20,"@type":"vertex"}],"lop":[{"name":"lop","lang":"java","@rid":30,"@type":"vertex"}],"josh":[{"name":"josh","age":32,"@rid":40,"@type":"vertex"}],"ripple":[{"name":"ripple","lang":"java","@rid":50,"@type":"vertex"}]}}');
+
+      results = g.V().outE().inV().groupCount(['@type','name']).stringify();
+      expect(results).toEqual('{"vertex":{"count":4,"vadas":[{"name":"vadas","age":27,"@rid":20,"@type":"vertex"}],"lop":[{"name":"lop","lang":"java","@rid":30,"@type":"vertex"}],"josh":[{"name":"josh","age":32,"@rid":40,"@type":"vertex"}],"ripple":[{"name":"ripple","lang":"java","@rid":50,"@type":"vertex"}]}}');
+
+      var t = {};
+      results = g.V().outE().inV().groupCount(t, '@type','name').value();
+      expect(JSON.stringify(t)).toEqual('{"vertex":{"count":4,"vadas":[{"name":"vadas","age":27,"@rid":20,"@type":"vertex"}],"lop":[{"name":"lop","lang":"java","@rid":30,"@type":"vertex"}],"josh":[{"name":"josh","age":32,"@rid":40,"@type":"vertex"}],"ripple":[{"name":"ripple","lang":"java","@rid":50,"@type":"vertex"}]}}');
+      expect(results.length).toEqual(6);
+
+      var u = {};
+      results = g.V().outE().inV().groupCount(u, ['@type','name']).value();
+      expect(JSON.stringify(u)).toEqual('{"vertex":{"count":4,"vadas":[{"name":"vadas","age":27,"@rid":20,"@type":"vertex"}],"lop":[{"name":"lop","lang":"java","@rid":30,"@type":"vertex"}],"josh":[{"name":"josh","age":32,"@rid":40,"@type":"vertex"}],"ripple":[{"name":"ripple","lang":"java","@rid":50,"@type":"vertex"}]}}');
+      expect(results.length).toEqual(6);
+
+    });
+
+    it("countBy", function(){
+
+      results = g.v(10).out('knows').countBy(configTest.type).value();
       expect(JSON.stringify(results)).toEqual('{"@type":2}');
 
-      results = g.v(10).out('knows').groupCount([configTest.type, configTest.id]).value();
+      results = g.v(10).out('knows').countBy([configTest.type, configTest.id]).value();
       expect(JSON.stringify(results)).toEqual('{"@type":2,"@rid":2}');
 
-      results = g.v(10).out('knows').groupCount(configTest.type, configTest.id).value();
+      results = g.v(10).out('knows').countBy(configTest.type, configTest.id).value();
       expect(JSON.stringify(results)).toEqual('{"@type":2,"@rid":2}');
 
       var t = {};
-      results = g.v(10).out('knows').groupCount(t, [configTest.type, configTest.id]).value();
+      results = g.v(10).out('knows').countBy(t, [configTest.type, configTest.id]).value();
       expect(results.length).toEqual(2);
       expect(results).toContainKeyValue(configTest.id,20);
       expect(results).toContainKeyValue(configTest.id,40);      
@@ -675,7 +703,7 @@ describe("Transform-Based Steps", function() {
       expect(JSON.stringify(t)).toEqual('{"@type":2,"@rid":2}');
 
       var t = {};
-      results = g.v(10).out('knows').groupCount(t, configTest.type, configTest.id).value();
+      results = g.v(10).out('knows').countBy(t, configTest.type, configTest.id).value();
       expect(results.length).toEqual(2);
       expect(results).toContainKeyValue(configTest.id,20);
       expect(results).toContainKeyValue(configTest.id,40);      
@@ -719,11 +747,26 @@ describe("Transform-Based Steps", function() {
       expect(results).toContainKeyValue(configTest.id,50);
       expect(results).toContainKeyValue(configTest.id,30);      
 
+      results = g.v(10).out().as('x').loop('x', 2).value();
+      expect(results.length).toEqual(2);
+      expect(results).toContainKeyValue(configTest.id,50);
+      expect(results).toContainKeyValue(configTest.id,30);     
+
       results = g.v(40).out().in().loop(2, 1).value();
       expect(results.length).toEqual(4);
       expect(results).toContainKeyValue(configTest.id,40);
       expect(results).toContainKeyValue(configTest.id,10);
       expect(results).toContainKeyValue(configTest.id,60);
+
+      results = g.v(40).out().as('x').in().loop('x', 1).value();
+      expect(results.length).toEqual(4);
+      expect(results).toContainKeyValue(configTest.id,40);
+      expect(results).toContainKeyValue(configTest.id,10);
+      expect(results).toContainKeyValue(configTest.id,60);
+
+
+      results = g.v(40).out().as('x').in().loop('x', 3).value();
+      expect(results.length).toEqual(66);
 
       results = g.v(40).out().in().loop(2, 3).value();
       expect(results.length).toEqual(66);
