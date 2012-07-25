@@ -1,8 +1,4 @@
-//var g = createGraph(jsonData)  
-//graph.v(1).out().as('step').where('same',['keys','lang','name']).back('step')._().value()
-//graph.v(1).out().aggregate('step').where('same',['keys','lang','name']).except('step')._().value()
-//graph.v(1).out().aggregate('step').out().except('step')._().value()
-//graph.v(1).out().aggregate('step').out().where('inclAny',['keys','lang']).except('step')._().value()
+
 ;(function (window, undefined) {
     'use strict';
 
@@ -28,7 +24,6 @@
         pipedObjects = [],
         unpipedFuncs = ['label', 'id', 'value', 'stringify', 'map', 'clone', 'path'];
 
-    //pipeline = pipelinePrototype;
     Function.prototype.pipe = function () {
         var that = this;
         return function () {
@@ -67,22 +62,11 @@
         return pipe.call(this);
     }
 
-    /**
-       * The 'helios' function.
-       *
-       * @name helios
-       * @constructor
-       * @param 
-       * @returns {Object} Returns a 'Helios' instance.
-       */
-    // function helios() {
-    //  	// allow invoking 'Helios' without the 'new' operator
-    //  	return new Helios();
-    //  }
 
     Helios.toString = function() { return "Helios"; };
 
     Helios.VERSION = '0.0.1';
+    
     Helios.ENV = {
         'id': '_id',
         'label': '_label',
@@ -93,16 +77,60 @@
         'inVid': '_inV'
     };
 
-    
+
+    /****************************************************************************************************
+     *              N.B.    The bang symbol (!) signifies are required parameter.                       *
+     *                      The splat symbol (*) signifies many                                         *
+     ****************************************************************************************************/
 
     /***************************************************************************************************
 
-        Used to create a reference to Helios
-        @name       Helios.newGraph
-        @param      {JSON|optional} jsonGraph   The graph data to add to database. Needs to be in GraphSON
-                                                format, otherwise Helios.ENV needs to be configured.
-        @param      {JSON|optional} conf        Object to set Helios.ENV parameters. All ENV args are optional.
-        @returns    {Helios}                    Returns an instance of Helios.
+        API: N.B. All examples will use the 'g' variable to demonstrate how to use Helios and uses the
+                sample data where necessary to describe output
+        
+        @sample data
+
+            var config = {
+                'id':'@rid',
+                'label': '@label',
+                'type':'@type',
+                'outEid': '@outE',
+                'inEid': '@inE',
+                'outVid': '@outV',
+                'inVid': '@inV'
+            };
+
+            var someData = {
+                "vertices":[
+                    {"name":"marko","age":29,"@rid":10,"@type":"vertex"},
+                    {"name":"vadas","age":27,"@rid":20,"@type":"vertex"},
+                    {"name":"lop","lang":"java","@rid":30,"@type":"vertex"},
+                    {"name":"josh","age":32,"@rid":40,"@type":"vertex"},
+                    {"name":"ripple","lang":"java","@rid":50,"@type":"vertex"},
+                    {"name":"peter","age":35,"@rid":60,"@type":"vertex"}
+                    ],
+                "edges":[
+                    {"weight":0.5,"@rid":70,"@type":"edge","@outV":10,"@inV":20,"@label":"knows"},
+                    {"weight":1.0,"@rid":80,"@type":"edge","@outV":10,"@inV":40,"@label":"knows"},
+                    {"weight":0.4,"@rid":90,"@type":"edge","@outV":10,"@inV":30,"@label":"created"},
+                    {"weight":1.0,"@rid":100,"@type":"edge","@outV":40,"@inV":50,"@label":"created"},
+                    {"weight":0.4,"@rid":110,"@type":"edge","@outV":40,"@inV":30,"@label":"created"},
+                    {"weight":0.2,"@rid":120,"@type":"edge","@outV":60,"@inV":30,"@label":"created"}
+                ]
+            };
+
+            var g = Helios.newGraph(someData, config);
+
+    ***************************************************************************************************/
+
+    /****************************************************************************************************
+
+        Creates a reference to Helios
+        @name       Helios.newGraph()
+        @param      {JSON} jsonGraph    The graph data to add to database. Needs to be in GraphSON
+                                        format, otherwise Helios.ENV needs to be configured.
+        @param      {JSON} conf         Object to set Helios.ENV parameters. All ENV args are optional.
+        @returns    {Helios}            Returns an instance of Helios.
         
         @example
 
@@ -161,12 +189,13 @@
 
     /***************************************************************************************************
 
-        Graph Utils: Used to load data into Helios. Reloading the same data will replace/update existing records.
+        Graph Utils: Loads data into Helios. Reloading the same data will replace/update existing records.
                      Called fro Helios object used graph.
-        @name       graph.loadGraphSON
-        @param      {JSON|required} jsonData    The graph data to add to database. Needs to be in GraphSON
-                                                format, otherwise Helios.ENV needs to be configured.
-        @returns    {Helios}                    Returns the instance of Helios.
+
+        @name       graph.loadGraphSON()    callable
+        @param      !{JSON} jsonData        The graph data to add to database. Needs to be in GraphSON
+                                            format, otherwise Helios.ENV needs to be configured.
+        @returns    {Helios}                Returns the instance of Helios.
 
         @example
 
@@ -550,8 +579,8 @@
 
         var len = array.length, val, retVal = [];
         
-        if (!utils.isFunction(func))
-          throw new TypeError();
+        //if (!utils.isFunction(func))
+          //throw new TypeError();
         
         for (var i = 0; i < len; i++)
         {
@@ -567,8 +596,8 @@
 
         var len = array.length, val, retVal = [];
         
-        if (!utils.isFunction(func))
-          throw new TypeError();
+        //if (!utils.isFunction(func))
+          //throw new TypeError();
         
         for (var i = 0; i < len; i++)
         {
@@ -585,8 +614,8 @@
 
         var len = array.length, val, retVal = [];
         
-        if (!utils.isFunction(func))
-          throw new TypeError();
+        //if (!utils.isFunction(func))
+          //throw new TypeError();
         
         for (var i = 0; i < len; i++)
         {
@@ -598,49 +627,10 @@
 
     /***************************************************************************************************
 
-        API: N.B. All examples will use the 'g' variable to demonstrate how to use Helios and uses the
-                sample data where necessary to describe output
-        
-        @sample data
-
-            var config = {
-                'id':'@rid',
-                'label': '@label',
-                'type':'@type',
-                'outEid': '@outE',
-                'inEid': '@inE',
-                'outVid': '@outV',
-                'inVid': '@inV'
-            };
-
-            var someData = {
-                "vertices":[
-                    {"name":"marko","age":29,"@rid":10,"@type":"vertex"},
-                    {"name":"vadas","age":27,"@rid":20,"@type":"vertex"},
-                    {"name":"lop","lang":"java","@rid":30,"@type":"vertex"},
-                    {"name":"josh","age":32,"@rid":40,"@type":"vertex"},
-                    {"name":"ripple","lang":"java","@rid":50,"@type":"vertex"},
-                    {"name":"peter","age":35,"@rid":60,"@type":"vertex"}
-                    ],
-                "edges":[
-                    {"weight":0.5,"@rid":70,"@type":"edge","@outV":10,"@inV":20,"@label":"knows"},
-                    {"weight":1.0,"@rid":80,"@type":"edge","@outV":10,"@inV":40,"@label":"knows"},
-                    {"weight":0.4,"@rid":90,"@type":"edge","@outV":10,"@inV":30,"@label":"created"},
-                    {"weight":1.0,"@rid":100,"@type":"edge","@outV":40,"@inV":50,"@label":"created"},
-                    {"weight":0.4,"@rid":110,"@type":"edge","@outV":40,"@inV":30,"@label":"created"},
-                    {"weight":0.2,"@rid":120,"@type":"edge","@outV":60,"@inV":30,"@label":"created"}
-                ]
-            };
-
-            var g = Helios.newGraph(someData, config);
-
-    ***************************************************************************************************/
-    /***************************************************************************************************
-
         Called to emit the result from traversing the graph.
 
         @name       pipedValue()        Not to be called directly
-        @alias      value()             callable
+        @alias      value()             callable/chainable
         @returns    {Object Array}      Returns a Referenced Object Array to emitted Vertices or Edges.
         
         @example
@@ -659,7 +649,7 @@
         Called to emit the stringified result from traversing the graph.
 
         @name       stringify()             callable
-        @param      {String*|String Array}   Comma delimited string or string array of keys to be mapped to emit.
+        @param      {String*|String Array}  Comma delimited string or string array of keys to be mapped to emit.
         @returns    {String}                Returns a string.
         
         @example
@@ -682,7 +672,7 @@
 
         Called to emit the traversal path.
 
-        @name       path()
+        @name       path()                     callable
         @returns    {String[0] & Object Array} Returns the Path string in position 0, and an emitted Objects
                                                in subsequent positions of Array.
         
@@ -730,7 +720,7 @@
 
         Called to obtain root vertices to begin traversal.
 
-        @name       v()
+        @name       v()             callable/chainable
         @param      {Mixed*}        Pass in comma separated list or array of ids
         @returns    {Object Array}  emits Vertices.
         
@@ -757,7 +747,7 @@
 
         Called to obtain root edges to begin traversal.
 
-        @name       e()
+        @name       e()             callable/chainable
         @param      {Mixed*}        Pass in comma separated list or array of ids
         @returns    {Object Array}  emits Edges.
         
@@ -779,8 +769,8 @@
 
     /***************************************************************************************************
 
-        @name       id()
-        @returns    {Array}  emits object ids.
+        @name       id()        callable
+        @returns    {Array}     emits object ids.
         
         @example
             
@@ -800,8 +790,8 @@
 
     /***************************************************************************************************
 
-        @name       label()
-        @returns    {Array}  emits edge labels.
+        @name       label()     callable
+        @returns    {Array}     emits edge labels.
         
         @example
             
@@ -822,9 +812,9 @@
 
     /***************************************************************************************************
 
-        @name       out()
-        @param      {String*|Array} Comma separated list or array of labels.
-        @returns    {Object Array}  emits Out adjacent Vertices to the vertex.
+        @name       out()                   callable/chainable
+        @param      {String*|String Array}  Comma separated list or array of labels.
+        @returns    {Object Array}          emits Out adjacent Vertices to the vertex.
         @example
             
             var result = g.v(10).out().value();
@@ -850,7 +840,7 @@
 
     /***************************************************************************************************
 
-        @name       outV()
+        @name       outV()          callable/chainable
         @returns    {Object Array}  emits the outgoing tail vertex of the edge.
         @example
             
@@ -883,7 +873,7 @@
 
     /***************************************************************************************************
 
-        @name       inV()
+        @name       inV()           callable/chainable
         @returns    {Object Array}  emits the incoming head vertex of the edge.
         @example
             
@@ -901,9 +891,9 @@
 
     /***************************************************************************************************
 
-        @name       both()
-        @param      {String*|Array} Comma separated list or array of labels.
-        @returns    {Object Array}  emits both adjacent Vertices of the vertex.
+        @name       both()                  callable/chainable
+        @param      {String*|String Array}  Comma separated list or array of labels.
+        @returns    {Object Array}          emits both adjacent Vertices of the vertex.
         @example
             
             var result = g.v(10).both().value();
@@ -936,7 +926,7 @@
 
     /***************************************************************************************************
 
-        @name       bothV()
+        @name       bothV()         callable/chainable
         @returns    {Object Array}  emits both incoming and outgoing vertices of the edge.
         @example
             
@@ -955,9 +945,9 @@
 
     /***************************************************************************************************
 
-        @name       outE()
-        @param      {String*|Array} Comma separated list or array of labels.
-        @returns    {Object Array}  emits the outgoing edges of the vertex.
+        @name       outE()                  callable/chainable
+        @param      {String*|String Array}  Comma separated list or array of labels.
+        @returns    {Object Array}          emits the outgoing edges of the vertex.
         @example
             
             var result = g.v(10).outE().outV().value();
@@ -982,9 +972,9 @@
 
     /***************************************************************************************************
 
-        @name       inE()
-        @param      {String*|Array} Comma separated list or array of labels.
-        @returns    {Object Array}  emits the incoming edges of the vertex.
+        @name       inE()                   callable/chainable
+        @param      {String*|String Array}  Comma separated list or array of labels.
+        @returns    {Object Array}          emits the incoming edges of the vertex.
         @example
             
             var result = g.v(10).inE().value();
@@ -1011,9 +1001,9 @@
 
     /***************************************************************************************************
 
-        @name       bothE()
-        @param      {String*|Array} Comma separated list or array of labels.
-        @returns    {Object Array}  emits both incoming and outgoing edges of the vertex.
+        @name       bothE()                 callable/chainable
+        @param      {String*|String Array}  Comma separated list or array of labels.
+        @returns    {Object Array}          emits both incoming and outgoing edges of the vertex.
         @example
             
             var result = g.v(10).bothE().value();
@@ -1047,7 +1037,7 @@
 
     /***************************************************************************************************
 
-        @name       V()
+        @name       V()             callable/chainable
         @returns    {Object Array}  emits all graph vertices.
         @example
             
@@ -1060,7 +1050,7 @@
 
     /***************************************************************************************************
 
-        @name       E()
+        @name       E()             callable/chainable
         @returns    {Object Array}  emits all graph edges.
         @example
             
@@ -1073,13 +1063,13 @@
 
     /***************************************************************************************************
 
-        @name       store()             callable
-        @alias      as()                callable
-        @param      !{String*|Array}    Comma separated list or array of labels.
-        @param      {Function}          User Defined.
-        @param      {Mixed|Array}       Values to be passed to Function. Order of arguments should match paramaters
-        @returns    {Object Array}      Returns the objects after apply the Function (if defined). If an Array is 
-                                        passed the object will also be stored in that Array after applying the Function.
+        @name       store()                 callable/chainable
+        @alias      as()                    callable/chainable
+        @param      !{String*|Array Var}    String to be used as idetifier or Array variable to store output.
+        @param      {Function}              User Defined.
+        @param      {Mixed*|Array}          Values to be passed to Function. Order of arguments should match paramaters
+        @returns    {Object Array}          Returns the objects after apply the Function (if defined). If an Array is 
+                                            passed the object will also be stored in that Array after applying the Function.
         @examples
             
             var result = g.v(10).outE().inV().store().value();
@@ -1121,10 +1111,11 @@
 
     /***************************************************************************************************
         Go back to the results from n-steps ago.
-        @name       back()                  callable
+        @name       back()                  callable/chainable
         @param      !{Number|String|Array}  If a Number is passed, Helios will go back the results n steps ago.
                                             If a String is passed, Helios will use results from a previously stored step.
-                                            If an Array is passed, Helios will use those results.
+                                            If an Object Array is passed, which was saved from output during a store(),
+                                            Helios will use those results.
         @returns    {Object Array}          emits an Object Array
         @examples
             
@@ -1160,9 +1151,10 @@
     
     /***************************************************************************************************
         Allow everything to pass except what is in collection
-        @name       except()            callable
+        @name       except()            callable/chainable
         @param      !{String|Array}     If a String is passed, Helios will use results from a previously stored step.
-                                        If an Array is passed, Helios will use those results.
+                                        If an Array is passed, which was saved from output during a store(),
+                                        Helios will use those results.
         @returns    {Object Array}      emits an Object Array
         @example
             
@@ -1183,12 +1175,12 @@
 
     /***************************************************************************************************
         Allow Objects to pass that meet specified criteria
-        @name       filter()            callable
-        @alias      andFilter()         callable only after filter() has been called
+        @name       filter()            callable/chainable
+        @alias      andFilter()         callable/chainable only after filter() has been called
         @param      {Function}          User defined. 'this' is a single outgoing object
         @param      {Mixed|Array}       Comma separtated or Array of Values to be passed to Function.
                                         Order of arguments should match paramaters
-        OR
+        >>>>OR<<<<<
 
         @param      {Comparable String} 'eq' = equal to,
                                         'neq' = not equal to,
@@ -1273,13 +1265,14 @@
          
         return retVal;
     }
+
     /***************************************************************************************************
         Allow Objects to pass that meet specified criteria
-        @name       orFilter()          callable only after filter() has been called
+        @name       orFilter()          callable/chainable only after filter() has been called
         @param      {Function}          User defined. 'this' is a single outgoing object
         @param      {Mixed|Array}       Comma separtated or Array of Values to be passed to Function.
                                         Order of arguments should match paramaters
-        OR
+        >>>>>OR<<<<<
 
         @param      {Comparable String} 'eq' = equal to,
                                         'neq' = not equal to,
@@ -1349,7 +1342,7 @@
     /***************************************************************************************************
         Output the property map
         @name       map()               callable
-        @param      {String|Array}      Optional comma separated String or Array of properties to map.
+        @param      {String*|Array}     Optional comma separated String or Array of properties to map.
         @returns    {Object Array}      emits an Object Array
         @example
             
@@ -1378,9 +1371,10 @@
 
     /***************************************************************************************************
         Allow nothing to pass but retain what is include in the collection
-        @name       include()            callable
+        @name       include()           callable/chainable
         @param      !{String|Array}     If a String is passed, Helios will use results from a previously stored step.
-                                        If an Array is passed, Helios will use those results.
+                                        If an Array is passed, which was saved from output during a store(),
+                                        Helios will use those results.
         @returns    {Object Array}      emits an Object Array
         @examples
 
@@ -1402,9 +1396,9 @@
 
     /***************************************************************************************************
         Generic Step
-        @name       step()              callable
-        @alias      transform()         callable
-        @alias      sideEffect()        callable
+        @name       step()              callable/chainable
+        @alias      transform()         callable/chainable
+        @alias      sideEffect()        callable/chainable
         @param      !{Function}         User defined. 'this' is the array of outgoing objects.
         @returns    {Object Array}      emits an Object Array
         @examples
@@ -1435,12 +1429,12 @@
 
     /***************************************************************************************************
         Count by property
-        @name       countBy()           callable
+        @name       countBy()           callable/chainable
         @param      {Object}            Optional Object variable to store output. If an Object variable is passed
                                         in the output will be stored in that variable and processing will
                                         proceed as normal, otherwise the modified object is returned and
                                         is not chainable
-        @param      !{String|Array}     Comma separated String or Array of properties.
+        @param      !{String*|Array}    Comma separated String or Array of properties.
         @returns    {Object}            emits an Object
         @example
 
@@ -1469,12 +1463,12 @@
 
     /***************************************************************************************************
         Sum by property
-        @name       groupSum()          callable
+        @name       groupSum()          callable/chainable
         @param      {Object}            Optional Object variable to store output. If an Object variable is passed
                                         in the output will be stored in that variable and processing will
                                         proceed as normal, otherwise the modified object is returned and
                                         is not chainable
-        @param      !{String|Array}     Comma separated String or Array of properties.
+        @param      !{String*|Array}    Comma separated String or Array of properties.
         @returns    {Object}            emits an Object
         @example
 
@@ -1504,12 +1498,12 @@
 
     /***************************************************************************************************
         Group by property
-        @name       groupSum()          callable
+        @name       groupSum()          callable/chainable
         @param      {Object}            Optional Object variable to store output. If an Object variable is passed
                                         in the output will be stored in that variable and processing will
                                         proceed as normal, otherwise the modified object is returned and
                                         is not chainable
-        @param      !{String|Array}     Comma separated String or Array of properties.
+        @param      !{String*|Array}    Comma separated String or Array of properties.
         @returns    {Object}            emits an Object
         @example
 
@@ -1533,12 +1527,12 @@
 
     /***************************************************************************************************
         Group by and Count by property
-        @name       groupSum()          callable
+        @name       groupSum()          callable/chainable
         @param      {Object}            Optional Object variable to store output. If an Object variable is passed
                                         in the output will be stored in that variable and processing will
                                         proceed as normal, otherwise the modified object is returned and
                                         is not chainable
-        @param      !{String|Array}     Comma separated String or Array of properties.
+        @param      !{String*|Array}    Comma separated String or Array of properties.
         @returns    {Object}            emits an Object
         @example
 
@@ -1557,7 +1551,7 @@
 
     /***************************************************************************************************
         Iterate over a specified region of the path
-        @name       loop()              callable
+        @name       loop()              callable/chainable
         @param      !{Number|String}    Number of back steps or stored position
         @param      !{Number}           Number of iterations i.e. how many times to traverse those steps
         @returns    {Object}            emits an Object
@@ -1597,8 +1591,8 @@
     
     /***************************************************************************************************
         Remove duplicate objects
-        @name       dedup()             callable
-        @returns    {Object Array}            emits an Object Array
+        @name       dedup()             callable/chainable
+        @returns    {Object Array}      emits an Object Array
         @example
 
         g.v(10).out().in().dedup().value();
