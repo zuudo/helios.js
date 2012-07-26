@@ -1,8 +1,5 @@
-#Helios.js
-***
-A Graph Database for modern Browsers.  
-
-This project was inspired by the work done by [Marko A. Rodriguez](http://markorodriguez.com/) in the graph space, including the [Gremlin](http://gremlin.tinkerpop.com) graph traversal language, which is part of the [TinkerPop](http://tinkerpop.com/) suite of tools.
+#Helios.js  ***
+Helios is a key/value multi-relational property graph database for the browsers and uses a [Gremlin](http://gremlin.tinkerpop.com) inspired graph traversal language.
 
 
 ##License
