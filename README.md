@@ -1,13 +1,13 @@
 #Helios.js  
-***
-Helios is a key/value multi-relational property graph database for the browsers and uses a [Gremlin](http://gremlin.tinkerpop.com) inspired graph traversal language.
+***  
+Helios is a key/value multi-relational property graph database for the browser. It uses a [Gremlin](http://gremlin.tinkerpop.com) inspired graph traversal language to traverse and query the graph.
 
 ##Getting Started  
-***
+***  
 ##API  
-***
+***  
 ##Running Tests  
-***
+***  
 ##License
 ***  
 (The MIT License)
