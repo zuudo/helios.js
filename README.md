@@ -1,6 +1,5 @@
 #Helios.js  
 Helios.js is a key/value multi-relational property graph database for the browser. It uses a [Gremlin](http://gremlin.tinkerpop.com) inspired graph traversal language to query, analyze and manipulate the graph.  
-Helios.js is licensed under the terms of the MIT License.
 
 __Please see the [website](http://entrendipity.github.com/helios.js/) for full documentation.__
 
