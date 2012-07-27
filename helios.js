@@ -1,4 +1,9 @@
+/*
+    Helios.js    
+    Licensed under the MIT license
 
+    Copyright (c) 2012 Entrendipity Pty. Ltd.
+*/
 ;(function (window, undefined) {
     'use strict';
 
@@ -14,7 +19,8 @@
         shift = ArrayProto.shift,
         indexOf = ArrayProto.indexOf,
         concat = ArrayProto.concat,
-        __env,// = Helios.ENV;
+        _env,
+        _traversed = {},
         graph = {'vertices': {}, 'edges': {}, 'v_idx': {}, 'e_idx': {}} ,
         graphUtils = {},
         fn = {},
@@ -226,7 +232,7 @@
     		
     	var i, l, rows = [], vertex = {}, edge = {};
 
-        __env = Helios.ENV;
+        _env = Helios.ENV;
 
 		if(utils.isUndefined(jsonData)) return;
 		if(utils.isString(jsonData)){
@@ -246,7 +252,7 @@
 			l = rows.length; 
 
 			for(i=0; i<l;i+=1) {
-				graph.vertices[rows[i][__env.id]] = { 'obj': rows[i], 'type': 'vertex', 'outE': {}, 'inE': {} };
+				graph.vertices[rows[i][_env.id]] = { 'obj': rows[i], 'type': 'vertex', 'outE': {}, 'inE': {} };
 			}
 		}
 		
@@ -258,30 +264,30 @@
 			for(i=0; i<l;i+=1) {
 
 				edge = { 'obj': rows[i], 'type': 'edge', 'outV': {}, 'inV': {} };
-				graph.edges[edge.obj[__env.id]] = edge;
+				graph.edges[edge.obj[_env.id]] = edge;
 
-				if(!graph.vertices[edge.obj[__env.outVid]]){
-					graph.vertices[edge.obj[__env.outVid]] = { 'obj': {}, 'type': 'vertex', 'outE': {}, 'inE': {} };
+				if(!graph.vertices[edge.obj[_env.outVid]]){
+					graph.vertices[edge.obj[_env.outVid]] = { 'obj': {}, 'type': 'vertex', 'outE': {}, 'inE': {} };
 					
 				}
-				vertex = graph.vertices[edge.obj[__env.outVid]];
-				if(!vertex.outE[edge.obj[__env.label]]){
-					vertex.outE[edge.obj[__env.label]] = [];
+				vertex = graph.vertices[edge.obj[_env.outVid]];
+				if(!vertex.outE[edge.obj[_env.label]]){
+					vertex.outE[edge.obj[_env.label]] = [];
 				}
 				edge.outV = vertex;
-				push.call(vertex.outE[edge.obj[__env.label]], edge);
+				push.call(vertex.outE[edge.obj[_env.label]], edge);
 
-				if(!graph.vertices[edge.obj[__env.inVid]]){
-					graph.vertices[edge.obj[__env.inVid]] = { 'obj': {}, 'type': 'vertex', 'outE': {}, 'inE': {} };
+				if(!graph.vertices[edge.obj[_env.inVid]]){
+					graph.vertices[edge.obj[_env.inVid]] = { 'obj': {}, 'type': 'vertex', 'outE': {}, 'inE': {} };
 					
 				}
-				vertex = graph.vertices[edge.obj[__env.inVid]];
-				if(!vertex.inE[edge.obj[__env.label]]){
-					vertex.inE[edge.obj[__env.label]] = [];
+				vertex = graph.vertices[edge.obj[_env.inVid]];
+				if(!vertex.inE[edge.obj[_env.label]]){
+					vertex.inE[edge.obj[_env.label]] = [];
 				}
-				vertex = graph.vertices[edge.obj[__env.inVid]];
+				vertex = graph.vertices[edge.obj[_env.inVid]];
 				edge.inV = vertex;
-				push.call(vertex.inE[edge.obj[__env.label]], edge);
+				push.call(vertex.inE[edge.obj[_env.label]], edge);
 			}
 		}
 		return Helios;
@@ -313,6 +319,7 @@
             },
             'namedStep': {}            
         };
+        _traversed = {};
     }
 
     utils.toArray = function(o){
@@ -339,9 +346,13 @@
     }
     
     utils.isEmpty = function(o){
+        if(!o){
+            return true;
+        }
         for(var key in o){
             return !o[key];
         }
+        return true;
     }
 
     utils.isFunction = function(o){
@@ -358,11 +369,11 @@
     fn.intersection = function (arr1, arr2, isObj){
         var r = [], o = {}, i, comp;
         for (i = 0; i < arr2.length; i++) {
-            !!isObj ? o[arr2[i].obj[__env.id]] = true : o[arr2[i]] = true;
+            !!isObj ? o[arr2[i].obj[_env.id]] = true : o[arr2[i]] = true;
         }
         
         for (i = 0; i < arr1.length; i++) {
-            comp = !!isObj ? arr1[i].obj[__env.id] : arr1[i];
+            comp = !!isObj ? arr1[i].obj[_env.id] : arr1[i];
             if (!!o[comp]) {
                 r.push(arr1[i]);
             }
@@ -374,11 +385,11 @@
     fn.difference = function(arr1, arr2, isObj){
         var r = [], o = {}, i, comp;
         for (i = 0; i < arr2.length; i++) {
-            !!isObj ? o[arr2[i].obj[__env.id]] = true : o[arr2[i]] = true;
+            !!isObj ? o[arr2[i].obj[_env.id]] = true : o[arr2[i]] = true;
         }
         
         for (i = 0; i < arr1.length; i++) {
-            comp = !!isObj ? arr1[i].obj[__env.id] : arr1[i];
+            comp = !!isObj ? arr1[i].obj[_env.id] : arr1[i];
             if (!o[comp]) {
                 r.push(arr1[i]);
             }
@@ -397,7 +408,7 @@
     fn.uniqueObject = function(array){
 
         var o = {}, i, l = array.length, r = [];
-        for(i=0; i<l;i+=1) o[array[i].obj[__env.id]] = array[i];
+        for(i=0; i<l;i+=1) o[array[i].obj[_env.id]] = array[i];
         for(i in o) r.push(o[i]);
         return r;
 
@@ -543,7 +554,7 @@
         props = concat.apply(ArrayProto, arguments),
         i = props.length,
         result = {};
-
+        
         while (i--) {
           prop = props[i];
           if (prop in o) {
@@ -555,13 +566,16 @@
     }
     fn.flatten = function(array, shallow){
 
-        var result = [];
+        var result = [],
+            value,
+            index = -1,
+            length;
+
         if (!array) {
           return result;
         }
-        var value,
-            index = -1,
-            length = array.length;
+        
+        length = array.length;
 
         while (++index < length) {
           value = array[index];
@@ -700,12 +714,12 @@
             stepPaths = o['step '+i] = [];
             for(j=0, len = stepRecs.length; j<len;j++){
                 if(stepRecs[j].type === 'vertex'){
-                    push.call(stepPaths,'v['+stepRecs[j].obj[__env.id]+']');
+                    push.call(stepPaths,'v['+stepRecs[j].obj[_env.id]+']');
                 } else {
                     edge = stepRecs[j].obj;
-                    edgeStr = 'v['+ edge[__env.outVid] + '], e[' + edge[__env.id] + '][' + 
-                                edge[__env.outVid] + '-' + edge[__env.label] + '->' + 
-                                edge[__env.inVid] + '], v[' + edge[__env.inVid] +']';
+                    edgeStr = 'v['+ edge[_env.outVid] + '], e[' + edge[_env.id] + '][' + 
+                                edge[_env.outVid] + '-' + edge[_env.label] + '->' + 
+                                edge[_env.inVid] + '], v[' + edge[_env.inVid] +']';
                     push.call(stepPaths,edgeStr);
                 }
             }
@@ -781,7 +795,7 @@
         var retVal = [];
 
         retVal = fn.map(pipedObjects, function(element, key, list) {
-            return element.obj[__env.id];
+            return element.obj[_env.id];
         });
         
         utils.resetPipe();
@@ -803,7 +817,7 @@
         var retVal = [];
 
         retVal = fn.map(pipedObjects, function(element, key, list) {
-            return element.obj[__env.label];
+            return element.obj[_env.label];
         });
 
         utils.resetPipe(); 
@@ -824,11 +838,12 @@
     function out() {
 
         var retVal = [],
-            args = slice.call(arguments, 1);
+            args = slice.call(arguments, 1),
+            value;
 
         fn.each(arguments[0], function(vertex, key, list) {
             if (!utils.isEmpty(vertex.outE)) {
-                var value = !!args.length ? fn.pick(vertex.outE, args) : vertex.outE;
+                value = !!args.length ? fn.pick(vertex.outE, args) : vertex.outE;
                 fn.each(fn.flatten(fn.values(value)), function(edge) {
                     push.call(retVal, edge.inV);
                 });
@@ -858,11 +873,12 @@
      function _in () {
 
         var retVal = [],
-            args = slice.call(arguments, 1);
+            args = slice.call(arguments, 1),
+            value;
 
         fn.each(arguments[0], function(vertex, key, list) {
             if (!utils.isEmpty(vertex.inE)) {
-                var value = !!args.length ? fn.pick(vertex.inE, args) : vertex.inE;
+                value = !!args.length ? fn.pick(vertex.inE, args) : vertex.inE;
                 fn.each(fn.flatten(fn.values(value)), function(edge) {
                     push.call(retVal, edge.outV);
                 });
@@ -903,24 +919,23 @@
     function both() {
 
         var retVal = [],
-            args = slice.call(arguments, 1);
+            args = slice.call(arguments, 1),
+            value;
 
         fn.each(arguments[0], function(vertex, key, list) {
             if (!utils.isEmpty(vertex.outE)) {
-                var value = !!args.length ? fn.pick(vertex.outE, args) : vertex.outE;
+                value = !!args.length ? fn.pick(vertex.outE, args) : vertex.outE;
                 fn.each(fn.flatten(fn.values(value)), function(edge) {
                     push.call(retVal, edge.inV);
                 });
             }
             if (!utils.isEmpty(vertex.inE)) {
-                var value = !!args.length ? fn.pick(vertex.inE, args) : vertex.inE;
+                value = !!args.length ? fn.pick(vertex.inE, args) : vertex.inE;
                 fn.each(fn.flatten(fn.values(value)), function(edge) {
                     push.call(retVal, edge.outV);
                 });
             }
         });
-    	
-         
         return retVal;
     }
 
@@ -957,11 +972,12 @@
     function outE() {
 
         var retVal = [],
-            args = slice.call(arguments, 1);
+            args = slice.call(arguments, 1),
+            value;
 
         fn.each(arguments[0], function(vertex, key, list) {
             if (!utils.isEmpty(vertex.outE)) {
-                var value = !!args.length ? fn.pick(vertex.outE, args) : vertex.outE;
+                value = !!args.length ? fn.pick(vertex.outE, args) : vertex.outE;
                 fn.each(fn.flatten(fn.values(value)), function(edge) {
                     push.call(retVal, edge);
                 });
@@ -984,18 +1000,17 @@
     function inE() {
 
         var retVal = [],
-            args = slice.call(arguments, 1);
+            args = slice.call(arguments, 1),
+            value;
 
         fn.each(arguments[0], function(vertex, key, list) {
             if (!utils.isEmpty(vertex.inE)) {
-                var value = !!args.length ? fn.pick(vertex.inE, args) : vertex.inE;
+                value = !!args.length ? fn.pick(vertex.inE, args) : vertex.inE;
                 fn.each(fn.flatten(fn.values(value)), function(edge) {
                     push.call(retVal, edge);
                 });
             }
         });
-
-         
         return retVal;
     }
 
@@ -1013,25 +1028,24 @@
     function bothE() {
 
     	var retVal = [],
-            args = slice.call(arguments, 1);
+            args = slice.call(arguments, 1),
+            value;
 
         fn.each(arguments[0], function(vertex, key, list) {
         	
             if (!utils.isEmpty(vertex.outE)) {
-                var value = !!args.length ? fn.pick(vertex.outE, args) : vertex.outE;
+                value = !!args.length ? fn.pick(vertex.outE, args) : vertex.outE;
                 fn.each(fn.flatten(fn.values(value)), function(edge) {
                     push.call(retVal, edge);
                 });
             }
             if (!utils.isEmpty(vertex.inE)) {
-                var value = !!args.length ? fn.pick(vertex.inE, args) : vertex.inE;
+                value = !!args.length ? fn.pick(vertex.inE, args) : vertex.inE;
                 fn.each(fn.flatten(fn.values(value)), function(edge) {
                     push.call(retVal, edge);
                 });
             }
         });
-
-         
         return retVal;
     }
 
@@ -1059,6 +1073,87 @@
     ***************************************************************************************************/
     function E() {
         return utils.toArray(graph.edges);
+    }
+
+
+    /***************************************************************************************************
+
+        @name       tail()                  callable/chainable
+        @param      {String*|String Array}  Comma separated list or array of labels.
+        @returns    {Object Array}          emits tail Vertices relative to the vertex.
+        @example
+            
+            var result = g.v(10).tail().value();
+            var result = g.v(10).tail('knows').value();
+
+    ***************************************************************************************************/
+    function tail() {
+
+        var retVal = [],
+            tempArr = [],
+            tempPipe = [],
+            args = slice.call(arguments, 1),
+            value;
+
+        fn.each(arguments[0], function(vertex) {
+            value = !!args.length ? fn.pick(vertex.outE, args) : vertex.outE;
+            if(utils.isEmpty(value)){
+                push.call(retVal, vertex);
+            } else {
+                fn.each(fn.flatten(fn.values(value)), function(edge) {
+                    if(!_traversed.hasOwnProperty([edge.obj[_env.id]])){
+                        push.call(tempArr, edge.inV);
+                        _traversed[edge.obj[_env.id]] = true;
+                    }
+                });
+                push.call(tempPipe,tempArr);
+                push.apply(tempPipe,args);
+                push.apply(retVal,tail.apply(null,tempPipe));
+                _traversed = {};
+            }
+        });
+         
+        return retVal;
+    }
+
+    /***************************************************************************************************
+
+    @name       head()                  callable/chainable
+    @param      {String*|String Array}  Comma separated list or array of labels.
+    @returns    {Object Array}          emits head Vertices relative to the vertex.
+    @example
+        
+        var result = g.v(10).head().value();
+        var result = g.v(10).head('knows').value();
+
+    ***************************************************************************************************/
+    function head() {
+
+        var retVal = [],
+            tempArr = [],
+            tempPipe = [],
+            args = slice.call(arguments, 1),
+            value;
+
+        fn.each(arguments[0], function(vertex) {
+            value = !!args.length ? fn.pick(vertex.inE, args) : vertex.inE;
+            if(utils.isEmpty(value)){
+                push.call(retVal, vertex);
+            } else {
+                fn.each(fn.flatten(fn.values(value)), function(edge) {
+                    if(!_traversed.hasOwnProperty([edge.obj[_env.id]])){
+                        push.call(tempArr, edge.outV);
+                        _traversed[edge.obj[_env.id]] = true;
+                    }
+                });
+                push.call(tempPipe,tempArr);
+                push.apply(tempPipe,args);
+                push.apply(retVal,head.apply(null,tempPipe));
+                _traversed = {};
+            }
+        });
+         
+        return retVal;
     }
 
     /***************************************************************************************************
@@ -1326,12 +1421,12 @@
         }
 
         for (var i = 0, len = retVal.length; i < len; i++){
-            push.call(ids,retVal[i].obj[__env.id]);
+            push.call(ids,retVal[i].obj[_env.id]);
         }
         ids = fn.unique(ids);
 
         for (var i = 0, len = prevRecords.length; i < len; i++){
-            if(!fn.include(ids, prevRecords[i].obj[__env.id])){
+            if(!fn.include(ids, prevRecords[i].obj[_env.id])){
                 push.call(retVal, prevRecords[i]);
             }
         }
@@ -1616,6 +1711,8 @@
         return JSON.parse(stringify());
     }
 
+
+
     //comparables
     comparable.eq = function(atts){
         return function(x){
@@ -1761,6 +1858,8 @@
     Helios.prototype.both = both;
     Helios.prototype.bothV = bothV;
     Helios.prototype.bothE = bothE;
+    Helios.prototype.head = head;
+    Helios.prototype.tail = tail;
     Helios.prototype.path = path;
     Helios.prototype.stringify = stringify;
     Helios.prototype.value = pipedValue;
@@ -1777,7 +1876,6 @@
     //SideEffect-Based Steps
     Helios.prototype.sideEffect = step;
     Helios.prototype.as = store;
-    //Helios.prototype.aggregate = aggregate;
     Helios.prototype.store = store;
     Helios.prototype.countBy = countBy;
     Helios.prototype.groupBy = groupBy;
@@ -1786,7 +1884,6 @@
 
     //Branch-Based Steps
     Helios.prototype.loop = loop;
-    //Helios.prototype.ifThenElse = ifThenElse;
 
     //Methods
     Helios.prototype.v = v;

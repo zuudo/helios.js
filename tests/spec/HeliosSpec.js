@@ -166,6 +166,9 @@ describe("Transform-Based Steps", function() {
         expect(results).toContainKeyValue('name','josh');
         expect(results).toContainKeyValue('name','vadas');
 
+        results = g.v(10).out('nonExistentLabel').value();
+        expect(results.length).toEqual(0);
+
         ////////////
 
         results = g.v(10).outE('knows').value();
@@ -287,10 +290,33 @@ describe("Transform-Based Steps", function() {
         expect(g.v(20).in('knows', 'created').value().length).toEqual(1);
         expect(g.v(20).in('knows', 'created').value()[0].obj[configTest.id]).toEqual(10);
         expect(g.v(40).both('knows', 'created').value().length).toEqual(3);
+
   });
 
+  it("tail", function() {
+    results = g.v(10).tail().value();
+    expect(results.length).toEqual(4);
+    expect(results).toContainKeyValue(configTest.id, 20);
+    expect(results).toContainKeyValue(configTest.id, 30);
+    expect(results).toContainKeyValue(configTest.id, 50);
 
-  it("Path", function() {
+    results = g.v(10).tail('knows').value();
+    expect(results.length).toEqual(2);
+    expect(results).toContainKeyValue(configTest.id, 20);
+    expect(results).toContainKeyValue(configTest.id, 40);
+  });
+
+  it("head", function() {
+        results = g.v(40).head().value();
+        expect(results.length).toEqual(1);
+        expect(results).toContainKeyValue(configTest.id, 10);
+
+        results = g.v(40).head('knows').value();
+        expect(results.length).toEqual(1);
+        expect(results).toContainKeyValue(configTest.id, 10);
+  });
+
+  it("path", function() {
     results = g.v(10).out('knows').path();
     expect(results.length).toEqual(3);
 
