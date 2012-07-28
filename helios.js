@@ -55,7 +55,7 @@
         };
     };
 
-    //pipe enable all Helios functions except end of pipe functions
+    //pipe enable all Helios functions except unpiped functions
     function pipe() {
         var func;
         for (func in this) {
@@ -297,6 +297,156 @@
 		}
 		return Helios;
     };
+
+    /***************************************************************************************************
+
+        Graph Utils: Loads data into Helios. Reloading the same data will replace/update existing records.
+                     Called fro Helios object used graph.
+
+        @name       graph.loadGraphSON()    callable
+        @param      !{JSON} jsonData        The graph data to add to database. Needs to be in GraphSON
+                                            format, otherwise Helios.ENV needs to be configured.
+        @returns    {Helios}                Returns the instance of Helios.
+
+        @example
+
+            var someData = {
+                "vertices":[
+                    {"name":"marko","age":29,"@rid":10,"@type":"vertex"},
+                    {"name":"vadas","age":27,"@rid":20,"@type":"vertex"},
+                    {"name":"lop","lang":"java","@rid":30,"@type":"vertex"},
+                    {"name":"josh","age":32,"@rid":40,"@type":"vertex"},
+                    {"name":"ripple","lang":"java","@rid":50,"@type":"vertex"},
+                    {"name":"peter","age":35,"@rid":60,"@type":"vertex"}
+                    ],
+                "edges":[
+                    {"weight":0.5,"@rid":70,"@type":"edge","@outV":10,"@inV":20,"@label":"knows"},
+                    {"weight":1.0,"@rid":80,"@type":"edge","@outV":10,"@inV":40,"@label":"knows"},
+                    {"weight":0.4,"@rid":90,"@type":"edge","@outV":10,"@inV":30,"@label":"created"},
+                    {"weight":1.0,"@rid":100,"@type":"edge","@outV":40,"@inV":50,"@label":"created"},
+                    {"weight":0.4,"@rid":110,"@type":"edge","@outV":40,"@inV":30,"@label":"created"},
+                    {"weight":0.2,"@rid":120,"@type":"edge","@outV":60,"@inV":30,"@label":"created"}
+                ]
+            };
+
+            var g= Helios.newGraph();
+            g.graph.loadGraphSON(someData);
+
+    ***************************************************************************************************/
+    graphUtils.loadGraphML = function(xmlData){
+            
+                // var xmlDoc;
+                // if (window.XMLHttpRequest)
+                // {
+                // xmlDoc=new window.XMLHttpRequest();
+                // xmlDoc.open(“GET”,XMLname,false);
+                // xmlDoc.send(“”);
+                // return xmlDoc.responseXML;
+                // }
+                // // IE 5 and IE 6
+                // else if (ActiveXObject(“Microsoft.XMLDOM”))
+                // {
+                // xmlDoc=new ActiveXObject(“Microsoft.XMLDOM”);
+                // xmlDoc.async=false;
+                // xmlDoc.load(XMLname);
+                // return xmlDoc;
+                // }
+                // alert(“Error loading document!”);
+                // return null;
+
+
+
+        var i, l, rows = [], vertex = {}, edge = {}, xmlDoc;
+
+        _env = Helios.ENV;
+
+        if(utils.isUndefined(xmlData)) return;
+        if(utils.isString(xmlData)){
+            var xmlhttp = new XMLHttpRequest();
+            xmlhttp.onreadystatechange = function() {
+                    if(xmlhttp.readyState == 4){
+                        xmlDoc = xmlhttp.responseXML;
+                    }
+            };
+            xmlhttp.open("GET",xmlData,false);
+            xmlhttp.send(null);
+        }
+var K = xmlDoc.getElementsByTagName("key");
+var Vertices = xmlDoc.getElementsByTagName("node");
+var Edges = xmlDoc.getElementsByTagName('edge');
+
+//var v2 = V[0].getAttribute("id");//childNodes[0].nodeValue;
+var tempObj = {};
+var tempData;
+        //process vertices
+        if(!!Vertices.length){
+            //rows = XMLData.vertices;
+            l = Vertices.length; 
+
+            for(i=0; i<l;i+=1) {
+                tempData = Vertices[i].getElementsByTagName("data");
+                tempObj = {};
+                for(var j=0, Len = tempData.length; j<Len; j++){
+                    tempObj[tempData[j].getAttribute("key")] = tempData[j].firstChild.nodeValue;
+                }
+                tempObj._id = Vertices[i].getAttribute("id");
+                tempObj._type = 'vertex';
+                graph.vertices[Vertices[i].getAttribute("id")] = { 'obj': tempObj, 'type': 'vertex', 'outE': {}, 'inE': {} };
+
+            }
+        }
+        
+        //process edges
+        if(!!Edges.length){
+            //rows = jsonData.edges;
+            l = Edges.length; 
+
+            for(i=0; i<l;i+=1) {
+                tempData = Edges[i].getElementsByTagName("data");
+                tempObj = {};
+                for(var j=0, Len = tempData.length; j<Len; j++){
+                    tempObj[tempData[j].getAttribute("key")] = tempData[j].firstChild.nodeValue;
+                }
+                tempObj._id = Edges[i].getAttribute("id");
+                tempObj._type = 'edge';
+                tempObj._label = Edges[i].getAttribute("label");
+                tempObj._outV = Edges[i].getAttribute("source");
+                tempObj._inV = Edges[i].getAttribute("target");
+                graph.edges[Edges[i].getAttribute("id")] = { 'obj': tempObj, 'type': 'edge', 'outV': {}, 'inV': {} };
+
+
+
+                edge = graph.edges[Edges[i].getAttribute("id")];//{ 'obj': rows[i], 'type': 'edge', 'outV': {}, 'inV': {} };
+                //graph.edges[edge.obj[_env.id]] = edge;
+
+                if(!graph.vertices[edge.obj[_env.outVid]]){
+                    graph.vertices[edge.obj[_env.outVid]] = { 'obj': {}, 'type': 'vertex', 'outE': {}, 'inE': {} };
+                    
+                }
+                vertex = graph.vertices[edge.obj[_env.outVid]];
+                if(!vertex.outE[edge.obj[_env.label]]){
+                    vertex.outE[edge.obj[_env.label]] = [];
+                }
+                edge.outV = vertex;
+                push.call(vertex.outE[edge.obj[_env.label]], edge);
+
+                if(!graph.vertices[edge.obj[_env.inVid]]){
+                    graph.vertices[edge.obj[_env.inVid]] = { 'obj': {}, 'type': 'vertex', 'outE': {}, 'inE': {} };
+                    
+                }
+                vertex = graph.vertices[edge.obj[_env.inVid]];
+                if(!vertex.inE[edge.obj[_env.label]]){
+                    vertex.inE[edge.obj[_env.label]] = [];
+                }
+                vertex = graph.vertices[edge.obj[_env.inVid]];
+                edge.inV = vertex;
+                push.call(vertex.inE[edge.obj[_env.label]], edge);
+            }
+        }
+        return Helios;
+    };
+
+
 
     /***************************************************************************************************
 
@@ -568,6 +718,16 @@
         return result;
 
     }
+    fn.getObjProp = function(array){
+        var i, l = array.length, result = [];
+        
+        for(i=0;i<l;i++){
+            push.call(result,array[i].obj);
+        }
+        return result;
+
+    }
+
     fn.flatten = function(array, shallow){
 
         var result = [],
@@ -657,7 +817,13 @@
 
     ***************************************************************************************************/
     function pipedValue(){
-    	var retVal = pipedObjects;
+        var retVal = [], args = arguments;
+        if(!!pipedObjects[0] && !!pipedObjects[0].obj){
+            retVal = fn.getObjProp(pipedObjects);
+        } else {
+            retVal = pipedObjects;            
+        }
+
     	utils.resetPipe();
     	return retVal;
     }
@@ -1160,7 +1326,8 @@
 
         fn.each(arguments[0], function(vertex) {
             if(!_traversedVertices[vertex.obj[_env.id]]){  
-                _traversedVertices[vertex.obj[_env.id]] = 'visited';  
+                _traversedVertices[vertex.obj[_env.id]] = 'visited';
+
                 value = hasArgs ? fn.pick(vertex.inE, args) : vertex.inE;
                 if(utils.isEmpty(value)){
                     if(hasArgs){
@@ -1230,7 +1397,7 @@
                     func = args[1];
                     args.shift();
                     funcArgs = fn.flatten(slice.call(args, 1));
-                    retVal = func.apply(arguments[0] ,funcArgs);
+                    retVal = func.apply(arguments[0], funcArgs);
                 }           
             }
         return retVal;
@@ -1375,7 +1542,7 @@
             funcArgs = fn.flatten(slice.call(args, 1),true);
 
             fn.each(records, function(element){
-                if(func.apply(element, funcArgs)) {
+                if(func.apply(element.obj, funcArgs)) {
                     push.call(retVal, element);
                 }
             });
@@ -1436,7 +1603,7 @@
             funcArgs = fn.flatten(slice.call(args, 1),true);
 
             fn.each(records, function(element){
-                if(func.apply(element, funcArgs)) {
+                if(func.apply(element.obj, funcArgs)) {
                     push.call(retVal, element);
                 }
             });
@@ -1538,7 +1705,8 @@
 
     ***************************************************************************************************/
     function step() {
-        var  retVal
+        var  retVal = [],
+            tempArr = []
             ,args = slice.call(arguments, 1)
             ,func
             ,funcArgs = [];
@@ -1546,7 +1714,7 @@
         if(utils.isFunction(args[0])){
             func = args[0];
             funcArgs = fn.flatten(slice.call(args, 1),true);
-            retVal = func.apply(arguments[0] ,funcArgs)
+            retVal = func.apply(arguments[0] ,funcArgs);
         } else {
             retVal = "Invalid function";
         }
