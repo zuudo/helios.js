@@ -20,7 +20,8 @@
         indexOf = ArrayProto.indexOf,
         concat = ArrayProto.concat,
         _env,
-        _traversed = {},
+        _traversedVertices = {},
+        _traversedEdges = {},
         graph = {'vertices': {}, 'edges': {}, 'v_idx': {}, 'e_idx': {}} ,
         graphUtils = {},
         fn = {},
@@ -36,6 +37,9 @@
             var pipedArgs = [],
             isStep = !fn.include(['as', 'back', 'loop', 'countBy', 'groupBy', 'groupSum', 'store'], that.name);
 
+            //reset any travesal - tail\head
+            _traversedVertices = {};
+            _traversedEdges = {};
             push.call(pipedArgs, pipedObjects);
             push.apply(pipedArgs, arguments);
             
@@ -176,7 +180,8 @@
     ***************************************************************************************************/
     Helios.newGraph = function(jsonGraph, conf){
 
-        if(!!jsonGraph && !(jsonGraph.hasOwnProperty('vertices') || jsonGraph.hasOwnProperty('edges'))){
+        if(!utils.isString(jsonGraph) && !!jsonGraph && !(jsonGraph.hasOwnProperty('vertices') || jsonGraph.hasOwnProperty('edges'))){
+
             conf = jsonGraph;
             jsonGraph = false;
         }        
@@ -319,7 +324,6 @@
             },
             'namedStep': {}            
         };
-        _traversed = {};
     }
 
     utils.toArray = function(o){
@@ -839,11 +843,12 @@
 
         var retVal = [],
             args = slice.call(arguments, 1),
+            hasArgs = !!args.length,            
             value;
 
         fn.each(arguments[0], function(vertex, key, list) {
             if (!utils.isEmpty(vertex.outE)) {
-                value = !!args.length ? fn.pick(vertex.outE, args) : vertex.outE;
+                value = hasArgs ? fn.pick(vertex.outE, args) : vertex.outE;
                 fn.each(fn.flatten(fn.values(value)), function(edge) {
                     push.call(retVal, edge.inV);
                 });
@@ -874,11 +879,12 @@
 
         var retVal = [],
             args = slice.call(arguments, 1),
+            hasArgs = !!args.length,
             value;
 
         fn.each(arguments[0], function(vertex, key, list) {
             if (!utils.isEmpty(vertex.inE)) {
-                value = !!args.length ? fn.pick(vertex.inE, args) : vertex.inE;
+                value = hasArgs ? fn.pick(vertex.inE, args) : vertex.inE;
                 fn.each(fn.flatten(fn.values(value)), function(edge) {
                     push.call(retVal, edge.outV);
                 });
@@ -920,17 +926,18 @@
 
         var retVal = [],
             args = slice.call(arguments, 1),
+            hasArgs = !!args.length,
             value;
 
         fn.each(arguments[0], function(vertex, key, list) {
             if (!utils.isEmpty(vertex.outE)) {
-                value = !!args.length ? fn.pick(vertex.outE, args) : vertex.outE;
+                value = hasArgs ? fn.pick(vertex.outE, args) : vertex.outE;
                 fn.each(fn.flatten(fn.values(value)), function(edge) {
                     push.call(retVal, edge.inV);
                 });
             }
             if (!utils.isEmpty(vertex.inE)) {
-                value = !!args.length ? fn.pick(vertex.inE, args) : vertex.inE;
+                value = hasArgs ? fn.pick(vertex.inE, args) : vertex.inE;
                 fn.each(fn.flatten(fn.values(value)), function(edge) {
                     push.call(retVal, edge.outV);
                 });
@@ -973,11 +980,12 @@
 
         var retVal = [],
             args = slice.call(arguments, 1),
+            hasArgs = !!args.length,
             value;
 
         fn.each(arguments[0], function(vertex, key, list) {
             if (!utils.isEmpty(vertex.outE)) {
-                value = !!args.length ? fn.pick(vertex.outE, args) : vertex.outE;
+                value = hasArgs ? fn.pick(vertex.outE, args) : vertex.outE;
                 fn.each(fn.flatten(fn.values(value)), function(edge) {
                     push.call(retVal, edge);
                 });
@@ -1001,11 +1009,12 @@
 
         var retVal = [],
             args = slice.call(arguments, 1),
+            hasArgs = !!args.length,
             value;
 
         fn.each(arguments[0], function(vertex, key, list) {
             if (!utils.isEmpty(vertex.inE)) {
-                value = !!args.length ? fn.pick(vertex.inE, args) : vertex.inE;
+                value = hasArgs ? fn.pick(vertex.inE, args) : vertex.inE;
                 fn.each(fn.flatten(fn.values(value)), function(edge) {
                     push.call(retVal, edge);
                 });
@@ -1029,18 +1038,19 @@
 
     	var retVal = [],
             args = slice.call(arguments, 1),
+            hasArgs = !!args.length,
             value;
 
         fn.each(arguments[0], function(vertex, key, list) {
         	
             if (!utils.isEmpty(vertex.outE)) {
-                value = !!args.length ? fn.pick(vertex.outE, args) : vertex.outE;
+                value = hasArgs ? fn.pick(vertex.outE, args) : vertex.outE;
                 fn.each(fn.flatten(fn.values(value)), function(edge) {
                     push.call(retVal, edge);
                 });
             }
             if (!utils.isEmpty(vertex.inE)) {
-                value = !!args.length ? fn.pick(vertex.inE, args) : vertex.inE;
+                value = hasArgs ? fn.pick(vertex.inE, args) : vertex.inE;
                 fn.each(fn.flatten(fn.values(value)), function(edge) {
                     push.call(retVal, edge);
                 });
@@ -1080,7 +1090,7 @@
 
         @name       tail()                  callable/chainable
         @param      {String*|String Array}  Comma separated list or array of labels.
-        @returns    {Object Array}          emits tail Vertices relative to the vertex.
+        @returns    {Object Array}          emits deduped tail Vertices relative to the vertex.
         @example
             
             var result = g.v(10).tail().value();
@@ -1093,26 +1103,38 @@
             tempArr = [],
             tempPipe = [],
             args = slice.call(arguments, 1),
+            hasArgs = !!args.length,
             value;
 
         fn.each(arguments[0], function(vertex) {
-            value = !!args.length ? fn.pick(vertex.outE, args) : vertex.outE;
-            if(utils.isEmpty(value)){
-                push.call(retVal, vertex);
-            } else {
-                fn.each(fn.flatten(fn.values(value)), function(edge) {
-                    if(!_traversed.hasOwnProperty([edge.obj[_env.id]])){
-                        push.call(tempArr, edge.inV);
-                        _traversed[edge.obj[_env.id]] = true;
+            if(!_traversedVertices[vertex.obj[_env.id]]){  
+                _traversedVertices[vertex.obj[_env.id]] = 'visited'; 
+
+                value = hasArgs ? fn.pick(vertex.outE, args) : vertex.outE;
+                if(utils.isEmpty(value)){
+                    if(hasArgs){
+                        if(!utils.isEmpty(fn.pick(vertex.inE, args))){
+                            push.call(retVal, vertex);
+                        }
+                    } else {
+                        push.call(retVal, vertex);
                     }
-                });
-                push.call(tempPipe,tempArr);
-                push.apply(tempPipe,args);
-                push.apply(retVal,tail.apply(null,tempPipe));
-                _traversed = {};
+                } else {
+                    tempArr = [];
+                    tempPipe = [];
+                    fn.each(fn.flatten(fn.values(value)), function(edge) {
+                        if(!_traversedEdges[edge.obj[_env.id]]){
+                            push.call(tempArr, edge.inV);
+                            _traversedEdges[edge.obj[_env.id]] = 'visited';
+                        }
+                    });
+                    push.call(tempPipe,tempArr);
+                    push.apply(tempPipe,args);
+                    push.apply(retVal,tail.apply(null,tempPipe));    
+                }
             }
         });
-         
+
         return retVal;
     }
 
@@ -1120,7 +1142,7 @@
 
     @name       head()                  callable/chainable
     @param      {String*|String Array}  Comma separated list or array of labels.
-    @returns    {Object Array}          emits head Vertices relative to the vertex.
+    @returns    {Object Array}          emits deduped head Vertices relative to the vertex.
     @example
         
         var result = g.v(10).head().value();
@@ -1133,26 +1155,36 @@
             tempArr = [],
             tempPipe = [],
             args = slice.call(arguments, 1),
+            hasArgs = !!args.length,
             value;
 
         fn.each(arguments[0], function(vertex) {
-            value = !!args.length ? fn.pick(vertex.inE, args) : vertex.inE;
-            if(utils.isEmpty(value)){
-                push.call(retVal, vertex);
-            } else {
-                fn.each(fn.flatten(fn.values(value)), function(edge) {
-                    if(!_traversed.hasOwnProperty([edge.obj[_env.id]])){
-                        push.call(tempArr, edge.outV);
-                        _traversed[edge.obj[_env.id]] = true;
+            if(!_traversedVertices[vertex.obj[_env.id]]){  
+                _traversedVertices[vertex.obj[_env.id]] = 'visited';  
+                value = hasArgs ? fn.pick(vertex.inE, args) : vertex.inE;
+                if(utils.isEmpty(value)){
+                    if(hasArgs){
+                        if(!utils.isEmpty(fn.pick(vertex.outE, args))){
+                            push.call(retVal, vertex);
+                        }
+                    } else {
+                        push.call(retVal, vertex);
                     }
-                });
-                push.call(tempPipe,tempArr);
-                push.apply(tempPipe,args);
-                push.apply(retVal,head.apply(null,tempPipe));
-                _traversed = {};
+                } else {
+                    tempArr = [];
+                    tempPipe = [];
+                    fn.each(fn.flatten(fn.values(value)), function(edge) {
+                        if(!_traversedEdges[edge.obj[_env.id]]){
+                            push.call(tempArr, edge.outV);
+                            _traversedEdges[edge.obj[_env.id]] = 'visited';
+                        }
+                    });
+                    push.call(tempPipe,tempArr);
+                    push.apply(tempPipe,args);
+                    push.apply(retVal,head.apply(null,tempPipe));
+                }
             }
         });
-         
         return retVal;
     }
 

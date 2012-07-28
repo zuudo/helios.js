@@ -295,7 +295,7 @@ describe("Transform-Based Steps", function() {
 
   it("tail", function() {
     results = g.v(10).tail().value();
-    expect(results.length).toEqual(4);
+    expect(results.length).toEqual(3);
     expect(results).toContainKeyValue(configTest.id, 20);
     expect(results).toContainKeyValue(configTest.id, 30);
     expect(results).toContainKeyValue(configTest.id, 50);
@@ -304,6 +304,18 @@ describe("Transform-Based Steps", function() {
     expect(results.length).toEqual(2);
     expect(results).toContainKeyValue(configTest.id, 20);
     expect(results).toContainKeyValue(configTest.id, 40);
+
+    results = g.V().tail().value();
+    expect(results.length).toEqual(3);
+    expect(results).toContainKeyValue(configTest.id, 20);
+    expect(results).toContainKeyValue(configTest.id, 30);
+    expect(results).toContainKeyValue(configTest.id, 50);
+
+    results = g.V().tail('knows').value();
+    expect(results.length).toEqual(2);
+    expect(results).toContainKeyValue(configTest.id, 20);
+    expect(results).toContainKeyValue(configTest.id, 40);
+
   });
 
   it("head", function() {
@@ -312,6 +324,15 @@ describe("Transform-Based Steps", function() {
         expect(results).toContainKeyValue(configTest.id, 10);
 
         results = g.v(40).head('knows').value();
+        expect(results.length).toEqual(1);
+        expect(results).toContainKeyValue(configTest.id, 10);
+
+        results = g.V().head().value();
+        expect(results.length).toEqual(2);
+        expect(results).toContainKeyValue(configTest.id, 10);
+        expect(results).toContainKeyValue(configTest.id, 60);
+
+        results = g.V().head('knows').value();
         expect(results.length).toEqual(1);
         expect(results).toContainKeyValue(configTest.id, 10);
   });
