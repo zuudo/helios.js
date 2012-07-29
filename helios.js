@@ -27,7 +27,7 @@
         fn = {},
         comparable = {},
         utils = {},
-        pipeline,
+        pipeline = {},
         pipedObjects = [],
         unpipedFuncs = ['label', 'id', 'value', 'stringify', 'map', 'clone', 'path'];
 
@@ -180,7 +180,8 @@
     ***************************************************************************************************/
     Helios.newGraph = function(jsonGraph, conf){
 
-        if(!utils.isString(jsonGraph) && !!jsonGraph && !(jsonGraph.hasOwnProperty('vertices') || jsonGraph.hasOwnProperty('edges'))){
+        if(!utils.isString(jsonGraph) && !!jsonGraph 
+            && !(jsonGraph.hasOwnProperty('vertices') || jsonGraph.hasOwnProperty('edges'))){
 
             conf = jsonGraph;
             jsonGraph = false;
@@ -200,7 +201,7 @@
 
     /***************************************************************************************************
 
-        Graph Utils: Loads data into Helios. Reloading the same data will replace/update existing records.
+        Graph Utils: Loads GraphSON data into Helios. Reloading the same data will replace/update existing records.
                      Called fro Helios object used graph.
 
         @name       graph.loadGraphSON()    callable
@@ -300,63 +301,23 @@
 
     /***************************************************************************************************
 
-        Graph Utils: Loads data into Helios. Reloading the same data will replace/update existing records.
+        Graph Utils: Loads GraphML data into Helios. Reloading the same data will replace/update existing records.
                      Called fro Helios object used graph.
 
-        @name       graph.loadGraphSON()    callable
-        @param      !{JSON} jsonData        The graph data to add to database. Needs to be in GraphSON
-                                            format, otherwise Helios.ENV needs to be configured.
+        @name       graph.loadGraphML()    callable
+        @param      !{XML} jsonData        The graph data to add to database. Needs to be in GraphML
+                                            format.
         @returns    {Helios}                Returns the instance of Helios.
 
         @example
 
-            var someData = {
-                "vertices":[
-                    {"name":"marko","age":29,"@rid":10,"@type":"vertex"},
-                    {"name":"vadas","age":27,"@rid":20,"@type":"vertex"},
-                    {"name":"lop","lang":"java","@rid":30,"@type":"vertex"},
-                    {"name":"josh","age":32,"@rid":40,"@type":"vertex"},
-                    {"name":"ripple","lang":"java","@rid":50,"@type":"vertex"},
-                    {"name":"peter","age":35,"@rid":60,"@type":"vertex"}
-                    ],
-                "edges":[
-                    {"weight":0.5,"@rid":70,"@type":"edge","@outV":10,"@inV":20,"@label":"knows"},
-                    {"weight":1.0,"@rid":80,"@type":"edge","@outV":10,"@inV":40,"@label":"knows"},
-                    {"weight":0.4,"@rid":90,"@type":"edge","@outV":10,"@inV":30,"@label":"created"},
-                    {"weight":1.0,"@rid":100,"@type":"edge","@outV":40,"@inV":50,"@label":"created"},
-                    {"weight":0.4,"@rid":110,"@type":"edge","@outV":40,"@inV":30,"@label":"created"},
-                    {"weight":0.2,"@rid":120,"@type":"edge","@outV":60,"@inV":30,"@label":"created"}
-                ]
-            };
-
             var g= Helios.newGraph();
-            g.graph.loadGraphSON(someData);
+            g.graph.loadGraphML(someXMLData);
 
     ***************************************************************************************************/
     graphUtils.loadGraphML = function(xmlData){
             
-                // var xmlDoc;
-                // if (window.XMLHttpRequest)
-                // {
-                // xmlDoc=new window.XMLHttpRequest();
-                // xmlDoc.open(“GET”,XMLname,false);
-                // xmlDoc.send(“”);
-                // return xmlDoc.responseXML;
-                // }
-                // // IE 5 and IE 6
-                // else if (ActiveXObject(“Microsoft.XMLDOM”))
-                // {
-                // xmlDoc=new ActiveXObject(“Microsoft.XMLDOM”);
-                // xmlDoc.async=false;
-                // xmlDoc.load(XMLname);
-                // return xmlDoc;
-                // }
-                // alert(“Error loading document!”);
-                // return null;
-
-
-
-        var i, l, rows = [], vertex = {}, edge = {}, xmlDoc;
+        var i, j, l, propLen, xmlV = [], xmlE = [], vertex = {}, edge = {}, xmlDoc, properties, tempObj = {};
 
         _env = Helios.ENV;
 
@@ -371,53 +332,47 @@
             xmlhttp.open("GET",xmlData,false);
             xmlhttp.send(null);
         }
-var K = xmlDoc.getElementsByTagName("key");
-var Vertices = xmlDoc.getElementsByTagName("node");
-var Edges = xmlDoc.getElementsByTagName('edge');
 
-//var v2 = V[0].getAttribute("id");//childNodes[0].nodeValue;
-var tempObj = {};
-var tempData;
+        xmlV = xmlDoc.getElementsByTagName("node");
+        xmlE = xmlDoc.getElementsByTagName("edge");
+
         //process vertices
-        if(!!Vertices.length){
-            //rows = XMLData.vertices;
-            l = Vertices.length; 
+        if(!!xmlV.length){
+            l = xmlV.length; 
 
             for(i=0; i<l;i+=1) {
-                tempData = Vertices[i].getElementsByTagName("data");
+                properties = xmlV[i].getElementsByTagName("data");
                 tempObj = {};
-                for(var j=0, Len = tempData.length; j<Len; j++){
-                    tempObj[tempData[j].getAttribute("key")] = tempData[j].firstChild.nodeValue;
+                propLen = properties.length;
+                for(var j=0; j<propLen; j++){
+                    tempObj[properties[j].getAttribute("key")] = properties[j].firstChild.nodeValue;
                 }
-                tempObj._id = Vertices[i].getAttribute("id");
-                tempObj._type = 'vertex';
-                graph.vertices[Vertices[i].getAttribute("id")] = { 'obj': tempObj, 'type': 'vertex', 'outE': {}, 'inE': {} };
+                tempObj[_env.id] = xmlV[i].getAttribute("id");
+                tempObj[_env.type] = 'vertex';
+                graph.vertices[xmlV[i].getAttribute("id")] = { 'obj': tempObj, 'type': 'vertex', 'outE': {}, 'inE': {} };
 
             }
         }
         
         //process edges
-        if(!!Edges.length){
-            //rows = jsonData.edges;
-            l = Edges.length; 
+        if(!!xmlE.length){
+            l = xmlE.length; 
 
             for(i=0; i<l;i+=1) {
-                tempData = Edges[i].getElementsByTagName("data");
+                properties = xmlE[i].getElementsByTagName("data");
                 tempObj = {};
-                for(var j=0, Len = tempData.length; j<Len; j++){
-                    tempObj[tempData[j].getAttribute("key")] = tempData[j].firstChild.nodeValue;
+                propLen = properties.length;
+                for(j=0; j<propLen; j++){
+                    tempObj[properties[j].getAttribute("key")] = properties[j].firstChild.nodeValue;
                 }
-                tempObj._id = Edges[i].getAttribute("id");
-                tempObj._type = 'edge';
-                tempObj._label = Edges[i].getAttribute("label");
-                tempObj._outV = Edges[i].getAttribute("source");
-                tempObj._inV = Edges[i].getAttribute("target");
-                graph.edges[Edges[i].getAttribute("id")] = { 'obj': tempObj, 'type': 'edge', 'outV': {}, 'inV': {} };
+                tempObj[_env.id] = xmlE[i].getAttribute("id");
+                tempObj[_env.type] = 'edge';
+                tempObj[_env.label] = xmlE[i].getAttribute("label");
+                tempObj[_env.outVid] = xmlE[i].getAttribute("source");
+                tempObj[_env.inVid] = xmlE[i].getAttribute("target");
+                graph.edges[xmlE[i].getAttribute("id")] = { 'obj': tempObj, 'type': 'edge', 'outV': {}, 'inV': {} };
 
-
-
-                edge = graph.edges[Edges[i].getAttribute("id")];//{ 'obj': rows[i], 'type': 'edge', 'outV': {}, 'inV': {} };
-                //graph.edges[edge.obj[_env.id]] = edge;
+                edge = graph.edges[xmlE[i].getAttribute("id")];
 
                 if(!graph.vertices[edge.obj[_env.outVid]]){
                     graph.vertices[edge.obj[_env.outVid]] = { 'obj': {}, 'type': 'vertex', 'outE': {}, 'inE': {} };
@@ -446,8 +401,6 @@ var tempData;
         return Helios;
     };
 
-
-
     /***************************************************************************************************
 
         Clear and reset the graph.
@@ -467,7 +420,6 @@ var tempData;
 
     //utils are internal utility functions
     utils.resetPipe = function (){
-    	pipedObjects = [];
         pipeline = {
             'steps': {
                 'currentStep': 0
