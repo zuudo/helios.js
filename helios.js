@@ -20,15 +20,17 @@
         indexOf = ArrayProto.indexOf,
         concat = ArrayProto.concat,
         _env,
-        _traversedVertices = {},
-        _traversedEdges = {},
-        graph = {'vertices': {}, 'edges': {}, 'v_idx': {}, 'e_idx': {}} ,
         graphUtils = {},
         fn = {},
         comparable = {},
         utils = {},
-        pipeline = {},
-        pipedObjects = [],
+        /* Move these global objects into instance so that I can create subgraph>>>> */
+        // _traversedVertices = {},
+        // _traversedEdges = {},
+        graph = {'vertices': {}, 'edges': {}, 'v_idx': {}, 'e_idx': {}} ,
+        // pipeline = {},
+        // pipedObjects = [],
+        /*<<<<<<<<*/
         unpipedFuncs = ['label', 'id', 'value', 'stringify', 'map', 'clone', 'path'];
 
     Function.prototype.pipe = function () {
@@ -38,18 +40,28 @@
             isStep = !fn.include(['as', 'back', 'loop', 'countBy', 'groupBy', 'groupSum', 'store'], that.name);
 
             //reset any travesal - tail\head
-            _traversedVertices = {};
-            _traversedEdges = {};
-            push.call(pipedArgs, pipedObjects);
+            this._traversedVertices = {};
+            this._traversedEdges = {};
+
+
+            if(that.name === 'fork'){
+                var temp = new Helios();
+
+              
+                temp.pipedObjects = this.pipedObjects;
+                return temp;
+            }
+
+            push.call(pipedArgs, this.pipedObjects);
             push.apply(pipedArgs, arguments);
             
             if(isStep){
-                pipeline.steps[pipeline.steps.currentStep += 1] = { 'pipedInArgs': pipedArgs, 'func': that, 'pipedOutArgs':[] };
+                this.pipeline.steps[this.pipeline.steps.currentStep += 1] = { 'pipedInArgs': pipedArgs, 'func': that, 'pipedOutArgs':[] };
             }
             //New piped Objects to be passed to the next step
-            pipedObjects = that.apply(this, pipedArgs);
-            if(isStep && pipeline.steps.currentStep !== 0){
-                  push.call(pipeline.steps[pipeline.steps.currentStep].pipedOutArgs, pipedObjects);
+            this.pipedObjects = that.apply(this, pipedArgs);
+            if(isStep && this.pipeline.steps.currentStep !== 0){
+                  push.call(this.pipeline.steps[this.pipeline.steps.currentStep].pipedOutArgs, this.pipedObjects);
             }
             return this;
         };
@@ -68,7 +80,14 @@
 
     //Object constructor
     function Helios () {
-        utils.resetPipe();
+
+        this._traversedVertices = {};
+        this._traversedEdges = {};
+        this.pipeline = {};
+        this.pipedObjects = [];
+
+
+        utils.resetPipe.call(this);
         return pipe.call(this);
     }
 
@@ -192,11 +211,12 @@
                 Helios.ENV[key] = conf[key];
             }
         }
+        var t = new Helios();
 
         if(!!jsonGraph){
     	   graphUtils.loadGraphSON(jsonGraph);
         }
-    	return new Helios();
+    	return t;
     };
 
     /***************************************************************************************************
@@ -420,7 +440,7 @@
 
     //utils are internal utility functions
     utils.resetPipe = function (){
-        pipeline = {
+        this.pipeline = {
             'steps': {
                 'currentStep': 0
             },
@@ -770,14 +790,18 @@
     ***************************************************************************************************/
     function pipedValue(){
         var retVal = [], args = arguments;
-        if(!!pipedObjects[0] && !!pipedObjects[0].obj){
-            retVal = fn.getObjProp(pipedObjects);
+        if(!!this.pipedObjects[0] && !!this.pipedObjects[0].obj){
+            retVal = fn.getObjProp(this.pipedObjects);
         } else {
-            retVal = pipedObjects;            
+            retVal = this.pipedObjects;            
         }
 
-    	utils.resetPipe();
+    	utils.resetPipe.call(this);
     	return retVal;
+    }
+
+    function fork(){
+        return this.pipedObjects;
     }
 
     /***************************************************************************************************
@@ -2015,6 +2039,7 @@
     Helios.prototype.path = path;
     Helios.prototype.stringify = stringify;
     Helios.prototype.value = pipedValue;
+    Helios.prototype.fork = fork;
 
     //Filter-Based Steps
     Helios.prototype.filter = filter;
