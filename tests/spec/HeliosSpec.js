@@ -816,6 +816,59 @@ describe("Transform-Based Steps", function() {
     });
 
   });
+
+  describe("sub graph", function() {
+    it('fork', function(){
+
+      var t = g.v(10).fork();
+      results = t.out().value();
+      expect(results.length).toEqual(3);
+      expect(results).toContainMap(configTest.id,40);
+      expect(results).toContainMap(configTest.id,20);
+      expect(results).toContainMap(configTest.id,30);  
+
+      results = t.out().value();
+      expect(results.length).toEqual(2);
+      expect(results).toContainMap(configTest.id,50);
+      expect(results).toContainMap(configTest.id,30);          
+
+    });
+
+    it('pin', function(){
+
+      var t = g.v(10).pin();
+      results = t.out().value();
+      expect(results.length).toEqual(3);
+      expect(results).toContainMap(configTest.id,40);
+      expect(results).toContainMap(configTest.id,20);
+      expect(results).toContainMap(configTest.id,30);  
+
+      results = t.out().value();
+      expect(results.length).toEqual(3);
+      expect(results).toContainMap(configTest.id,40);
+      expect(results).toContainMap(configTest.id,20);
+      expect(results).toContainMap(configTest.id,30);  
+
+    });
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  });
 });
 
 

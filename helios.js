@@ -31,7 +31,7 @@
         // pipeline = {},
         // pipedObjects = [],
         /*<<<<<<<<*/
-        unpipedFuncs = ['label', 'id', 'value', 'stringify', 'map', 'clone', 'path'];
+        unpipedFuncs = ['label', 'id', 'value', 'stringify', 'map', 'clone', 'path', 'fork', 'pin'];
 
     Function.prototype.pipe = function () {
         var that = this;
@@ -42,15 +42,6 @@
             //reset any travesal - tail\head
             this._traversedVertices = {};
             this._traversedEdges = {};
-
-
-            if(that.name === 'fork'){
-                var temp = new Helios();
-
-              
-                temp.pipedObjects = this.pipedObjects;
-                return temp;
-            }
 
             push.call(pipedArgs, this.pipedObjects);
             push.apply(pipedArgs, arguments);
@@ -85,7 +76,8 @@
         this._traversedEdges = {};
         this.pipeline = {};
         this.pipedObjects = [];
-
+        //used to prevent steps being reset for fork()
+        this.preserveSteps = false;
 
         utils.resetPipe.call(this);
         return pipe.call(this);
@@ -440,12 +432,24 @@
 
     //utils are internal utility functions
     utils.resetPipe = function (){
-        this.pipeline = {
-            'steps': {
-                'currentStep': 0
-            },
-            'namedStep': {}            
-        };
+        if(!this.preserveSteps){
+            this.pipeline = {
+                'steps': {
+                    'currentStep': 0
+                },
+                'namedStep': {}            
+            };
+        }
+        //if this.pipelineCache has been created then signifies to
+        //preserve step 1 - used by pin()
+        if(!utils.isEmpty(this.pipelineCache)){
+            this.pipeline.steps['1'] = {};
+            this.pipeline.steps['1'].pipedInArgs = [];
+            this.pipeline.steps['1'].func = this.pipelineCache.func;            
+            this.pipeline.steps['1'].pipedOutArgs = this.pipelineCache.pipedOutArgs;
+            this.pipeline.steps.currentStep = 1;
+            this.pipedObjects = this.pipelineCache.pipedOutArgs[0];
+        }
     }
 
     utils.toArray = function(o){
@@ -801,9 +805,32 @@
     }
 
     function fork(){
-        return this.pipedObjects;
+        var newHelios = new Helios();
+            newHelios.pipedObjects = this.pipedObjects;
+            utils.resetPipe.call(newHelios);
+
+            newHelios.pipeline.steps['1'] = {};
+            newHelios.pipeline.steps['1'].pipedInArgs = this.pipeline.steps[this.pipeline.steps.currentStep].pipedInArgs;
+            newHelios.pipeline.steps['1'].func = this.pipeline.steps[this.pipeline.steps.currentStep].func;            
+            newHelios.pipeline.steps['1'].pipedOutArgs = this.pipeline.steps[this.pipeline.steps.currentStep].pipedOutArgs;
+            newHelios.pipeline.steps.currentStep = 1;
+            newHelios.preserveSteps = true;
+            //newHelios.pipedObjects = this.pipelineCache.pipedOutArgs[0];
+
+            utils.resetPipe.call(this);
+            return newHelios;
     }
 
+    function pin(){
+        var newHelios = new Helios();
+            newHelios.pipedObjects = this.pipedObjects;
+            newHelios.pipelineCache = {};
+            newHelios.pipelineCache.pipedOutArgs = this.pipeline.steps[this.pipeline.steps.currentStep].pipedOutArgs;
+            newHelios.pipelineCache.func = this.pipeline.steps[this.pipeline.steps.currentStep].func;
+            utils.resetPipe.call(this);
+            utils.resetPipe.call(newHelios);
+            return newHelios;
+    }
     /***************************************************************************************************
 
         Called to emit the stringified result from traversing the graph.
@@ -820,10 +847,10 @@
     ***************************************************************************************************/
     function stringify(){
         var retVal = [], args = arguments;
-        if(!!pipedObjects[0] && !!pipedObjects[0].obj){
-    		return JSON.stringify(map.apply(null, args));
+        if(!!this.pipedObjects[0] && !!this.pipedObjects[0].obj){
+    		return JSON.stringify(map.apply(this, args));
     	}
-    	retVal = pipedObjects;
+    	retVal = this.pipedObjects;
     	utils.resetPipe();
     	return JSON.stringify(retVal);
     }
@@ -849,7 +876,7 @@
 
         var retVal = [], 
             stepPaths, 
-            stepsObj = pipeline.steps, 
+            stepsObj = this.pipeline.steps, 
             retVal = [], 
             o={}, 
             edge, 
@@ -871,7 +898,7 @@
             }
         }
         push.call(retVal,JSON.stringify(o));
-        push.apply(retVal, pipedObjects);
+        push.apply(retVal, this.pipedObjects);
         utils.resetPipe();
         return retVal;
     }
@@ -940,7 +967,7 @@
     function id() {
         var retVal = [];
 
-        retVal = fn.map(pipedObjects, function(element, key, list) {
+        retVal = fn.map(this.pipedObjects, function(element, key, list) {
             return element.obj[_env.id];
         });
         
@@ -962,7 +989,7 @@
 
         var retVal = [];
 
-        retVal = fn.map(pipedObjects, function(element, key, list) {
+        retVal = fn.map(this.pipedObjects, function(element, key, list) {
             return element.obj[_env.label];
         });
 
@@ -1246,11 +1273,12 @@
             tempPipe = [],
             args = slice.call(arguments, 1),
             hasArgs = !!args.length,
-            value;
+            value,
+            self = this;
 
         fn.each(arguments[0], function(vertex) {
-            if(!_traversedVertices[vertex.obj[_env.id]]){  
-                _traversedVertices[vertex.obj[_env.id]] = 'visited'; 
+            if(!self._traversedVertices[vertex.obj[_env.id]]){  
+                self._traversedVertices[vertex.obj[_env.id]] = 'visited'; 
 
                 value = hasArgs ? fn.pick(vertex.outE, args) : vertex.outE;
                 if(utils.isEmpty(value)){
@@ -1265,14 +1293,14 @@
                     tempArr = [];
                     tempPipe = [];
                     fn.each(fn.flatten(fn.values(value)), function(edge) {
-                        if(!_traversedEdges[edge.obj[_env.id]]){
+                        if(!self._traversedEdges[edge.obj[_env.id]]){
                             push.call(tempArr, edge.inV);
-                            _traversedEdges[edge.obj[_env.id]] = 'visited';
+                            self._traversedEdges[edge.obj[_env.id]] = 'visited';
                         }
                     });
                     push.call(tempPipe,tempArr);
                     push.apply(tempPipe,args);
-                    push.apply(retVal,tail.apply(null,tempPipe));    
+                    push.apply(retVal,tail.apply(self,tempPipe));    
                 }
             }
         });
@@ -1298,11 +1326,12 @@
             tempPipe = [],
             args = slice.call(arguments, 1),
             hasArgs = !!args.length,
-            value;
+            value,
+            self = this;
 
         fn.each(arguments[0], function(vertex) {
-            if(!_traversedVertices[vertex.obj[_env.id]]){  
-                _traversedVertices[vertex.obj[_env.id]] = 'visited';
+            if(!self._traversedVertices[vertex.obj[_env.id]]){  
+                self._traversedVertices[vertex.obj[_env.id]] = 'visited';
 
                 value = hasArgs ? fn.pick(vertex.inE, args) : vertex.inE;
                 if(utils.isEmpty(value)){
@@ -1317,14 +1346,14 @@
                     tempArr = [];
                     tempPipe = [];
                     fn.each(fn.flatten(fn.values(value)), function(edge) {
-                        if(!_traversedEdges[edge.obj[_env.id]]){
+                        if(!self._traversedEdges[edge.obj[_env.id]]){
                             push.call(tempArr, edge.outV);
-                            _traversedEdges[edge.obj[_env.id]] = 'visited';
+                            self._traversedEdges[edge.obj[_env.id]] = 'visited';
                         }
                     });
                     push.call(tempPipe,tempArr);
                     push.apply(tempPipe,args);
-                    push.apply(retVal,head.apply(null,tempPipe));
+                    push.apply(retVal,head.apply(self,tempPipe));
                 }
             }
         });
@@ -1367,7 +1396,7 @@
 
             if(!!args.length){
                 //if pass in Array, populate it, else store as a named pipe 
-                utils.isArray(args[0]) ? push.apply(args[0],arguments[0]) : pipeline.namedStep[args[0]] = pipeline.steps.currentStep;
+                utils.isArray(args[0]) ? push.apply(args[0],arguments[0]) : this.pipeline.namedStep[args[0]] = this.pipeline.steps.currentStep;
 
                 if(utils.isFunction(args[1])){
                     func = args[1];
@@ -1406,16 +1435,16 @@
             }
 
             if(utils.isString(backSteps)){
-                if(utils.isUndefined(pipeline.namedStep[backSteps])){
+                if(utils.isUndefined(this.pipeline.namedStep[backSteps])){
                     return;
                 }
-                stepBackTo = pipeline.namedStep[backSteps];
+                stepBackTo = this.pipeline.namedStep[backSteps];
             } else {
-                stepBackTo = pipeline.steps.currentStep - backSteps;
+                stepBackTo = this.pipeline.steps.currentStep - backSteps;
                 
             }
 
-        return pipeline.steps[stepBackTo].pipedOutArgs[0];
+        return this.pipeline.steps[stepBackTo].pipedOutArgs[0];
     }
 
     
@@ -1437,7 +1466,7 @@
     function except(){
 
         var arg = arguments[1], dSet, diff, retVal = [];
-        dSet = utils.isArray(arg) ? arg : pipeline.steps[pipeline.namedStep[arg]].pipedOutArgs[0];
+        dSet = utils.isArray(arg) ? arg : this.pipeline.steps[this.pipeline.namedStep[arg]].pipedOutArgs[0];
         retVal = fn.difference(arguments[0],dSet, true);
          
         return retVal;
@@ -1531,7 +1560,7 @@
             }
         }
         
-        pipeline.namedStep.filter = pipeline.steps.currentStep;    
+        this.pipeline.namedStep.filter = this.pipeline.steps.currentStep;    
          
         return retVal;
     }
@@ -1568,7 +1597,7 @@
         var  retVal = []
             ,prevRecords = arguments[0]
             ,args = slice.call(arguments, 1)
-            ,records = pipeline.steps[pipeline.namedStep.filter].pipedInArgs[0]
+            ,records = this.pipeline.steps[this.pipeline.namedStep.filter].pipedInArgs[0]
             ,func
             ,funcArgs = []
             ,argLen
@@ -1625,13 +1654,13 @@
         var retVal, params = [], args = arguments;
         //if args passed need to do fn.pick()
         !!args.length ? 
-            retVal = fn.map(pipedObjects, function(element){
+            retVal = fn.map(this.pipedObjects, function(element){
                  params = [];
                  push.call(params, element.obj);
                  push.apply(params, args);
                 return fn.pick.apply(this, params);
             }) :
-            retVal = fn.map(pipedObjects, function(element){
+            retVal = fn.map(this.pipedObjects, function(element){
                 return element.obj;
             })
 
@@ -1658,7 +1687,7 @@
 
         var arg = arguments[1], dSet, diff, retVal = [];
 
-        dSet = utils.isArray(arg) ? arg : pipeline.steps[pipeline.namedStep[arg]].pipedOutArgs[0];
+        dSet = utils.isArray(arg) ? arg : this.pipeline.steps[this.pipeline.namedStep[arg]].pipedOutArgs[0];
         retVal = fn.intersection(arguments[0],dSet, true);
          
         return retVal;
@@ -1675,7 +1704,7 @@
 
             g.v(10).out().step(function(){ 
                                 var arr = []; 
-                                _.each(this, function(element){
+                                fn.each(this, function(element){
                                   arr.push(element.obj.name)}); 
                                 return arr; }).value();
 
@@ -1839,24 +1868,25 @@
             func,
             funcName,
             fromStep,
-            toStep;
+            toStep,
+            self = this;
 
             if(utils.isString(backSteps)){
-                backSteps = pipeline.steps.currentStep + 1 - pipeline.namedStep[backSteps];
+                backSteps = self.pipeline.steps.currentStep + 1 - self.pipeline.namedStep[backSteps];
             }
         
             while(iterations--){
-                fromStep = pipeline.steps.currentStep + 1 - backSteps; //Need to add one to allow for loop step which is not counted
-                toStep = pipeline.steps.currentStep;
+                fromStep = self.pipeline.steps.currentStep + 1 - backSteps; //Need to add one to allow for loop step which is not counted
+                toStep = self.pipeline.steps.currentStep;
                 for(var j=fromStep; j<=toStep; j++){
-                    func = pipeline.steps[j].func;
+                    func = self.pipeline.steps[j].func;
                     funcName = func.name === '_in'? 'in' : func.name;
-                    this[funcName].apply(pipeline.steps[j].pipedInArgs[0], slice.call(pipeline.steps[j].pipedInArgs, 1));
+                    this[funcName].apply(self, slice.call(self.pipeline.steps[j].pipedInArgs, 1));
                 }
                 
             }
 
-        return pipeline.steps[pipeline.steps.currentStep].pipedOutArgs[0];        
+        return self.pipeline.steps[self.pipeline.steps.currentStep].pipedOutArgs[0];        
 
     }
     
@@ -2040,6 +2070,7 @@
     Helios.prototype.stringify = stringify;
     Helios.prototype.value = pipedValue;
     Helios.prototype.fork = fork;
+    Helios.prototype.pin = pin;
 
     //Filter-Based Steps
     Helios.prototype.filter = filter;
