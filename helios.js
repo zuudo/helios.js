@@ -784,7 +784,7 @@
         Called to emit the result from traversing the graph.
 
         @name       pipedValue()        Not to be called directly
-        @alias      value()             callable/chainable
+        @alias      value()             callable
         @returns    {Object Array}      Returns a Referenced Object Array to emitted Vertices or Edges.
         
         @example
@@ -804,6 +804,19 @@
     	return retVal;
     }
 
+    /***************************************************************************************************
+
+        Creates a new instance of Helios to continue traversing the graph.
+
+        @name       fork()        callable
+        @returns    {Helios}      Returns Helios referenc
+        
+        @example
+            
+            var g2 = g.v(1).fork();
+                     g2.out().value();
+
+    ***************************************************************************************************/
     function fork(){
         var newHelios = new Helios();
             newHelios.pipedObjects = this.pipedObjects;
@@ -815,12 +828,24 @@
             newHelios.pipeline.steps['1'].pipedOutArgs = this.pipeline.steps[this.pipeline.steps.currentStep].pipedOutArgs;
             newHelios.pipeline.steps.currentStep = 1;
             newHelios.preserveSteps = true;
-            //newHelios.pipedObjects = this.pipelineCache.pipedOutArgs[0];
 
             utils.resetPipe.call(this);
             return newHelios;
     }
 
+    /***************************************************************************************************
+
+        Creates a new instance of Helios pinned to a point in the graph for traversal.
+
+        @name       pin()         callable
+        @returns    {Helios}      Returns Helios reference.
+        
+        @example
+            
+            var g2 = g.v(1).pin();
+                     g2.out().value();
+
+    ***************************************************************************************************/
     function pin(){
         var newHelios = new Helios();
             newHelios.pipedObjects = this.pipedObjects;
