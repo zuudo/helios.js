@@ -24,13 +24,7 @@
         fn = {},
         comparable = {},
         utils = {},
-        /* Move these global objects into instance so that I can create subgraph>>>> */
-        // _traversedVertices = {},
-        // _traversedEdges = {},
         graph = {'vertices': {}, 'edges': {}, 'v_idx': {}, 'e_idx': {}} ,
-        // pipeline = {},
-        // pipedObjects = [],
-        /*<<<<<<<<*/
         unpipedFuncs = ['label', 'id', 'value', 'stringify', 'map', 'clone', 'path', 'fork', 'pin'];
 
     Function.prototype.pipe = function () {
@@ -39,7 +33,7 @@
             var pipedArgs = [],
             isStep = !fn.include(['as', 'back', 'loop', 'countBy', 'groupBy', 'groupSum', 'store'], that.name);
 
-            //reset any travesal - tail\head
+            //reset any travesal - used by tail() & head()
             this._traversedVertices = {};
             this._traversedEdges = {};
 
@@ -189,26 +183,34 @@
             >>>>> N.B. All examples will use the 'g' variable to demonstrate how to use Helios <<<<<
 
     ***************************************************************************************************/
-    Helios.newGraph = function(jsonGraph, conf){
+    Helios.newGraph = function(aGraph, conf){
+        var isJSON = false, fileExt;
 
-        if(!utils.isString(jsonGraph) && !!jsonGraph 
-            && !(jsonGraph.hasOwnProperty('vertices') || jsonGraph.hasOwnProperty('edges'))){
+        if(utils.isString(aGraph)){
+            fileExt = aGraph.split('.').pop();
+            isJSON = fileExt.toLowerCase() === 'json';
+        } 
 
-            conf = jsonGraph;
-            jsonGraph = false;
-        }        
+        if(!!aGraph && (aGraph.hasOwnProperty('vertices') || aGraph.hasOwnProperty('edges'))) {
+            isJSON = true;
+        } 
 
-        if(!!conf){
+        if(!!aGraph && !utils.isString(aGraph) && !isJSON || !!conf){
+            if(!conf){
+                conf = aGraph;
+                aGraph = false;
+            }
             for(var key in conf){
                 Helios.ENV[key] = conf[key];
             }
         }
-        var t = new Helios();
-
-        if(!!jsonGraph){
-    	   graphUtils.loadGraphSON(jsonGraph);
+        if(!!aGraph && isJSON){
+    	   graphUtils.loadGraphSON(aGraph);
         }
-    	return t;
+        if(!!aGraph && !isJSON){
+            graphUtils.loadGraphML(aGraph);
+        }
+    	return new Helios();
     };
 
     /***************************************************************************************************
@@ -329,20 +331,43 @@
     ***************************************************************************************************/
     graphUtils.loadGraphML = function(xmlData){
             
-        var i, j, l, propLen, xmlV = [], xmlE = [], vertex = {}, edge = {}, xmlDoc, properties, tempObj = {};
+        var i, j, l, propLen, xmlV = [], xmlE = [], vertex = {}, edge = {},
+        fileExt, 
+        xmlhttp,
+        parser,
+        xmlDoc, 
+        properties, 
+        tempObj = {};
 
         _env = Helios.ENV;
 
         if(utils.isUndefined(xmlData)) return;
         if(utils.isString(xmlData)){
-            var xmlhttp = new XMLHttpRequest();
-            xmlhttp.onreadystatechange = function() {
-                    if(xmlhttp.readyState == 4){
-                        xmlDoc = xmlhttp.responseXML;
-                    }
-            };
-            xmlhttp.open("GET",xmlData,false);
-            xmlhttp.send(null);
+
+            fileExt = xmlData.split('.').pop();
+
+            if(fileExt.toLowerCase() === 'xml'){
+
+                xmlhttp = new XMLHttpRequest();
+                xmlhttp.onreadystatechange = function() {
+                        if(xmlhttp.readyState == 4){
+                            xmlDoc = xmlhttp.responseXML;
+                        }
+                };
+                xmlhttp.open("GET",xmlData,false);
+                xmlhttp.send(null);
+            } else {
+
+                if (window.DOMParser){
+                    parser=new DOMParser();
+                    xmlDoc=parser.parseFromString(xmlData,"text/xml");
+                } else // Internet Explorer
+                {
+                    xmlDoc=new ActiveXObject("Microsoft.XMLDOM");
+                    xmlDoc.async=false;
+                    xmlDoc.loadXML(xmlData); 
+                }
+            }
         }
 
         xmlV = xmlDoc.getElementsByTagName("node");
