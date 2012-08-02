@@ -25,7 +25,7 @@
         comparable = {},
         utils = {},
         graph = {'vertices': {}, 'edges': {}, 'v_idx': {}, 'e_idx': {}} ,
-        unpipedFuncs = ['label', 'id', 'value', 'stringify', 'map', 'clone', 'path', 'fork', 'pin'];
+        unpipedFuncs = ['label', 'id', 'value', 'stringify', 'count', 'map', 'clone', 'path', 'fork', 'pin'];
 
     Function.prototype.pipe = function () {
         var that = this;
@@ -283,6 +283,7 @@
 			for(i=0; i<l;i+=1) {
 				graph.vertices[rows[i][_env.id]] = { 'obj': rows[i], 'type': 'vertex', 'outE': {}, 'inE': {} };
                 vertex = graph.vertices[rows[i][_env.id]];
+                //Add to index
                 fn.each(_env.vIndicies, function(idxName){
                     if(!!vertex.obj[idxName]){
                         if(!graph.v_idx[idxName][vertex.obj[idxName]]){
@@ -309,6 +310,7 @@
 
 				edge = { 'obj': rows[i], 'type': 'edge', 'outV': {}, 'inV': {} };
 				graph.edges[edge.obj[_env.id]] = edge;
+                //Add to index
                 fn.each(_env.eIndicies, function(idxName){
                     if(!!edge.obj[idxName]){
                         if(!graph.e_idx[idxName][edge.obj[idxName]]){
@@ -387,6 +389,12 @@
         if(!!xmlV.length){
             l = xmlV.length; 
 
+            if(!!_env.vIndicies.length){
+                fn.each(_env.vIndicies, function(idxName){
+                    graph.v_idx[idxName]={};
+                });
+            }
+
             for(i=0; i<l;i+=1) {
                 properties = xmlV[i].getElementsByTagName("data");
                 tempObj = {};
@@ -397,6 +405,16 @@
                 tempObj[_env.id] = xmlV[i].getAttribute("id");
                 tempObj[_env.type] = 'vertex';
                 graph.vertices[xmlV[i].getAttribute("id")] = { 'obj': tempObj, 'type': 'vertex', 'outE': {}, 'inE': {} };
+                vertex = graph.vertices[xmlV[i].getAttribute("id")];
+                //Add to index
+                fn.each(_env.vIndicies, function(idxName){
+                    if(!!vertex.obj[idxName]){
+                        if(!graph.v_idx[idxName][vertex.obj[idxName]]){
+                            graph.v_idx[idxName][vertex.obj[idxName]] = [];
+                        }
+                        push.call(graph.v_idx[idxName][vertex.obj[idxName]],vertex);
+                    }
+                });
 
             }
         }
@@ -404,6 +422,13 @@
         //process edges
         if(!!xmlE.length){
             l = xmlE.length; 
+
+
+            if(!!_env.eIndicies.length){
+                fn.each(_env.eIndicies, function(idxName){
+                    graph.e_idx[idxName]={};
+                });
+            }
 
             for(i=0; i<l;i+=1) {
                 properties = xmlE[i].getElementsByTagName("data");
@@ -420,7 +445,15 @@
 
                 graph.edges[xmlE[i].getAttribute("id")] = { 'obj': tempObj, 'type': 'edge', 'outV': {}, 'inV': {} };
                 edge = graph.edges[xmlE[i].getAttribute("id")];
-
+                //Add to index
+                fn.each(_env.eIndicies, function(idxName){
+                    if(!!edge.obj[idxName]){
+                        if(!graph.e_idx[idxName][edge.obj[idxName]]){
+                            graph.e_idx[idxName][edge.obj[idxName]] = [];
+                        }
+                        push.call(graph.e_idx[idxName][edge.obj[idxName]],edge);
+                    }
+                });
                 utils.associateVertices(edge);
             }
         }
@@ -1807,6 +1840,25 @@
     }
 
     /***************************************************************************************************
+
+        Called to emit the result from traversing the graph.
+
+        @name       count()             callable
+        @returns    {Number}            Returns count.
+        
+        @example
+            
+            var result = g.V().count();
+
+    ***************************************************************************************************/
+    function count(){
+        var retVal = this.pipedObjects.length;
+
+        utils.resetPipe.call(this);
+        return retVal;
+    }
+
+    /***************************************************************************************************
         Count by property
         @name       countBy()           callable/chainable
         @param      {Object}            Optional Object variable to store output. If an Object variable is passed
@@ -2168,6 +2220,7 @@
     Helios.prototype.groupBy = groupBy;
     Helios.prototype.groupCount = groupCount;
     Helios.prototype.groupSum = groupSum;
+    Helios.prototype.count = count;
 
     //Branch-Based Steps
     Helios.prototype.loop = loop;

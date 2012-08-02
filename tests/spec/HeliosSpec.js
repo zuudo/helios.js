@@ -152,6 +152,7 @@ describe("Transform-Based Steps", function() {
 
 
         expect(g.V().value().length).toEqual(6);
+        expect(g.V().count()).toEqual(6);
 
         results = g.V('name','marko').value();
         expect(results.length).toEqual(1);
