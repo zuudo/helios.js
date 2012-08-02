@@ -1764,7 +1764,7 @@
     /***************************************************************************************************
         Output the property map
         @name       map()               callable
-        @param      {String*|Array}     Optional comma separated String or Array of properties to map.
+        @param      !{String*|Array}    Required comma separated String or Array of properties to map.
         @returns    {Object Array}      emits an Object Array
         @example
             
@@ -1774,19 +1774,15 @@
 
     ***************************************************************************************************/
     function map(){
-        var retVal, params = [], args = arguments;
-        //if args passed need to do fn.pick()
-        !!args.length ? 
+        var retVal = [], params = [], args = arguments;
+
+        if(!!args.length) { 
             retVal = fn.map(this.pipedObjects, function(element){
-                 params = [];
-                 push.call(params, element.obj);
+                 params = [element.obj];
                  push.apply(params, args);
                 return fn.pick.apply(this, params);
-            }) :
-            retVal = fn.map(this.pipedObjects, function(element){
-                return element.obj;
-            })
-
+            });
+        }
         utils.resetPipe();
         return retVal;
     }

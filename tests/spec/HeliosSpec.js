@@ -673,23 +673,13 @@ describe("Transform-Based Steps", function() {
     });
 
     it("map", function(){
-      results = g.v(10).out().map();
-      expect(results.length).toEqual(3);
 
-      results = [];
-      results = g.v(10).map();
-      expect(results.length).toEqual(1);
-      expect(results).toContainMap('name','marko');
-      expect(results).toContainMap(configTest.id,10);
-
-      results = [];
       results = g.v(10).map('name', 'age');
       expect(results.length).toEqual(1);
       expect(results).toContainMap('name','marko');
       expect(results).toContainMap('age',29);
       expect(results).not.toContainMap(configTest.id,10);
 
-      results = [];
       results = g.v(10).map(['name', 'age']);
       expect(results.length).toEqual(1);
       expect(results).toContainMap('name','marko');
