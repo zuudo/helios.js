@@ -60,7 +60,9 @@ describe("Heliosdb", function() {
     'outEid': '@outE',
     'inEid': '@inE',
     'outVid': '@outV',
-    'inVid': '@inV'
+    'inVid': '@inV',
+    'vIndicies': ['name'],
+    'eIndicies': ['@label']
   };
   
    var g= Helios.newGraph(configTest);
@@ -151,7 +153,20 @@ describe("Transform-Based Steps", function() {
 
         expect(g.V().value().length).toEqual(6);
 
+        results = g.V('name','marko').value();
+        expect(results.length).toEqual(1);
+        expect(results).toContainMap('name','marko');
+
+        expect(g.V('name','marko').out().value()).toEqual(g.v(10).out().value());
+
         expect(g.E().value().length).toEqual(6);
+
+        results = g.E('@label','created').value();
+        expect(results.length).toEqual(4);
+        expect(results).toContainMap(configTest.id, 90);
+        expect(results).toContainMap(configTest.id, 100);
+        expect(results).toContainMap(configTest.id, 110);
+        expect(results).toContainMap(configTest.id, 120);
 
         results = g.v(10).out().value();
         expect(results.length).toEqual(3);

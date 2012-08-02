@@ -82,6 +82,7 @@
 
     Helios.VERSION = '0.0.1';
     
+    //default configuration
     Helios.ENV = {
         'id': '_id',
         'label': '_label',
@@ -89,7 +90,9 @@
         'outEid': '_outE',
         'inEid': '_inE',
         'outVid': '_outV',
-        'inVid': '_inV'
+        'inVid': '_inV',
+        'vIndicies': [],
+        'eIndicies': []
     };
 
 
@@ -271,8 +274,23 @@
 			rows = jsonData.vertices;
 			l = rows.length; 
 
+            if(!!_env.vIndicies.length){
+                fn.each(_env.vIndicies, function(idxName){
+                    graph.v_idx[idxName]={};
+                });
+            }
+
 			for(i=0; i<l;i+=1) {
 				graph.vertices[rows[i][_env.id]] = { 'obj': rows[i], 'type': 'vertex', 'outE': {}, 'inE': {} };
+                vertex = graph.vertices[rows[i][_env.id]];
+                fn.each(_env.vIndicies, function(idxName){
+                    if(!!vertex.obj[idxName]){
+                        if(!graph.v_idx[idxName][vertex.obj[idxName]]){
+                            graph.v_idx[idxName][vertex.obj[idxName]] = [];
+                        }
+                        push.call(graph.v_idx[idxName][vertex.obj[idxName]],vertex);
+                    }
+                });
 			}
 		}
 		
@@ -281,33 +299,25 @@
 			rows = jsonData.edges;
 			l = rows.length; 
 
+            if(!!_env.eIndicies.length){
+                fn.each(_env.eIndicies, function(idxName){
+                    graph.e_idx[idxName]={};
+                });
+            }
+
 			for(i=0; i<l;i+=1) {
 
 				edge = { 'obj': rows[i], 'type': 'edge', 'outV': {}, 'inV': {} };
 				graph.edges[edge.obj[_env.id]] = edge;
-
-				if(!graph.vertices[edge.obj[_env.outVid]]){
-					graph.vertices[edge.obj[_env.outVid]] = { 'obj': {}, 'type': 'vertex', 'outE': {}, 'inE': {} };
-					
-				}
-				vertex = graph.vertices[edge.obj[_env.outVid]];
-				if(!vertex.outE[edge.obj[_env.label]]){
-					vertex.outE[edge.obj[_env.label]] = [];
-				}
-				edge.outV = vertex;
-				push.call(vertex.outE[edge.obj[_env.label]], edge);
-
-				if(!graph.vertices[edge.obj[_env.inVid]]){
-					graph.vertices[edge.obj[_env.inVid]] = { 'obj': {}, 'type': 'vertex', 'outE': {}, 'inE': {} };
-					
-				}
-				vertex = graph.vertices[edge.obj[_env.inVid]];
-				if(!vertex.inE[edge.obj[_env.label]]){
-					vertex.inE[edge.obj[_env.label]] = [];
-				}
-				vertex = graph.vertices[edge.obj[_env.inVid]];
-				edge.inV = vertex;
-				push.call(vertex.inE[edge.obj[_env.label]], edge);
+                fn.each(_env.eIndicies, function(idxName){
+                    if(!!edge.obj[idxName]){
+                        if(!graph.e_idx[idxName][edge.obj[idxName]]){
+                            graph.e_idx[idxName][edge.obj[idxName]] = [];
+                        }
+                        push.call(graph.e_idx[idxName][edge.obj[idxName]],edge);
+                    }
+                });
+                utils.associateVertices(edge);
 			}
 		}
 		return Helios;
@@ -407,36 +417,42 @@
                 tempObj[_env.label] = xmlE[i].getAttribute("label");
                 tempObj[_env.outVid] = xmlE[i].getAttribute("source");
                 tempObj[_env.inVid] = xmlE[i].getAttribute("target");
-                graph.edges[xmlE[i].getAttribute("id")] = { 'obj': tempObj, 'type': 'edge', 'outV': {}, 'inV': {} };
 
+                graph.edges[xmlE[i].getAttribute("id")] = { 'obj': tempObj, 'type': 'edge', 'outV': {}, 'inV': {} };
                 edge = graph.edges[xmlE[i].getAttribute("id")];
 
-                if(!graph.vertices[edge.obj[_env.outVid]]){
-                    graph.vertices[edge.obj[_env.outVid]] = { 'obj': {}, 'type': 'vertex', 'outE': {}, 'inE': {} };
-                    
-                }
-                vertex = graph.vertices[edge.obj[_env.outVid]];
-                if(!vertex.outE[edge.obj[_env.label]]){
-                    vertex.outE[edge.obj[_env.label]] = [];
-                }
-                edge.outV = vertex;
-                push.call(vertex.outE[edge.obj[_env.label]], edge);
-
-                if(!graph.vertices[edge.obj[_env.inVid]]){
-                    graph.vertices[edge.obj[_env.inVid]] = { 'obj': {}, 'type': 'vertex', 'outE': {}, 'inE': {} };
-                    
-                }
-                vertex = graph.vertices[edge.obj[_env.inVid]];
-                if(!vertex.inE[edge.obj[_env.label]]){
-                    vertex.inE[edge.obj[_env.label]] = [];
-                }
-                vertex = graph.vertices[edge.obj[_env.inVid]];
-                edge.inV = vertex;
-                push.call(vertex.inE[edge.obj[_env.label]], edge);
+                utils.associateVertices(edge);
             }
         }
         return Helios;
     };
+
+    utils.associateVertices = function(edge){
+        var vertex;
+
+        if(!graph.vertices[edge.obj[_env.outVid]]){
+            graph.vertices[edge.obj[_env.outVid]] = { 'obj': {}, 'type': 'vertex', 'outE': {}, 'inE': {} };
+            
+        }
+        vertex = graph.vertices[edge.obj[_env.outVid]];
+        if(!vertex.outE[edge.obj[_env.label]]){
+            vertex.outE[edge.obj[_env.label]] = [];
+        }
+        edge.outV = vertex;
+        push.call(vertex.outE[edge.obj[_env.label]], edge);
+
+        if(!graph.vertices[edge.obj[_env.inVid]]){
+            graph.vertices[edge.obj[_env.inVid]] = { 'obj': {}, 'type': 'vertex', 'outE': {}, 'inE': {} };
+            
+        }
+        vertex = graph.vertices[edge.obj[_env.inVid]];
+        if(!vertex.inE[edge.obj[_env.label]]){
+            vertex.inE[edge.obj[_env.label]] = [];
+        }
+        vertex = graph.vertices[edge.obj[_env.inVid]];
+        edge.inV = vertex;
+        push.call(vertex.inE[edge.obj[_env.label]], edge);
+    }
 
     /***************************************************************************************************
 
@@ -1281,6 +1297,7 @@
     /***************************************************************************************************
 
         @name       V()             callable/chainable
+        @param      {key, value}    Optional comma separated key/value pair.
         @returns    {Object Array}  emits all graph vertices.
         @example
             
@@ -1288,12 +1305,19 @@
 
     ***************************************************************************************************/
     function V() {
+        var args = slice.call(arguments, 1);
+
+        if (args.length === 2) {
+            return graph.v_idx[args[0]][args[1]];
+        };
+
         return utils.toArray(graph.vertices);
     }
 
     /***************************************************************************************************
 
         @name       E()             callable/chainable
+        @param      {key, value}    Optional comma separated key/value pair.
         @returns    {Object Array}  emits all graph edges.
         @example
             
@@ -1301,6 +1325,11 @@
 
     ***************************************************************************************************/
     function E() {
+        var args = slice.call(arguments, 1);
+
+        if (args.length === 2) {
+            return graph.e_idx[args[0]][args[1]];
+        };
         return utils.toArray(graph.edges);
     }
 
