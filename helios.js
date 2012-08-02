@@ -467,10 +467,9 @@
         fn.each(_env.vIndicies, function(idxName){
             if(!!vertex.obj[idxName]){
                 if(!graph.v_idx[idxName][vertex.obj[idxName]]){
-                    graph.v_idx[idxName][vertex.obj[idxName]] = [vertex];
-                } else {
-                    fn.addObjectToSet(graph.v_idx[idxName][vertex.obj[idxName]],vertex);
-                }
+                    graph.v_idx[idxName][vertex.obj[idxName]] = {};
+                } 
+                graph.v_idx[idxName][vertex.obj[idxName]][vertex.obj[_env.id]] = vertex;
             }
         });
     }
@@ -479,10 +478,9 @@
         fn.each(_env.eIndicies, function(idxName){
             if(!!edge.obj[idxName]){
                 if(!graph.e_idx[idxName][edge.obj[idxName]]){
-                    graph.e_idx[idxName][edge.obj[idxName]] = [edge];
-                } else {
-                    fn.addObjectToSet(graph.e_idx[idxName][edge.obj[idxName]],edge);
-                }
+                    graph.e_idx[idxName][edge.obj[idxName]] = {};
+                } 
+                graph.e_idx[idxName][edge.obj[idxName]][edge.obj[_env.id]] = edge;
             }
         });
     }
@@ -616,18 +614,6 @@
         for(i in o) r.push(o[i]);
         return r;
 
-    }
-    
-    fn.addObjectToSet = function(array, item){
-        var i, l = array.length;
-        for(i=0; i<l;i+=1) {
-            if(array[i].obj[_env.id] === item.obj[_env.id]){
-                array[i] = item;
-                return array;                
-            }
-        }
-        array.push(item);
-        return array;
     }
 
     fn.countBy = function(array, o, props){
@@ -1352,7 +1338,7 @@
         var args = slice.call(arguments, 1);
 
         if (args.length === 2) {
-            return graph.v_idx[args[0]][args[1]];
+            return utils.toArray(graph.v_idx[args[0]][args[1]]);
         };
 
         return utils.toArray(graph.vertices);
@@ -1372,7 +1358,7 @@
         var args = slice.call(arguments, 1);
 
         if (args.length === 2) {
-            return graph.e_idx[args[0]][args[1]];
+            return utils.toArray(graph.e_idx[args[0]][args[1]]);
         };
         return utils.toArray(graph.edges);
     }
