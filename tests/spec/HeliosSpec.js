@@ -68,15 +68,15 @@ describe("Heliosdb", function() {
    var g= Helios.newGraph(configTest);
    g.graph.loadGraphSON(testData);
 
-  Helios.ENV = {
-    'id':'@rid',
-    'label': '@label',
-    'type':'@type',
-    'outEid': '@outE',
-    'inEid': '@inE',
-    'outVid': '@outV',
-    'inVid': '@inV'
-  };
+  // Helios.ENV = {
+  //   'id':'@rid',
+  //   'label': '@label',
+  //   'type':'@type',
+  //   'outEid': '@outE',
+  //   'inEid': '@inE',
+  //   'outVid': '@outV',
+  //   'inVid': '@inV'
+  // };
 
   //var g= Helios.newGraph(testData);
   

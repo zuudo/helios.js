@@ -276,7 +276,9 @@
 
             if(!!_env.vIndicies.length){
                 fn.each(_env.vIndicies, function(idxName){
-                    graph.v_idx[idxName]={};
+                    if(!graph.v_idx[idxName]){
+                        graph.v_idx[idxName]={};
+                    }
                 });
             }
 
@@ -284,14 +286,7 @@
 				graph.vertices[rows[i][_env.id]] = { 'obj': rows[i], 'type': 'vertex', 'outE': {}, 'inE': {} };
                 vertex = graph.vertices[rows[i][_env.id]];
                 //Add to index
-                fn.each(_env.vIndicies, function(idxName){
-                    if(!!vertex.obj[idxName]){
-                        if(!graph.v_idx[idxName][vertex.obj[idxName]]){
-                            graph.v_idx[idxName][vertex.obj[idxName]] = [];
-                        }
-                        push.call(graph.v_idx[idxName][vertex.obj[idxName]],vertex);
-                    }
-                });
+                utils.addVIndex(vertex);                
 			}
 		}
 		
@@ -299,27 +294,20 @@
 		if(jsonData.edges){
 			rows = jsonData.edges;
 			l = rows.length; 
-
             if(!!_env.eIndicies.length){
                 fn.each(_env.eIndicies, function(idxName){
-                    graph.e_idx[idxName]={};
+                    if(!graph.e_idx[idxName]){
+                        graph.e_idx[idxName]={};
+                    }
                 });
             }
-
 			for(i=0; i<l;i+=1) {
 
 				edge = { 'obj': rows[i], 'type': 'edge', 'outV': {}, 'inV': {} };
 				graph.edges[edge.obj[_env.id]] = edge;
-                //Add to index
-                fn.each(_env.eIndicies, function(idxName){
-                    if(!!edge.obj[idxName]){
-                        if(!graph.e_idx[idxName][edge.obj[idxName]]){
-                            graph.e_idx[idxName][edge.obj[idxName]] = [];
-                        }
-                        push.call(graph.e_idx[idxName][edge.obj[idxName]],edge);
-                    }
-                });
                 utils.associateVertices(edge);
+                //Add to index
+                utils.addEIndex(edge);
 			}
 		}
 		return Helios;
@@ -391,7 +379,9 @@
 
             if(!!_env.vIndicies.length){
                 fn.each(_env.vIndicies, function(idxName){
-                    graph.v_idx[idxName]={};
+                    if(!graph.v_idx[idxName]){
+                        graph.v_idx[idxName]={};
+                    }
                 });
             }
 
@@ -407,15 +397,7 @@
                 graph.vertices[xmlV[i].getAttribute("id")] = { 'obj': tempObj, 'type': 'vertex', 'outE': {}, 'inE': {} };
                 vertex = graph.vertices[xmlV[i].getAttribute("id")];
                 //Add to index
-                fn.each(_env.vIndicies, function(idxName){
-                    if(!!vertex.obj[idxName]){
-                        if(!graph.v_idx[idxName][vertex.obj[idxName]]){
-                            graph.v_idx[idxName][vertex.obj[idxName]] = [];
-                        }
-                        push.call(graph.v_idx[idxName][vertex.obj[idxName]],vertex);
-                    }
-                });
-
+                utils.addVIndex(vertex);
             }
         }
         
@@ -423,10 +405,11 @@
         if(!!xmlE.length){
             l = xmlE.length; 
 
-
             if(!!_env.eIndicies.length){
                 fn.each(_env.eIndicies, function(idxName){
-                    graph.e_idx[idxName]={};
+                    if(!graph.e_idx[idxName]){
+                        graph.e_idx[idxName]={};
+                    }
                 });
             }
 
@@ -445,16 +428,9 @@
 
                 graph.edges[xmlE[i].getAttribute("id")] = { 'obj': tempObj, 'type': 'edge', 'outV': {}, 'inV': {} };
                 edge = graph.edges[xmlE[i].getAttribute("id")];
-                //Add to index
-                fn.each(_env.eIndicies, function(idxName){
-                    if(!!edge.obj[idxName]){
-                        if(!graph.e_idx[idxName][edge.obj[idxName]]){
-                            graph.e_idx[idxName][edge.obj[idxName]] = [];
-                        }
-                        push.call(graph.e_idx[idxName][edge.obj[idxName]],edge);
-                    }
-                });
                 utils.associateVertices(edge);
+                //Add to index
+                utils.addEIndex(edge);
             }
         }
         return Helios;
@@ -485,6 +461,30 @@
         vertex = graph.vertices[edge.obj[_env.inVid]];
         edge.inV = vertex;
         push.call(vertex.inE[edge.obj[_env.label]], edge);
+    }
+
+    utils.addVIndex = function(vertex){
+        fn.each(_env.vIndicies, function(idxName){
+            if(!!vertex.obj[idxName]){
+                if(!graph.v_idx[idxName][vertex.obj[idxName]]){
+                    graph.v_idx[idxName][vertex.obj[idxName]] = [vertex];
+                } else {
+                    fn.addObjectToSet(graph.v_idx[idxName][vertex.obj[idxName]],vertex);
+                }
+            }
+        });
+    }
+
+    utils.addEIndex = function(edge){
+        fn.each(_env.eIndicies, function(idxName){
+            if(!!edge.obj[idxName]){
+                if(!graph.e_idx[idxName][edge.obj[idxName]]){
+                    graph.e_idx[idxName][edge.obj[idxName]] = [edge];
+                } else {
+                    fn.addObjectToSet(graph.e_idx[idxName][edge.obj[idxName]],edge);
+                }
+            }
+        });
     }
 
     /***************************************************************************************************
@@ -618,6 +618,18 @@
 
     }
     
+    fn.addObjectToSet = function(array, item){
+        var i, l = array.length;
+        for(i=0; i<l;i+=1) {
+            if(array[i].obj[_env.id] === item.obj[_env.id]){
+                array[i] = item;
+                return array;                
+            }
+        }
+        array.push(item);
+        return array;
+    }
+
     fn.countBy = function(array, o, props){
 
         var retVal = arguments[0],
@@ -719,7 +731,6 @@
             element = array[i].obj;
             group = o;
             for(j=0; j < propsLen; j++){
-
                 if(j === propsLen - 1){
                     !group[element[props[j]]] ? group[element[props[j]]] = [element]: push.call(group[element[props[j]]],element);
                 }else{
