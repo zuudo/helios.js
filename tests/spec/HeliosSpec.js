@@ -843,17 +843,8 @@ describe("Transform-Based Steps", function() {
     it('pin', function(){
 
       var t = g.v(10).pin();
-      results = t.out().value();
-      expect(results.length).toEqual(3);
-      expect(results).toContainMap(configTest.id,40);
-      expect(results).toContainMap(configTest.id,20);
-      expect(results).toContainMap(configTest.id,30);  
-
-      results = t.out().value();
-      expect(results.length).toEqual(3);
-      expect(results).toContainMap(configTest.id,40);
-      expect(results).toContainMap(configTest.id,20);
-      expect(results).toContainMap(configTest.id,30);  
+      expect(t.out().value()).toEqual(t.out().value());
+      
 
     });
 
