@@ -4,7 +4,7 @@
 
     Copyright (c) 2012 Entrendipity Pty. Ltd.
 */
-;(function (window, undefined) {
+;(function (window) {/*,undefined*/
     'use strict';
 
     /** Detect free variable 'exports' */
@@ -19,34 +19,33 @@
         shift = ArrayProto.shift,
         indexOf = ArrayProto.indexOf,
         concat = ArrayProto.concat,
-        _env,
+        env,
         graphUtils = {},
         fn = {},
         comparable = {},
         utils = {},
-        graph = {'vertices': {}, 'edges': {}, 'v_idx': {}, 'e_idx': {}} ,
+        graph = {'vertices': {}, 'edges': {}, 'v_idx': {}, 'e_idx': {}},
         unpipedFuncs = ['label', 'id', 'value', 'stringify', 'count', 'map', 'clone', 'path', 'fork', 'pin'];
 
     Function.prototype.pipe = function () {
         var that = this;
         return function () {
             var pipedArgs = [],
-            isStep = !fn.include(['as', 'back', 'loop', 'countBy', 'groupBy', 'groupSum', 'store'], that.name);
+                isStep = !fn.include(['as', 'back', 'loop', 'countBy', 'groupBy', 'groupSum', 'store'], that.name);
 
             //reset any travesal - used by tail() & head()
-            this._traversedVertices = {};
-            this._traversedEdges = {};
+            this.traversedVertices = {};
+            this.traversedEdges = {};
 
             push.call(pipedArgs, this.pipedObjects);
             push.apply(pipedArgs, arguments);
-            
-            if(isStep){
-                this.pipeline.steps[this.pipeline.steps.currentStep += 1] = { 'pipedInArgs': pipedArgs, 'func': that, 'pipedOutArgs':[] };
+            if (isStep) {
+                this.pipeline.steps[this.pipeline.steps.currentStep += 1] = { 'pipedInArgs': pipedArgs, 'func': that, 'pipedOutArgs': [] };
             }
             //New piped Objects to be passed to the next step
             this.pipedObjects = that.apply(this, pipedArgs);
-            if(isStep && this.pipeline.steps.currentStep !== 0){
-                  push.call(this.pipeline.steps[this.pipeline.steps.currentStep].pipedOutArgs, this.pipedObjects);
+            if (isStep && this.pipeline.steps.currentStep !== 0) {
+                push.call(this.pipeline.steps[this.pipeline.steps.currentStep].pipedOutArgs, this.pipedObjects);
             }
             return this;
         };
@@ -54,20 +53,22 @@
 
     //pipe enable all Helios functions except unpiped functions
     function pipe() {
-        var func;
-        for (func in this) {
-            if (typeof this[func] == "function" && !fn.include(unpipedFuncs, func)) {
-                this[func] = this[func].pipe();
+        var func, self = this;
+        for (func in self) {
+            //if (self.hasOwnProperty(func)) {
+            if (typeof self[func] === "function" && !fn.include(unpipedFuncs, func)) {
+                self[func] = self[func].pipe();
             }
+            //}
         }
-        return this;
+        return self;
     }
 
     //Object constructor
-    function Helios () {
+    function Helios() {
 
-        this._traversedVertices = {};
-        this._traversedEdges = {};
+        this.traversedVertices = {};
+        this.traversedEdges = {};
         this.pipeline = {};
         this.pipedObjects = [];
         //used to prevent steps being reset for fork()
@@ -78,10 +79,10 @@
     }
 
 
-    Helios.toString = function() { return "Helios"; };
+    Helios.toString = function () { return "Helios"; };
 
     Helios.VERSION = '0.0.1';
-    
+
     //default configuration
     Helios.ENV = {
         'id': '_id',
@@ -184,34 +185,36 @@
             >>>>> N.B. All examples will use the 'g' variable to demonstrate how to use Helios <<<<<
 
     ***************************************************************************************************/
-    Helios.newGraph = function(aGraph, conf){
-        var isJSON = false, fileExt;
+    Helios.newGraph = function (aGraph, conf) {
+        var isJSON = false, fileExt, key;
 
-        if(utils.isString(aGraph)){
+        if (utils.isString(aGraph)) {
             fileExt = aGraph.split('.').pop();
             isJSON = fileExt.toLowerCase() === 'json';
-        } 
+        }
 
-        if(!!aGraph && (aGraph.hasOwnProperty('vertices') || aGraph.hasOwnProperty('edges'))) {
+        if (!!aGraph && (aGraph.hasOwnProperty('vertices') || aGraph.hasOwnProperty('edges'))) {
             isJSON = true;
-        } 
+        }
 
-        if(!!aGraph && !utils.isString(aGraph) && !isJSON || !!conf){
-            if(!conf){
+        if ((!!aGraph && !utils.isString(aGraph) && !isJSON) || !!conf) {
+            if (!conf) {
                 conf = aGraph;
                 aGraph = false;
             }
-            for(var key in conf){
-                Helios.ENV[key] = conf[key];
+            for (key in conf) {
+                if (conf.hasOwnProperty(key)) {
+                    Helios.ENV[key] = conf[key];
+                }
             }
         }
-        if(!!aGraph && isJSON){
-    	   graphUtils.loadGraphSON(aGraph);
+        if (!!aGraph && isJSON) {
+            graphUtils.loadGraphSON(aGraph);
         }
-        if(!!aGraph && !isJSON){
+        if (!!aGraph && !isJSON) {
             graphUtils.loadGraphML(aGraph);
         }
-    	return new Helios();
+        return new Helios();
     };
 
     /***************************************************************************************************
@@ -249,63 +252,63 @@
             g.graph.loadGraphSON(someData);
 
     ***************************************************************************************************/
-    graphUtils.loadGraphSON = function(jsonData){
-    		
-    	var i, l, rows = [], vertex = {}, edge = {}, 
+    graphUtils.loadGraphSON = function (jsonData) {
+
+        var i, l,
+            rows = [], vertex = {}, edge = {}, xmlhttp,
             hasVIndex = !utils.isEmpty(graph.v_idx),
             hasEIndex = !utils.isEmpty(graph.e_idx);
 
-        _env = Helios.ENV;
+        env = Helios.ENV;
 
-		if(utils.isUndefined(jsonData)) return;
-		if(utils.isString(jsonData)){
-			var xmlhttp = new XMLHttpRequest();
-			xmlhttp.onreadystatechange = function() {
-			        if(xmlhttp.readyState == 4){
-			        	jsonData = JSON.parse(xmlhttp.response);
-			        }
+		if (utils.isUndefined(jsonData)) { return; }
+		if (utils.isString(jsonData)) {
+			xmlhttp = new XMLHttpRequest();
+			xmlhttp.onreadystatechange = function () {
+                if (xmlhttp.readyState === 4) {
+                    jsonData = JSON.parse(xmlhttp.response);
+                }
 			};
-			xmlhttp.open("GET",jsonData,false);
+			xmlhttp.open("GET", jsonData, false);
 			xmlhttp.send(null);
 		}
 
 		//process vertices
-		if(jsonData.vertices){
+		if (jsonData.vertices) {
 			rows = jsonData.vertices;
-			l = rows.length; 
+			l = rows.length;
 
-			for(i=0; i<l;i+=1) {
-				graph.vertices[rows[i][_env.id]] = { 'obj': rows[i], 'type': 'vertex', 'outE': {}, 'inE': {} };
-                vertex = graph.vertices[rows[i][_env.id]];
+			for (i = 0; i < l; i += 1) {
+				graph.vertices[rows[i][env.id]] = { 'obj': rows[i], 'type': 'vertex', 'outE': {}, 'inE': {} };
+                vertex = graph.vertices[rows[i][env.id]];
                 //Add to index
-                if(hasVIndex){
+                if (hasVIndex) {
                     utils.addVIndex(vertex);
-                }                
+                }
 			}
 		}
-		
+
 		//process edges
-		if(jsonData.edges){
+		if (jsonData.edges) {
 			rows = jsonData.edges;
-			l = rows.length; 
-            if(!!_env.eIndicies.length){
-                fn.each(_env.eIndicies, function(idxName){
-                    if(!graph.e_idx[idxName]){
-                        graph.e_idx[idxName]={};
+			l = rows.length;
+            if (!!env.eIndicies.length) {
+                fn.each(env.eIndicies, function (idxName) {
+                    if (!graph.e_idx[idxName]) {
+                        graph.e_idx[idxName] = {};
                     }
                 });
             }
-			for(i=0; i<l;i+=1) {
+			for (i = 0; i < l; i += 1) {
 
 				edge = { 'obj': rows[i], 'type': 'edge', 'outV': {}, 'inV': {} };
-				graph.edges[edge.obj[_env.id]] = edge;
+				graph.edges[edge.obj[env.id]] = edge;
                 utils.associateVertices(edge);
                 //Add to index
-                if(hasEIndex){
+                if (hasEIndex) {
                     utils.addEIndex(edge);
-                }                
-                
-			}
+                }
+            }
 		}
 		return Helios;
     };
@@ -326,45 +329,45 @@
             g.graph.loadGraphML(someXMLData);
 
     ***************************************************************************************************/
-    graphUtils.loadGraphML = function(xmlData){
-            
-        var i, j, l, propLen, xmlV = [], xmlE = [], vertex = {}, edge = {},
-        fileExt, 
-        xmlhttp,
-        parser,
-        xmlDoc, 
-        properties, 
-        tempObj = {}, 
-        hasVIndex = !utils.isEmpty(graph.v_idx),
-        hasEIndex = !utils.isEmpty(graph.e_idx);
+    graphUtils.loadGraphML = function (xmlData) {
 
-        _env = Helios.ENV;
+        var i, j, l, propLen,
+            xmlV = [], xmlE = [], vertex = {}, edge = {},
+            fileExt,
+            xmlhttp,
+            parser,
+            xmlDoc,
+            properties,
+            tempObj = {},
+            hasVIndex = !utils.isEmpty(graph.v_idx),
+            hasEIndex = !utils.isEmpty(graph.e_idx);
 
-        if(utils.isUndefined(xmlData)) return;
-        if(utils.isString(xmlData)){
+        env = Helios.ENV;
+
+        if (utils.isUndefined(xmlData)) { return; }
+        if (utils.isString(xmlData)) {
 
             fileExt = xmlData.split('.').pop();
 
-            if(fileExt.toLowerCase() === 'xml'){
+            if (fileExt.toLowerCase() === 'xml') {
 
                 xmlhttp = new XMLHttpRequest();
-                xmlhttp.onreadystatechange = function() {
-                        if(xmlhttp.readyState == 4){
-                            xmlDoc = xmlhttp.responseXML;
-                        }
+                xmlhttp.onreadystatechange = function () {
+                    if (xmlhttp.readyState === 4) {
+                        xmlDoc = xmlhttp.responseXML;
+                    }
                 };
-                xmlhttp.open("GET",xmlData,false);
+                xmlhttp.open("GET", xmlData, false);
                 xmlhttp.send(null);
             } else {
 
-                if (window.DOMParser){
-                    parser=new DOMParser();
-                    xmlDoc=parser.parseFromString(xmlData,"text/xml");
-                } else // Internet Explorer
-                {
-                    xmlDoc=new ActiveXObject("Microsoft.XMLDOM");
-                    xmlDoc.async=false;
-                    xmlDoc.loadXML(xmlData); 
+                if (window.DOMParser) {
+                    parser = new DOMParser();
+                    xmlDoc = parser.parseFromString(xmlData, "text/xml");
+                } else {// Internet Explorer
+                    xmlDoc = new ActiveXObject("Microsoft.XMLDOM");
+                    xmlDoc.async = false;
+                    xmlDoc.loadXML(xmlData);
                 }
             }
         }
@@ -373,49 +376,49 @@
         xmlE = xmlDoc.getElementsByTagName("edge");
 
         //process vertices
-        if(!!xmlV.length){
-            l = xmlV.length; 
+        if (!!xmlV.length) {
+            l = xmlV.length;
 
-            for(i=0; i<l;i+=1) {
+            for (i = 0; i < l; i += 1) {
                 properties = xmlV[i].getElementsByTagName("data");
                 tempObj = {};
                 propLen = properties.length;
-                for(var j=0; j<propLen; j++){
+                for (j = 0; j < propLen; j += 1) {
                     tempObj[properties[j].getAttribute("key")] = properties[j].firstChild.nodeValue;
                 }
-                tempObj[_env.id] = xmlV[i].getAttribute("id");
-                tempObj[_env.type] = 'vertex';
+                tempObj[env.id] = xmlV[i].getAttribute("id");
+                tempObj[env.type] = 'vertex';
                 graph.vertices[xmlV[i].getAttribute("id")] = { 'obj': tempObj, 'type': 'vertex', 'outE': {}, 'inE': {} };
                 vertex = graph.vertices[xmlV[i].getAttribute("id")];
                 //Add to index
-                if(hasVIndex){
+                if (hasVIndex) {
                     utils.addVIndex(vertex);
                 }
             }
         }
-        
-        //process edges
-        if(!!xmlE.length){
-            l = xmlE.length; 
 
-            for(i=0; i<l;i+=1) {
+        //process edges
+        if (!!xmlE.length) {
+            l = xmlE.length;
+
+            for (i = 0; i < l; i += 1) {
                 properties = xmlE[i].getElementsByTagName("data");
                 tempObj = {};
                 propLen = properties.length;
-                for(j=0; j<propLen; j++){
+                for (j = 0; j < propLen; j += 1) {
                     tempObj[properties[j].getAttribute("key")] = properties[j].firstChild.nodeValue;
                 }
-                tempObj[_env.id] = xmlE[i].getAttribute("id");
-                tempObj[_env.type] = 'edge';
-                tempObj[_env.label] = xmlE[i].getAttribute("label");
-                tempObj[_env.outVid] = xmlE[i].getAttribute("source");
-                tempObj[_env.inVid] = xmlE[i].getAttribute("target");
+                tempObj[env.id] = xmlE[i].getAttribute("id");
+                tempObj[env.type] = 'edge';
+                tempObj[env.label] = xmlE[i].getAttribute("label");
+                tempObj[env.outVid] = xmlE[i].getAttribute("source");
+                tempObj[env.inVid] = xmlE[i].getAttribute("target");
 
                 graph.edges[xmlE[i].getAttribute("id")] = { 'obj': tempObj, 'type': 'edge', 'outV': {}, 'inV': {} };
                 edge = graph.edges[xmlE[i].getAttribute("id")];
                 utils.associateVertices(edge);
                 //Add to index
-                if(hasEIndex){
+                if (hasEIndex) {
                     utils.addEIndex(edge);
                 }
             }
@@ -424,105 +427,108 @@
     };
 
 
-    graphUtils.createVIndex = function(idxName){
+    graphUtils.createVIndex = function (idxName) {
         var vertices = [];
-           
-        if(!graph.v_idx[idxName]){
+
+        if (!graph.v_idx[idxName]) {
             vertices = utils.toArray(graph.vertices);
-            graph.v_idx[idxName]={};
-            fn.each(vertices, function(vertex){
+            graph.v_idx[idxName] = {};
+            fn.each(vertices, function (vertex) {
                 utils.addVIndex(vertex, idxName);
             });
         }
-    }
+    };
 
-    graphUtils.deleteVIndex = function(idxName){
-        delete graph.v_idx[idxName]
-    }
+    graphUtils.deleteVIndex = function (idxName) {
+        delete graph.v_idx[idxName];
+    };
 
-    graphUtils.createEIndex = function(idxName){
+    graphUtils.createEIndex = function (idxName) {
         var edges = [];
-           
-        if(!graph.e_idx[idxName]){
+
+        if (!graph.e_idx[idxName]) {
             edges = utils.toArray(graph.edges);
-            graph.e_idx[idxName]={};
-            fn.each(edges, function(edge){
+            graph.e_idx[idxName] = {};
+            fn.each(edges, function (edge) {
                 utils.addEIndex(edge, idxName);
             });
         }
-    }
+    };
 
-    graphUtils.deleteEIndex = function(idxName){
-        delete graph.e_idx[idxName]
-    }
+    graphUtils.deleteEIndex = function (idxName) {
+        delete graph.e_idx[idxName];
+    };
 
-    utils.addVIndex = function(vertex, idxName){
-        
-        if(idxName){
-            if(!!vertex.obj[idxName]){
-                if(!graph.v_idx[idxName][vertex.obj[idxName]]){
+    utils.addVIndex = function (vertex, idxName) {
+        var idx;
+        if (idxName) {
+            if (!!vertex.obj[idxName]) {
+                if (!graph.v_idx[idxName][vertex.obj[idxName]]) {
                     graph.v_idx[idxName][vertex.obj[idxName]] = {};
-                } 
-                graph.v_idx[idxName][vertex.obj[idxName]][vertex.obj[_env.id]] = vertex;
+                }
+                graph.v_idx[idxName][vertex.obj[idxName]][vertex.obj[env.id]] = vertex;
             }
         } else {
-            for(idxName in graph.v_idx) {
-                if(!!vertex.obj[idxName]){
-                    if(!graph.v_idx[idxName][vertex.obj[idxName]]){
-                        graph.v_idx[idxName][vertex.obj[idxName]] = {};
-                    } 
-                    graph.v_idx[idxName][vertex.obj[idxName]][vertex.obj[_env.id]] = vertex;
+            for (idx in graph.v_idx) {
+                if (graph.v_idx.hasOwnProperty(idx)) {
+                    if (!!vertex.obj[idx]) {
+                        if (!graph.v_idx[idx][vertex.obj[idx]]) {
+                            graph.v_idx[idx][vertex.obj[idx]] = {};
+                        }
+                        graph.v_idx[idx][vertex.obj[idx]][vertex.obj[env.id]] = vertex;
+                    }
                 }
             }
         }
-    }
+    };
 
-    utils.addEIndex = function(edge, idxName){
-        if(idxName){
-            if(!!edge.obj[idxName]){
-                if(!graph.e_idx[idxName][edge.obj[idxName]]){
+    utils.addEIndex = function (edge, idxName) {
+        var idx;
+        if (idxName) {
+            if (!!edge.obj[idxName]) {
+                if (!graph.e_idx[idxName][edge.obj[idxName]]) {
                     graph.e_idx[idxName][edge.obj[idxName]] = {};
-                } 
-                graph.e_idx[idxName][edge.obj[idxName]][edge.obj[_env.id]] = edge;
+                }
+                graph.e_idx[idxName][edge.obj[idxName]][edge.obj[env.id]] = edge;
             }
         } else {
-            for(idxName in graph.e_idx) {
-                if(!!edge.obj[idxName]){
-                    if(!graph.e_idx[idxName][edge.obj[idxName]]){
-                        graph.e_idx[idxName][edge.obj[idxName]] = {};
-                    } 
-                    graph.e_idx[idxName][edge.obj[idxName]][edge.obj[_env.id]] = edge;
+            for (idx in graph.e_idx) {
+                if (graph.e_idx.hasOwnProperty(idx)) {
+                    if (!!edge.obj[idx]) {
+                        if (!graph.e_idx[idx][edge.obj[idx]]) {
+                            graph.e_idx[idx][edge.obj[idx]] = {};
+                        }
+                        graph.e_idx[idx][edge.obj[idx]][edge.obj[env.id]] = edge;
+                    }
                 }
             }
         }
-    }
+    };
 
-    utils.associateVertices = function(edge){
+    utils.associateVertices = function (edge) {
         var vertex;
 
-        if(!graph.vertices[edge.obj[_env.outVid]]){
-            graph.vertices[edge.obj[_env.outVid]] = { 'obj': {}, 'type': 'vertex', 'outE': {}, 'inE': {} };
-            
+        if (!graph.vertices[edge.obj[env.outVid]]) {
+            graph.vertices[edge.obj[env.outVid]] = { 'obj': {}, 'type': 'vertex', 'outE': {}, 'inE': {} };
         }
-        vertex = graph.vertices[edge.obj[_env.outVid]];
-        if(!vertex.outE[edge.obj[_env.label]]){
-            vertex.outE[edge.obj[_env.label]] = [];
+        vertex = graph.vertices[edge.obj[env.outVid]];
+        if (!vertex.outE[edge.obj[env.label]]) {
+            vertex.outE[edge.obj[env.label]] = [];
         }
         edge.outV = vertex;
-        push.call(vertex.outE[edge.obj[_env.label]], edge);
+        push.call(vertex.outE[edge.obj[env.label]], edge);
 
-        if(!graph.vertices[edge.obj[_env.inVid]]){
-            graph.vertices[edge.obj[_env.inVid]] = { 'obj': {}, 'type': 'vertex', 'outE': {}, 'inE': {} };
-            
+        if (!graph.vertices[edge.obj[env.inVid]]) {
+            graph.vertices[edge.obj[env.inVid]] = { 'obj': {}, 'type': 'vertex', 'outE': {}, 'inE': {} };
         }
-        vertex = graph.vertices[edge.obj[_env.inVid]];
-        if(!vertex.inE[edge.obj[_env.label]]){
-            vertex.inE[edge.obj[_env.label]] = [];
+        vertex = graph.vertices[edge.obj[env.inVid]];
+        if (!vertex.inE[edge.obj[env.label]]) {
+            vertex.inE[edge.obj[env.label]] = [];
         }
-        vertex = graph.vertices[edge.obj[_env.inVid]];
+        vertex = graph.vertices[edge.obj[env.inVid]];
         edge.inV = vertex;
-        push.call(vertex.inE[edge.obj[_env.label]], edge);
-    }
+        push.call(vertex.inE[edge.obj[env.label]], edge);
+    };
 
 
 
@@ -538,285 +544,353 @@
             g.graph.close();
 
     ***************************************************************************************************/
-    graphUtils.close = function(){
+    graphUtils.close = function () {
         graph = {'vertices': {}, 'edges': {}, 'v_idx': {}, 'e_idx': {}};
         return Helios;
-    }
+    };
 
     //utils are internal utility functions
-    utils.resetPipe = function (){
-        if(!this.preserveSteps){
+    utils.resetPipe = function () {
+        if (!this.preserveSteps) {
             this.pipeline = {
                 'steps': {
                     'currentStep': 0
                 },
-                'namedStep': {}            
+                'namedStep': {}
             };
         }
         //if this.pipelineCache has been created then signifies to
         //preserve step 1 - used by pin()
-        if(!utils.isEmpty(this.pipelineCache)){
+        if (!utils.isEmpty(this.pipelineCache)) {
             this.pipeline.steps['1'] = {};
             this.pipeline.steps['1'].pipedInArgs = [];
-            this.pipeline.steps['1'].func = this.pipelineCache.func;            
+            this.pipeline.steps['1'].func = this.pipelineCache.func;
             this.pipeline.steps['1'].pipedOutArgs = this.pipelineCache.pipedOutArgs;
             this.pipeline.steps.currentStep = 1;
             this.pipedObjects = this.pipelineCache.pipedOutArgs[0];
         }
-    }
+    };
 
-    utils.toArray = function(o){
+    utils.toArray = function (o) {
         var k, r = [];
-        for(k in o) {
-            r.push(o[k]);
+        for (k in o) {
+            if (o.hasOwnProperty(k)) {
+                r.push(o[k]);
+            }
         }
-        return r;        
-    }
-    
-    utils.isArray = function(o){
-        return toString.call(o) === '[object Array]';
-    }
+        return r;
+    };
 
-    utils.isString = function(o){
+    utils.isArray = function (o) {
+        return toString.call(o) === '[object Array]';
+    };
+
+    utils.isString = function (o) {
         return toString.call(o) === '[object String]';
-    }
-    utils.isNumber = function(o){
+    };
+
+    utils.isNumber = function (o) {
         return toString.call(o) === '[object Number]';
-    }
-    
-    utils.isDate = function(o){
+    };
+
+    utils.isDate = function (o) {
         return toString.call(o) === '[object Date]';
-    }
-    
-    utils.isEmpty = function(o){
-        if(!o){
+    };
+
+    utils.isEmpty = function (o) {
+        var key;
+        if (!o) {
             return true;
         }
-        for(var key in o){
-            return !o[key];
+        for (key in o) {
+            if (o.hasOwnProperty(key)) {
+                return !o[key];
+            }
         }
         return true;
-    }
+    };
 
-    utils.isFunction = function(o){
-        return toString.call(o) === '[object Function]';    
-    }
-    utils.isNull = function(o){
+    utils.isFunction = function (o) {
+        return toString.call(o) === '[object Function]';
+    };
+
+    utils.isNull = function (o) {
         return toString.call(o) === '[object Null]';
-    }
+    };
 
-    utils.isUndefined = function(o){
+    utils.isUndefined = function (o) {
         return toString.call(o) === '[object Undefined]';
-    }
-    
-    fn.intersection = function (arr1, arr2, isObj){
+    };
+
+    fn.intersection = function (arr1, arr2, isObj) {
         var r = [], o = {}, i, comp;
-        for (i = 0; i < arr2.length; i++) {
-            !!isObj ? o[arr2[i].obj[_env.id]] = true : o[arr2[i]] = true;
+        for (i = 0; i < arr2.length; i += 1) {
+            if (!!isObj) {
+                o[arr2[i].obj[env.id]] = true;
+            } else {
+                o[arr2[i]] = true;
+            }
         }
-        
-        for (i = 0; i < arr1.length; i++) {
-            comp = !!isObj ? arr1[i].obj[_env.id] : arr1[i];
+
+        for (i = 0; i < arr1.length; i += 1) {
+            comp = !!isObj ? arr1[i].obj[env.id] : arr1[i];
             if (!!o[comp]) {
                 r.push(arr1[i]);
             }
         }
         return r;
-    }
+    };
 
     //fn are internal Functions
-    fn.difference = function(arr1, arr2, isObj){
+    fn.difference = function (arr1, arr2, isObj) {
         var r = [], o = {}, i, comp;
-        for (i = 0; i < arr2.length; i++) {
-            !!isObj ? o[arr2[i].obj[_env.id]] = true : o[arr2[i]] = true;
+        for (i = 0; i < arr2.length; i += 1) {
+            if (!!isObj) {
+                o[arr2[i].obj[env.id]] = true;
+            } else {
+                o[arr2[i]] = true;
+            }
         }
-        
-        for (i = 0; i < arr1.length; i++) {
-            comp = !!isObj ? arr1[i].obj[_env.id] : arr1[i];
+
+        for (i = 0; i < arr1.length; i += 1) {
+            comp = !!isObj ? arr1[i].obj[env.id] : arr1[i];
             if (!o[comp]) {
                 r.push(arr1[i]);
             }
         }
         return r;
-    }
+    };
 
-    fn.unique = function(array){
-
-        var o = {}, i, l = array.length, r = [];
-        for(i=0; i<l;i+=1) o[array[i]] = array[i];
-        for(i in o) r.push(o[i]);
-        return r;
-
-    }
-    fn.uniqueObject = function(array){
+    fn.unique = function (array) {
 
         var o = {}, i, l = array.length, r = [];
-        for(i=0; i<l;i+=1) o[array[i].obj[_env.id]] = array[i];
-        for(i in o) r.push(o[i]);
+        for (i = 0; i < l; i += 1) {
+            o[array[i]] = array[i];
+        }
+        for (i in o) {
+            if (o.hasOwnProperty(i)) {
+                r.push(o[i]);
+            }
+        }
         return r;
 
-    }
+    };
 
-    fn.countBy = function(array, o, props){
+    fn.uniqueObject = function (array) {
+
+        var o = {}, i, l = array.length, r = [];
+        for (i = 0; i < l; i += 1) {
+            o[array[i].obj[env.id]] = array[i];
+        }
+        for (i in o) {
+            if (o.hasOwnProperty(i)) {
+                r.push(o[i]);
+            }
+        }
+        return r;
+    };
+
+    fn.countBy = function (array, o, props) {
 
         var retVal = arguments[0],
-            i, j, 
-            l = array.length, 
+            i,
+            j,
+            l = array.length,
             element = {},
             propsLen;
 
-        if(!props){
+        if (!props) {
             props = o;
             o = {};
             retVal = o;
         }
         propsLen = props.length;
-        for(i=0; i<l;i+=1) {
+        for (i = 0; i < l; i += 1) {
             element = array[i].obj;
-            for(j=0; j < propsLen; j++){
-                !o[props[j]] ? o[props[j]] = 1  : o[props[j]] += 1 ;
+            for (j = 0; j < propsLen; j += 1) {
+                if (!o[props[j]]) {
+                    o[props[j]] = 1;
+                } else {
+                    o[props[j]] += 1;
+                }
             }
         }
         return retVal;
+    };
 
-    }
-    fn.sumBy = function(array, o, props){
+    fn.sumBy = function (array, o, props) {
         //TODO: Need to cater for CURRENCIES
 
         var retVal = arguments[0],
-            i, j, 
-            l = array.length, 
+            i,
+            j,
+            l = array.length,
             element = {},
             propsLen;
 
-        if(!props){
+        if (!props) {
             props = o;
             o = {};
             retVal = o;
         }
         propsLen = props.length;
-        for(i=0; i<l;i+=1) {
+        for (i = 0; i < l; i += 1) {
             element = array[i].obj;
-            for(j=0; j < propsLen; j++){
-                !o[props[j]] ? o[props[j]] = element[props[j]] : o[props[j]] += element[props[j]];
-            }
-        }
-        return retVal;
-
-    }
-
-    fn.groupBy = function(arr, o, props){
-
-        var retVal = arguments[0],
-            i, j,
-            array = dedup(arr),
-            l = array.length,
-            element = {},
-            propsLen,
-            group;
-
-        if(!props){
-            props = o;
-            o = {};
-            retVal = o;
-        }
-        propsLen = props.length;
-        for(i=0; i<l; i+=1) {
-            element = array[i].obj;
-            group = o;
-            for(j=0; j < propsLen; j++){
-                if(j === propsLen - 1){
-                    !group[element[props[j]]] ? group[element[props[j]]] = [element]: push.call(group[element[props[j]]],element);
-                }else {
-                    if(!group[element[props[j]]]) {
-                        group[element[props[j]]] = {};
-                    }                    
+            for (j = 0; j < propsLen; j += 1) {
+                if (!o[props[j]]) {
+                    o[props[j]] = element[props[j]];
+                } else {
+                    o[props[j]] += element[props[j]];
                 }
-                group = group[element[props[j]]];
             }
         }
         return retVal;
+    };
+
+    /***************************************************************************************************
+        Remove duplicate objects
+        @name       dedup()             callable/chainable
+        @returns    {Object Array}      emits an Object Array
+        @example
+
+        g.v(10).out().in().dedup().value();
+
+    ***************************************************************************************************/
+    function dedup() {
+        var  retVal = fn.uniqueObject(arguments[0]);
+        return retVal;
     }
 
-    fn.groupCount = function(arr, o, props){
+    fn.groupBy = function (arr, o, props) {
 
         var retVal = arguments[0],
-            i, j,
+            i,
+            j,
             array = dedup(arr),
             l = array.length,
             element = {},
             propsLen,
             group;
 
-        if(!props){
+        if (!props) {
             props = o;
             o = {};
             retVal = o;
         }
         propsLen = props.length;
-        for(i=0; i<l; i+=1) {
+        for (i = 0; i < l; i += 1) {
             element = array[i].obj;
             group = o;
-            for(j=0; j < propsLen; j++){
-                if(j === propsLen - 1){
-                    !group[element[props[j]]] ? group[element[props[j]]] = [element]: push.call(group[element[props[j]]],element);
-                }else{
-                    if(!group[element[props[j]]]) {
+            for (j = 0; j < propsLen; j += 1) {
+                if (j === propsLen - 1) {
+                    if (!group[element[props[j]]]) {
+                        group[element[props[j]]] = [element];
+                    } else {
+                        push.call(group[element[props[j]]], element);
+                    }
+                } else {
+                    if (!group[element[props[j]]]) {
                         group[element[props[j]]] = {};
                     }
                 }
                 group = group[element[props[j]]];
-                !group.count ? group.count = 1  : group.count += 1;
             }
         }
         return retVal;
-    }
+    };
 
-    fn.clone = function(o){
-        return JSON.parse(JSON.stringify(o));
-    }
+    fn.groupCount = function (arr, o, props) {
 
-    fn.include = function(array, i){
-        return indexOf.call(array, i) === -1 ? false : true;
-    }
-    fn.keys = function(o){
-        var k, r = [];
-        for(k in o) {
-            r.push(k);
+        var retVal = arguments[0],
+            i,
+            j,
+            array = dedup(arr),
+            l = array.length,
+            element = {},
+            propsLen,
+            group;
+
+        if (!props) {
+            props = o;
+            o = {};
+            retVal = o;
         }
-        return r;  
-    }
-    fn.values = function(o){
+        propsLen = props.length;
+        for (i = 0; i < l; i += 1) {
+            element = array[i].obj;
+            group = o;
+            for (j = 0; j < propsLen; j += 1) {
+                if (j === propsLen - 1) {
+                    if (!group[element[props[j]]]) {
+                        group[element[props[j]]] = [element];
+                    } else {
+                        push.call(group[element[props[j]]], element);
+                    }
+                } else {
+                    if (!group[element[props[j]]]) {
+                        group[element[props[j]]] = {};
+                    }
+                }
+                group = group[element[props[j]]];
+                if (!group.count) {
+                    group.count = 1;
+                } else {
+                    group.count += 1;
+                }
+            }
+        }
+        return retVal;
+    };
+
+    fn.clone = function (o) {
+        return JSON.parse(JSON.stringify(o));
+    };
+
+    fn.include = function (array, i) {
+        return indexOf.call(array, i) === -1 ? false : true;
+    };
+
+    fn.keys = function (o) {
+        var k, r = [];
+        for (k in o) {
+            if (o.hasOwnProperty(k)) {
+                r.push(k);
+            }
+        }
+        return r;
+    };
+
+    fn.values = function (o) {
         return utils.toArray(o);
-    }
-    
-    fn.pick = function(o){
+    };
+
+    fn.pick = function (o) {
 
         var prop,
-        props = concat.apply(ArrayProto, arguments),
-        i = props.length,
-        result = {};
-        
-        while (i--) {
-          prop = props[i];
-          if (prop in o) {
-            result[prop] = o[prop];
-          }
+            props = concat.apply(ArrayProto, arguments),
+            i = props.length,
+            result = {};
+
+        while (i) {
+            i -= 1;
+            prop = props[i];
+            if (o.hasOwnProperty(prop)) {
+                result[prop] = o[prop];
+            }
         }
         return result;
+    };
 
-    }
-    fn.getObjProp = function(array){
+    fn.getObjProp = function (array) {
         var i, l = array.length, result = [];
-        
-        for(i=0;i<l;i++){
-            push.call(result,array[i].obj);
+
+        for (i = 0; i < l; i += 1) {
+            push.call(result, array[i].obj);
         }
         return result;
+    };
 
-    }
-
-    fn.flatten = function(array, shallow){
+    fn.flatten = function (array, shallow) {
 
         var result = [],
             value,
@@ -824,71 +898,64 @@
             length;
 
         if (!array) {
-          return result;
+            return result;
         }
-        
+
         length = array.length;
 
-        while (++index < length) {
-          value = array[index];
-          if (utils.isArray(value)) {
-            push.apply(result, shallow ? value : fn.flatten(value));
-          } else {
-            result.push(value);
-          }
+        while ((index += 1) < length) {
+            value = array[index];
+            if (utils.isArray(value)) {
+                push.apply(result, shallow ? value : fn.flatten(value));
+            } else {
+                result.push(value);
+            }
         }
         return result;
+    };
 
-    }
+    fn.map = function (array, func) {
 
-    fn.map = function(array, func){
+        var i, len = array.length, val, retVal = [];
 
-        var len = array.length, val, retVal = [];
-        
         //if (!utils.isFunction(func))
           //throw new TypeError();
-        
-        for (var i = 0; i < len; i++)
-        {
+
+        for (i = 0; i < len; i += 1) {
             val = array[i]; // in case func mutates this
             retVal.push(func.call(null, val));
         }
-              
         return retVal;
+    };
 
-    }
+    fn.filter = function (array, func) {
 
-    fn.filter = function(array, func){
+        var i, len = array.length, val, retVal = [];
 
-        var len = array.length, val, retVal = [];
-        
         //if (!utils.isFunction(func))
           //throw new TypeError();
-        
-        for (var i = 0; i < len; i++)
-        {
+
+        for (i = 0; i < len; i += 1) {
             val = array[i]; // in case func mutates this
-            if (func.call(null, val))
-              retVal.push(val);
+            if (func.call(null, val)) {
+                retVal.push(val);
+            }
         }
-              
         return retVal;
+    };
 
-    }
+    fn.each = function (array, func) {
 
-    fn.each = function(array, func){
+        var i, len = array.length, val, retVal = [];
 
-        var len = array.length, val, retVal = [];
-        
         //if (!utils.isFunction(func))
           //throw new TypeError();
-        
-        for (var i = 0; i < len; i++)
-        {
+
+        for (i = 0; i < len; i += 1) {
             val = array[i]; // in case func mutates this
             func.call(null, val);
         }
-    }
+    };
 
 
     /***************************************************************************************************
@@ -904,16 +971,16 @@
             var result = g.V().value();
 
     ***************************************************************************************************/
-    function pipedValue(){
+    function pipedValue() {
         var retVal = [], args = arguments;
-        if(!!this.pipedObjects[0] && !!this.pipedObjects[0].obj){
+        if (!!this.pipedObjects[0] && !!this.pipedObjects[0].obj) {
             retVal = fn.getObjProp(this.pipedObjects);
         } else {
-            retVal = this.pipedObjects;            
+            retVal = this.pipedObjects;
         }
 
-    	utils.resetPipe.call(this);
-    	return retVal;
+        utils.resetPipe.call(this);
+        return retVal;
     }
 
     /***************************************************************************************************
@@ -929,20 +996,22 @@
                      g2.out().value();
 
     ***************************************************************************************************/
-    function fork(){
-        var newHelios = new Helios();
-            newHelios.pipedObjects = this.pipedObjects;
-            utils.resetPipe.call(newHelios);
+    function fork() {
+        var newHelios = {};
 
-            newHelios.pipeline.steps['1'] = {};
-            newHelios.pipeline.steps['1'].pipedInArgs = this.pipeline.steps[this.pipeline.steps.currentStep].pipedInArgs;
-            newHelios.pipeline.steps['1'].func = this.pipeline.steps[this.pipeline.steps.currentStep].func;            
-            newHelios.pipeline.steps['1'].pipedOutArgs = this.pipeline.steps[this.pipeline.steps.currentStep].pipedOutArgs;
-            newHelios.pipeline.steps.currentStep = 1;
-            newHelios.preserveSteps = true;
+        newHelios = new Helios();
+        newHelios.pipedObjects = this.pipedObjects;
+        utils.resetPipe.call(newHelios);
 
-            utils.resetPipe.call(this);
-            return newHelios;
+        newHelios.pipeline.steps['1'] = {};
+        newHelios.pipeline.steps['1'].pipedInArgs = this.pipeline.steps[this.pipeline.steps.currentStep].pipedInArgs;
+        newHelios.pipeline.steps['1'].func = this.pipeline.steps[this.pipeline.steps.currentStep].func;
+        newHelios.pipeline.steps['1'].pipedOutArgs = this.pipeline.steps[this.pipeline.steps.currentStep].pipedOutArgs;
+        newHelios.pipeline.steps.currentStep = 1;
+        newHelios.preserveSteps = true;
+
+        utils.resetPipe.call(this);
+        return newHelios;
     }
 
     /***************************************************************************************************
@@ -958,16 +1027,44 @@
                      g2.out().value();
 
     ***************************************************************************************************/
-    function pin(){
-        var newHelios = new Helios();
-            newHelios.pipedObjects = this.pipedObjects;
-            newHelios.pipelineCache = {};
-            newHelios.pipelineCache.pipedOutArgs = this.pipeline.steps[this.pipeline.steps.currentStep].pipedOutArgs;
-            newHelios.pipelineCache.func = this.pipeline.steps[this.pipeline.steps.currentStep].func;
-            utils.resetPipe.call(this);
-            utils.resetPipe.call(newHelios);
-            return newHelios;
+    function pin() {
+        var newHelios = {};
+        newHelios = new Helios();
+        newHelios.pipedObjects = this.pipedObjects;
+        newHelios.pipelineCache = {};
+        newHelios.pipelineCache.pipedOutArgs = this.pipeline.steps[this.pipeline.steps.currentStep].pipedOutArgs;
+        newHelios.pipelineCache.func = this.pipeline.steps[this.pipeline.steps.currentStep].func;
+        utils.resetPipe.call(this);
+        utils.resetPipe.call(newHelios);
+        return newHelios;
     }
+
+    /***************************************************************************************************
+        Output the property map
+        @name       map()               callable
+        @param      !{String*|Array}    Required comma separated String or Array of properties to map.
+        @returns    {Object Array}      emits an Object Array
+        @example
+            
+            g.v(10).map();
+            g.v(10).map('name', 'age');
+            g.v(10).map(['name', 'age']);
+
+    ***************************************************************************************************/
+    function map() {
+        var retVal = [], params = [], args = arguments;
+
+        if (!!args.length) {
+            retVal = fn.map(this.pipedObjects, function (element) {
+                params = [element.obj];
+                push.apply(params, args);
+                return fn.pick.apply(this, params);
+            });
+        }
+        utils.resetPipe();
+        return retVal;
+    }
+
     /***************************************************************************************************
 
         Called to emit the stringified result from traversing the graph.
@@ -982,14 +1079,14 @@
             var result = g.V().stringify('name','age');
 
     ***************************************************************************************************/
-    function stringify(){
+    function stringify() {
         var retVal = [], args = arguments;
-        if(!!this.pipedObjects[0] && !!this.pipedObjects[0].obj){
-    		return JSON.stringify(map.apply(this, args));
-    	}
-    	retVal = this.pipedObjects;
-    	utils.resetPipe();
-    	return JSON.stringify(retVal);
+        if (!!this.pipedObjects[0] && !!this.pipedObjects[0].obj) {
+            return JSON.stringify(map.apply(this, args));
+        }
+        retVal = this.pipedObjects;
+        utils.resetPipe();
+        return JSON.stringify(retVal);
     }
 
     /***************************************************************************************************
@@ -1010,31 +1107,31 @@
     ***************************************************************************************************/
     function path() {
 
+        var retVal = [],
+            stepPaths,
+            stepsObj = this.pipeline.steps,
+            o = {},
+            edge,
+            edgeStr,
+            i,
+            j,
+            stepRecs,
+            len;
 
-        var retVal = [], 
-            stepPaths, 
-            stepsObj = this.pipeline.steps, 
-            retVal = [], 
-            o={}, 
-            edge, 
-            edgeStr, i, j, stepRecs, len;
-
-        for(i = 1; i <= stepsObj.currentStep; i++){
+        for (i = 1; i <= stepsObj.currentStep; i += 1) {
             stepRecs = stepsObj[i].pipedOutArgs[0];
-            stepPaths = o['step '+i] = [];
-            for(j=0, len = stepRecs.length; j<len;j++){
-                if(stepRecs[j].type === 'vertex'){
-                    push.call(stepPaths,'v['+stepRecs[j].obj[_env.id]+']');
+            stepPaths = o['step ' + i] = [];
+            for (j = 0, len = stepRecs.length; j < len; j += 1) {
+                if (stepRecs[j].type === 'vertex') {
+                    push.call(stepPaths, 'v[' + stepRecs[j].obj[env.id] + ']');
                 } else {
                     edge = stepRecs[j].obj;
-                    edgeStr = 'v['+ edge[_env.outVid] + '], e[' + edge[_env.id] + '][' + 
-                                edge[_env.outVid] + '-' + edge[_env.label] + '->' + 
-                                edge[_env.inVid] + '], v[' + edge[_env.inVid] +']';
-                    push.call(stepPaths,edgeStr);
+                    edgeStr = 'v[' + edge[env.outVid] + '], e[' + edge[env.id] + '][' + edge[env.outVid] + '-' + edge[env.label] + '->' + edge[env.inVid] + '], v[' + edge[env.inVid] + ']';
+                    push.call(stepPaths, edgeStr);
                 }
             }
         }
-        push.call(retVal,JSON.stringify(o));
+        push.call(retVal, JSON.stringify(o));
         push.apply(retVal, this.pipedObjects);
         utils.resetPipe();
         return retVal;
@@ -1055,16 +1152,16 @@
     ***************************************************************************************************/
     function v() {
 
-        var retVal = [], 
-        args = fn.flatten(slice.call(arguments, 1)),
-        length = args.length;
-        while(length){
-        	length--;
+        var retVal = [],
+            args = fn.flatten(slice.call(arguments, 1)),
+            length = args.length;
+
+        while (length) {
+            length -= 1;
             push.call(retVal, graph.vertices[args[length]]);
         }
-         
-        return retVal;
 
+        return retVal;
     }
 
     /***************************************************************************************************
@@ -1083,11 +1180,10 @@
     function e() {
         var retVal = [], length, args = fn.flatten(slice.call(arguments, 1));
         length = args.length;
-        while(length){
-            length--;
+        while (length) {
+            length -= 1;
             push.call(retVal, graph.edges[args[length]]);
         }
-         
         return retVal;
     }
 
@@ -1104,10 +1200,9 @@
     function id() {
         var retVal = [];
 
-        retVal = fn.map(this.pipedObjects, function(element, key, list) {
-            return element.obj[_env.id];
+        retVal = fn.map(this.pipedObjects, function (element, key, list) {
+            return element.obj[env.id];
         });
-        
         utils.resetPipe();
         return retVal;
     }
@@ -1126,11 +1221,11 @@
 
         var retVal = [];
 
-        retVal = fn.map(this.pipedObjects, function(element, key, list) {
-            return element.obj[_env.label];
+        retVal = fn.map(this.pipedObjects, function (element, key, list) {
+            return element.obj[env.label];
         });
 
-        utils.resetPipe(); 
+        utils.resetPipe();
         return retVal;
     }
 
@@ -1149,18 +1244,17 @@
 
         var retVal = [],
             args = slice.call(arguments, 1),
-            hasArgs = !!args.length,            
+            hasArgs = !!args.length,
             value;
 
-        fn.each(arguments[0], function(vertex, key, list) {
+        fn.each(arguments[0], function (vertex, key, list) {
             if (!utils.isEmpty(vertex.outE)) {
                 value = hasArgs ? fn.pick(vertex.outE, args) : vertex.outE;
-                fn.each(fn.flatten(fn.values(value)), function(edge) {
+                fn.each(fn.flatten(fn.values(value)), function (edge) {
                     push.call(retVal, edge.inV);
                 });
             }
         });
-         
         return retVal;
     }
 
@@ -1173,25 +1267,24 @@
             var result = g.v(40).inE().outV().value();
 
     ***************************************************************************************************/
-    function outV(){
-        var retVal = fn.map(arguments[0], function(edge, key, list) {
-        	return edge.outV;
+    function outV() {
+        var retVal = fn.map(arguments[0], function (edge, key, list) {
+            return edge.outV;
         });
-         
         return retVal;
     }
 
-     function _in () {
+    function _in() {
 
         var retVal = [],
             args = slice.call(arguments, 1),
             hasArgs = !!args.length,
             value;
 
-        fn.each(arguments[0], function(vertex, key, list) {
+        fn.each(arguments[0], function (vertex, key, list) {
             if (!utils.isEmpty(vertex.inE)) {
                 value = hasArgs ? fn.pick(vertex.inE, args) : vertex.inE;
-                fn.each(fn.flatten(fn.values(value)), function(edge) {
+                fn.each(fn.flatten(fn.values(value)), function (edge) {
                     push.call(retVal, edge.outV);
                 });
             }
@@ -1208,11 +1301,10 @@
             var result = g.v(40).outE().inV().value();
 
     ***************************************************************************************************/
-    function inV(){
-        var retVal = fn.map(arguments[0], function(edge, key, list) {
+    function inV() {
+        var retVal = fn.map(arguments[0], function (edge, key, list) {
             return edge.inV;
         });
-         
         return retVal;
     }
 
@@ -1235,16 +1327,16 @@
             hasArgs = !!args.length,
             value;
 
-        fn.each(arguments[0], function(vertex, key, list) {
+        fn.each(arguments[0], function (vertex, key, list) {
             if (!utils.isEmpty(vertex.outE)) {
                 value = hasArgs ? fn.pick(vertex.outE, args) : vertex.outE;
-                fn.each(fn.flatten(fn.values(value)), function(edge) {
+                fn.each(fn.flatten(fn.values(value)), function (edge) {
                     push.call(retVal, edge.inV);
                 });
             }
             if (!utils.isEmpty(vertex.inE)) {
                 value = hasArgs ? fn.pick(vertex.inE, args) : vertex.inE;
-                fn.each(fn.flatten(fn.values(value)), function(edge) {
+                fn.each(fn.flatten(fn.values(value)), function (edge) {
                     push.call(retVal, edge.outV);
                 });
             }
@@ -1264,11 +1356,11 @@
     function bothV() {
         var retVal = [];
 
-        fn.each(arguments[0], function(edge, key, list) {
+        fn.each(arguments[0], function (edge, key, list) {
             push.call(retVal, edge.inV);
             push.call(retVal, edge.outV);
-       });
-       return retVal;
+        });
+        return retVal;
     }
 
     /***************************************************************************************************
@@ -1289,10 +1381,10 @@
             hasArgs = !!args.length,
             value;
 
-        fn.each(arguments[0], function(vertex, key, list) {
+        fn.each(arguments[0], function (vertex, key, list) {
             if (!utils.isEmpty(vertex.outE)) {
                 value = hasArgs ? fn.pick(vertex.outE, args) : vertex.outE;
-                fn.each(fn.flatten(fn.values(value)), function(edge) {
+                fn.each(fn.flatten(fn.values(value)), function (edge) {
                     push.call(retVal, edge);
                 });
             }
@@ -1318,10 +1410,10 @@
             hasArgs = !!args.length,
             value;
 
-        fn.each(arguments[0], function(vertex, key, list) {
+        fn.each(arguments[0], function (vertex, key, list) {
             if (!utils.isEmpty(vertex.inE)) {
                 value = hasArgs ? fn.pick(vertex.inE, args) : vertex.inE;
-                fn.each(fn.flatten(fn.values(value)), function(edge) {
+                fn.each(fn.flatten(fn.values(value)), function (edge) {
                     push.call(retVal, edge);
                 });
             }
@@ -1342,22 +1434,22 @@
     ***************************************************************************************************/
     function bothE() {
 
-    	var retVal = [],
+        var retVal = [],
             args = slice.call(arguments, 1),
             hasArgs = !!args.length,
             value;
 
-        fn.each(arguments[0], function(vertex, key, list) {
-        	
+        fn.each(arguments[0], function (vertex, key, list) {
+
             if (!utils.isEmpty(vertex.outE)) {
                 value = hasArgs ? fn.pick(vertex.outE, args) : vertex.outE;
-                fn.each(fn.flatten(fn.values(value)), function(edge) {
+                fn.each(fn.flatten(fn.values(value)), function (edge) {
                     push.call(retVal, edge);
                 });
             }
             if (!utils.isEmpty(vertex.inE)) {
                 value = hasArgs ? fn.pick(vertex.inE, args) : vertex.inE;
-                fn.each(fn.flatten(fn.values(value)), function(edge) {
+                fn.each(fn.flatten(fn.values(value)), function (edge) {
                     push.call(retVal, edge);
                 });
             }
@@ -1380,8 +1472,7 @@
 
         if (args.length === 2) {
             return utils.toArray(graph.v_idx[args[0]][args[1]]);
-        };
-
+        }
         return utils.toArray(graph.vertices);
     }
 
@@ -1400,7 +1491,7 @@
 
         if (args.length === 2) {
             return utils.toArray(graph.e_idx[args[0]][args[1]]);
-        };
+        }
         return utils.toArray(graph.edges);
     }
 
@@ -1426,14 +1517,14 @@
             value,
             self = this;
 
-        fn.each(arguments[0], function(vertex) {
-            if(!self._traversedVertices[vertex.obj[_env.id]]){  
-                self._traversedVertices[vertex.obj[_env.id]] = 'visited'; 
+        fn.each(arguments[0], function (vertex) {
+            if (!self.traversedVertices[vertex.obj[env.id]]) {
+                self.traversedVertices[vertex.obj[env.id]] = 'visited';
 
                 value = hasArgs ? fn.pick(vertex.outE, args) : vertex.outE;
-                if(utils.isEmpty(value)){
-                    if(hasArgs){
-                        if(!utils.isEmpty(fn.pick(vertex.inE, args))){
+                if (utils.isEmpty(value)) {
+                    if (hasArgs) {
+                        if (!utils.isEmpty(fn.pick(vertex.inE, args))) {
                             push.call(retVal, vertex);
                         }
                     } else {
@@ -1442,15 +1533,15 @@
                 } else {
                     tempArr = [];
                     tempPipe = [];
-                    fn.each(fn.flatten(fn.values(value)), function(edge) {
-                        if(!self._traversedEdges[edge.obj[_env.id]]){
+                    fn.each(fn.flatten(fn.values(value)), function (edge) {
+                        if (!self.traversedEdges[edge.obj[env.id]]) {
                             push.call(tempArr, edge.inV);
-                            self._traversedEdges[edge.obj[_env.id]] = 'visited';
+                            self.traversedEdges[edge.obj[env.id]] = 'visited';
                         }
                     });
-                    push.call(tempPipe,tempArr);
-                    push.apply(tempPipe,args);
-                    push.apply(retVal,tail.apply(self,tempPipe));    
+                    push.call(tempPipe, tempArr);
+                    push.apply(tempPipe, args);
+                    push.apply(retVal, tail.apply(self, tempPipe));
                 }
             }
         });
@@ -1479,14 +1570,14 @@
             value,
             self = this;
 
-        fn.each(arguments[0], function(vertex) {
-            if(!self._traversedVertices[vertex.obj[_env.id]]){  
-                self._traversedVertices[vertex.obj[_env.id]] = 'visited';
+        fn.each(arguments[0], function (vertex) {
+            if (!self.traversedVertices[vertex.obj[env.id]]) {
+                self.traversedVertices[vertex.obj[env.id]] = 'visited';
 
                 value = hasArgs ? fn.pick(vertex.inE, args) : vertex.inE;
-                if(utils.isEmpty(value)){
-                    if(hasArgs){
-                        if(!utils.isEmpty(fn.pick(vertex.outE, args))){
+                if (utils.isEmpty(value)) {
+                    if (hasArgs) {
+                        if (!utils.isEmpty(fn.pick(vertex.outE, args))) {
                             push.call(retVal, vertex);
                         }
                     } else {
@@ -1495,15 +1586,15 @@
                 } else {
                     tempArr = [];
                     tempPipe = [];
-                    fn.each(fn.flatten(fn.values(value)), function(edge) {
-                        if(!self._traversedEdges[edge.obj[_env.id]]){
+                    fn.each(fn.flatten(fn.values(value)), function (edge) {
+                        if (!self.traversedEdges[edge.obj[env.id]]) {
                             push.call(tempArr, edge.outV);
-                            self._traversedEdges[edge.obj[_env.id]] = 'visited';
+                            self.traversedEdges[edge.obj[env.id]] = 'visited';
                         }
                     });
-                    push.call(tempPipe,tempArr);
-                    push.apply(tempPipe,args);
-                    push.apply(retVal,head.apply(self,tempPipe));
+                    push.call(tempPipe, tempArr);
+                    push.apply(tempPipe, args);
+                    push.apply(retVal, head.apply(self, tempPipe));
                 }
             }
         });
@@ -1531,30 +1622,35 @@
 
 
             x = [];
-            results = g.v(10).out('knows').store(x, function(incAge){
+            results = g.v(10).out('knows').store(x, function (incAge) {
                                                         var retVal = [];
-                                                        fn.each(this, function(element){
+                                                        fn.each(this, function (element) {
                                                           element.obj.age += incAge;
                                                           retVal.push(element);
                                                         });
                                                     return retVal;}, 10).value();
 
     ***************************************************************************************************/
-    function store(){
+    function store() {
         var retVal = arguments[0],
-            args = slice.call(arguments, 1), func, funcArgs = [];
+            args = slice.call(arguments, 1),
+            func,
+            funcArgs = [];
 
-            if(!!args.length){
-                //if pass in Array, populate it, else store as a named pipe 
-                utils.isArray(args[0]) ? push.apply(args[0],arguments[0]) : this.pipeline.namedStep[args[0]] = this.pipeline.steps.currentStep;
-
-                if(utils.isFunction(args[1])){
-                    func = args[1];
-                    args.shift();
-                    funcArgs = fn.flatten(slice.call(args, 1));
-                    retVal = func.apply(arguments[0], funcArgs);
-                }           
+        if (!!args.length) {
+            //if pass in Array, populate it, else store as a named pipe 
+            if (utils.isArray(args[0])) {
+                push.apply(args[0], arguments[0]);
+            } else {
+                this.pipeline.namedStep[args[0]] = this.pipeline.steps.currentStep;
             }
+            if (utils.isFunction(args[1])) {
+                func = args[1];
+                args.shift();
+                funcArgs = fn.flatten(slice.call(args, 1));
+                retVal = func.apply(arguments[0], funcArgs);
+            }
+        }
         return retVal;
     }
 
@@ -1576,28 +1672,25 @@
             results = g.v(10).out().store(arr).in().back(arr).value();
 
     ***************************************************************************************************/
-    function back(){
+    function back() {
         var backSteps = arguments[1],
             stepBackTo;
-            
-            if(utils.isArray(backSteps)){
-                return backSteps;
-            }
 
-            if(utils.isString(backSteps)){
-                if(utils.isUndefined(this.pipeline.namedStep[backSteps])){
-                    return;
-                }
-                stepBackTo = this.pipeline.namedStep[backSteps];
-            } else {
-                stepBackTo = this.pipeline.steps.currentStep - backSteps;
-                
-            }
+        if (utils.isArray(backSteps)) {
+            return backSteps;
+        }
 
+        if (utils.isString(backSteps)) {
+            if (utils.isUndefined(this.pipeline.namedStep[backSteps])) {
+                return;
+            }
+            stepBackTo = this.pipeline.namedStep[backSteps];
+        } else {
+            stepBackTo = this.pipeline.steps.currentStep - backSteps;
+        }
         return this.pipeline.steps[stepBackTo].pipedOutArgs[0];
     }
 
-    
     /***************************************************************************************************
         Allow everything to pass except what is in collection
         @name       except()            callable/chainable
@@ -1613,12 +1706,12 @@
             results = g.v(10).out().store(arr).out().except(arr).value();
 
     ***************************************************************************************************/
-    function except(){
+    function except() {
 
         var arg = arguments[1], dSet, diff, retVal = [];
         dSet = utils.isArray(arg) ? arg : this.pipeline.steps[this.pipeline.namedStep[arg]].pipedOutArgs[0];
-        retVal = fn.difference(arguments[0],dSet, true);
-         
+        retVal = fn.difference(arguments[0], dSet, true);
+
         return retVal;
     }
 
@@ -1648,7 +1741,7 @@
                                         passed the object will also be stored in that Array after applying the Function.
         @examples
             
-            var results = g.v(10).filter(function(name) {  return this.obj.name === name; },'marko').value();
+            var results = g.v(10).filter(function (name) {  return this.obj.name === name; },'marko').value();
 
             g.v(10).out().filter('eq',['name','vadas']).value();
             g.v(10).out().filter('eq',['name','vadas']).value();
@@ -1682,36 +1775,33 @@
             g.v(10).out().filter('eq',['name','vadas']).orFilter('gt', ['age', 25]).orFilter('eq', ['name', 'lop']).value();
 
     ***************************************************************************************************/
-    function filter(){
+    function filter() {
 
-        var     retVal = [],
-                records = arguments[0],
-                args = slice.call(arguments, 1),
-                func,
-                funcArgs = [],
-                argLen = args.length;
+        var retVal = [],
+            records = arguments[0],
+            args = slice.call(arguments, 1),
+            func,
+            funcArgs = [],
+            argLen = args.length;
 
-        if(utils.isFunction(args[0])){
-            
+        if (utils.isFunction(args[0])) {
             func = args[0];
-            funcArgs = fn.flatten(slice.call(args, 1),true);
+            funcArgs = fn.flatten(slice.call(args, 1), true);
 
-            fn.each(records, function(element){
-                if(func.apply(element.obj, funcArgs)) {
+            fn.each(records, function (element) {
+                if (func.apply(element.obj, funcArgs)) {
                     push.call(retVal, element);
                 }
             });
 
         } else {
 
-            while(argLen){
+            while (argLen) {
                 argLen -= 2;
                 retVal = fn.filter(records, comparable[args[argLen]](args[argLen + 1]));
             }
         }
-        
-        this.pipeline.namedStep.filter = this.pipeline.steps.currentStep;    
-         
+        this.pipeline.namedStep.filter = this.pipeline.steps.currentStep;
         return retVal;
     }
 
@@ -1744,21 +1834,23 @@
 
     ***************************************************************************************************/
     function orFilter() {
-        var  retVal = []
-            ,prevRecords = arguments[0]
-            ,args = slice.call(arguments, 1)
-            ,records = this.pipeline.steps[this.pipeline.namedStep.filter].pipedInArgs[0]
-            ,func
-            ,funcArgs = []
-            ,argLen
-            ,ids = [];
+        var retVal = [],
+            prevRecords = arguments[0],
+            args = slice.call(arguments, 1),
+            records = this.pipeline.steps[this.pipeline.namedStep.filter].pipedInArgs[0],
+            func,
+            funcArgs = [],
+            argLen,
+            i,
+            len,
+            ids = [];
 
-        if(utils.isFunction(args[0])){
+        if (utils.isFunction(args[0])) {
             func = args[0];
-            funcArgs = fn.flatten(slice.call(args, 1),true);
+            funcArgs = fn.flatten(slice.call(args, 1), true);
 
-            fn.each(records, function(element){
-                if(func.apply(element.obj, funcArgs)) {
+            fn.each(records, function (element) {
+                if (func.apply(element.obj, funcArgs)) {
                     push.call(retVal, element);
                 }
             });
@@ -1767,50 +1859,23 @@
         } else {
 
             argLen = args.length;
-            while(argLen){
+            while (argLen) {
                 argLen -= 2;
                 retVal = fn.filter(records, comparable[args[argLen]](args[argLen + 1]));
             }
 
         }
-
-        for (var i = 0, len = retVal.length; i < len; i++){
-            push.call(ids,retVal[i].obj[_env.id]);
+        len = retVal.length;
+        for (i = 0; i < len; i += 1) {
+            push.call(ids, retVal[i].obj[env.id]);
         }
         ids = fn.unique(ids);
-
-        for (var i = 0, len = prevRecords.length; i < len; i++){
-            if(!fn.include(ids, prevRecords[i].obj[_env.id])){
+        len = prevRecords.length;
+        for (i = 0; i < len; i += 1) {
+            if (!fn.include(ids, prevRecords[i].obj[env.id])) {
                 push.call(retVal, prevRecords[i]);
             }
         }
-         
-        return retVal;    
-    }
-
-    /***************************************************************************************************
-        Output the property map
-        @name       map()               callable
-        @param      !{String*|Array}    Required comma separated String or Array of properties to map.
-        @returns    {Object Array}      emits an Object Array
-        @example
-            
-            g.v(10).map();
-            g.v(10).map('name', 'age');
-            g.v(10).map(['name', 'age']);
-
-    ***************************************************************************************************/
-    function map(){
-        var retVal = [], params = [], args = arguments;
-
-        if(!!args.length) { 
-            retVal = fn.map(this.pipedObjects, function(element){
-                 params = [element.obj];
-                 push.apply(params, args);
-                return fn.pick.apply(this, params);
-            });
-        }
-        utils.resetPipe();
         return retVal;
     }
 
@@ -1829,13 +1894,12 @@
             results = g.v(10).out().store(arr).out().retain(arr).value();
 
     ***************************************************************************************************/
-    function retain(){
+    function retain() {
 
         var arg = arguments[1], dSet, diff, retVal = [];
 
         dSet = utils.isArray(arg) ? arg : this.pipeline.steps[this.pipeline.namedStep[arg]].pipedOutArgs[0];
-        retVal = fn.intersection(arguments[0],dSet, true);
-         
+        retVal = fn.intersection(arguments[0], dSet, true);
         return retVal;
     }
 
@@ -1848,29 +1912,28 @@
         @returns    {Object Array}      emits an Object Array
         @examples
 
-            g.v(10).out().step(function(){ 
+            g.v(10).out().step(function () { 
                                 var arr = []; 
-                                fn.each(this, function(element){
+                                fn.each(this, function (element) {
                                   arr.push(element.obj.name)}); 
                                 return arr; }).value();
 
     ***************************************************************************************************/
     function step() {
-        var  retVal = [],
-            tempArr = []
-            ,args = slice.call(arguments, 1)
-            ,func
-            ,funcArgs = [];
+        var retVal = [],
+            tempArr = [],
+            args = slice.call(arguments, 1),
+            func,
+            funcArgs = [];
 
-        if(utils.isFunction(args[0])){
+        if (utils.isFunction(args[0])) {
             func = args[0];
-            funcArgs = fn.flatten(slice.call(args, 1),true);
-            retVal = func.apply(arguments[0] ,funcArgs);
+            funcArgs = fn.flatten(slice.call(args, 1), true);
+            retVal = func.apply(arguments[0], funcArgs);
         } else {
             retVal = "Invalid function";
         }
-        return retVal;    
-
+        return retVal;
     }
 
     /***************************************************************************************************
@@ -1885,7 +1948,7 @@
             var result = g.V().count();
 
     ***************************************************************************************************/
-    function count(){
+    function count() {
         var retVal = this.pipedObjects.length;
 
         utils.resetPipe.call(this);
@@ -1917,11 +1980,15 @@
 
     ***************************************************************************************************/
     function countBy() {
-        var args = fn.flatten(slice.call(arguments,1)),
-            objVar= args[0], params;
-        
-        utils.isString(args[0]) ? objVar = slice.call(args) : params = slice.call(args,1);
+        var args = fn.flatten(slice.call(arguments, 1)),
+            objVar = args[0],
+            params;
 
+        if (utils.isString(args[0])) {
+            objVar = slice.call(args);
+        } else {
+            params = slice.call(args, 1);
+        }
         return fn.countBy(arguments[0], objVar, params);
     }
 
@@ -1952,11 +2019,15 @@
 
     ***************************************************************************************************/
     function groupSum() {
-        var args = fn.flatten(slice.call(arguments,1)),
-            objVar= args[0], params;
-        
-        utils.isString(args[0]) ? objVar = slice.call(args) : params = slice.call(args,1);
+        var args = fn.flatten(slice.call(arguments, 1)),
+            objVar = args[0],
+            params;
 
+        if (utils.isString(args[0])) {
+            objVar = slice.call(args);
+        } else {
+            params = slice.call(args, 1);
+        }
         return fn.sumBy(arguments[0], objVar, params);
     }
 
@@ -1981,12 +2052,16 @@
 
     ***************************************************************************************************/
     function groupBy() {
-        var args = fn.flatten(slice.call(arguments,1)),
-            objVar= args[0], params;
-        
-        utils.isString(args[0]) ? objVar = slice.call(args) : params = slice.call(args,1);
+        var args = fn.flatten(slice.call(arguments, 1)),
+            objVar = args[0],
+            params;
 
-        return fn.groupBy(arguments[0], objVar, params);        
+        if (utils.isString(args[0])) {
+            objVar = slice.call(args);
+        } else {
+            params = slice.call(args, 1);
+        }
+        return fn.groupBy(arguments[0], objVar, params);
     }
 
 
@@ -2006,12 +2081,16 @@
 
     ***************************************************************************************************/
     function groupCount() {
-        var args = fn.flatten(slice.call(arguments,1)),
-            objVar= args[0], params;
-        
-        utils.isString(args[0]) ? objVar = slice.call(args) : params = slice.call(args,1);
+        var args = fn.flatten(slice.call(arguments, 1)),
+            objVar = args[0],
+            params;
 
-        return fn.groupCount(arguments[0], objVar, params);        
+        if (utils.isString(args[0])) {
+            objVar = slice.call(args);
+        } else {
+            params = slice.call(args, 1);
+        }
+        return fn.groupCount(arguments[0], objVar, params);
     }
 
     /***************************************************************************************************
@@ -2030,43 +2109,29 @@
 
         var backSteps = arguments[1],
             iterations = arguments[2] - 1, //Reduce the iterations because one has already been done
+            j,
             func,
             funcName,
             fromStep,
             toStep,
             self = this;
 
-            if(utils.isString(backSteps)){
-                backSteps = self.pipeline.steps.currentStep + 1 - self.pipeline.namedStep[backSteps];
-            }
-        
-            while(iterations--){
-                fromStep = self.pipeline.steps.currentStep + 1 - backSteps; //Need to add one to allow for loop step which is not counted
-                toStep = self.pipeline.steps.currentStep;
-                for(var j=fromStep; j<=toStep; j++){
-                    func = self.pipeline.steps[j].func;
-                    funcName = func.name === '_in'? 'in' : func.name;
-                    this[funcName].apply(self, slice.call(self.pipeline.steps[j].pipedInArgs, 1));
-                }
-                
-            }
-
-        return self.pipeline.steps[self.pipeline.steps.currentStep].pipedOutArgs[0];        
-
-    }
+        if (utils.isString(backSteps)) {
+            backSteps = self.pipeline.steps.currentStep + 1 - self.pipeline.namedStep[backSteps];
+        }
     
-    /***************************************************************************************************
-        Remove duplicate objects
-        @name       dedup()             callable/chainable
-        @returns    {Object Array}      emits an Object Array
-        @example
+        while (iterations--) {
+            fromStep = self.pipeline.steps.currentStep + 1 - backSteps; //Need to add one to allow for loop step which is not counted
+            toStep = self.pipeline.steps.currentStep;
+            for (j = fromStep; j <= toStep; j += 1) {
+                func = self.pipeline.steps[j].func;
+                funcName = func.name === '_in' ? 'in' : func.name;
+                this[funcName].apply(self, slice.call(self.pipeline.steps[j].pipedInArgs, 1));
+            }
+        }
 
-        g.v(10).out().in().dedup().value();
+        return self.pipeline.steps[self.pipeline.steps.currentStep].pipedOutArgs[0];
 
-    ***************************************************************************************************/    
-    function dedup() {
-        var  retVal = fn.uniqueObject(arguments[0]);
-        return retVal;  
     }
 
     /***************************************************************************************************
@@ -2077,136 +2142,134 @@
 
         g.v(10).out().clone();
 
-    ***************************************************************************************************/    
+    ***************************************************************************************************/
     function clone() {
         return JSON.parse(stringify());
     }
 
-
-
     //comparables
-    comparable.eq = function(atts){
-        return function(x){
+    comparable.eq = function (atts) {
+        return function (x) {
 
             var length = atts.length;
-            while(length){
+            while (length) {
                 length -= 2;
-                if(x.obj[atts[length]] === atts[length + 1]){
+                if (x.obj[atts[length]] === atts[length + 1]) {
                     return true;
                 }
             }
             return false;
-        }
-    },
+        };
+    };
 
-    comparable.neq = function (atts){
-        return function(x){
+    comparable.neq = function (atts) {
+        return function (x) {
             var length = atts.length;
-            while(length){
+            while (length) {
                 length -= 2;
-                if(x.obj[atts[length]] !== atts[length + 1]){
+                if (x.obj[atts[length]] !== atts[length + 1]) {
                     return true;
                 }
             }
             return false;
-        }
-    },
+        };
+    };
 
-    comparable.lt = function (atts){
+    comparable.lt = function (atts) {
 
-        return function(x){
+        return function (x) {
             var length = atts.length;
-            while(length){
+            while (length) {
                 length -= 2;
-                if(x.obj[atts[length]] < atts[length + 1]){
+                if (x.obj[atts[length]] < atts[length + 1]) {
                     return true;
                 }
             }
             return false;
-        }
-    },
+        };
+    };
 
-    comparable.lte = function (atts){
-        return function(x){
+    comparable.lte = function (atts) {
+        return function (x) {
             var length = atts.length;
-            while(length){
+            while (length) {
                 length -= 2;
-                if(x.obj[atts[length]] <= atts[length + 1]){
+                if (x.obj[atts[length]] <= atts[length + 1]) {
                     return true;
                 }
             }
             return false;
-        }
-    },
+        };
+    };
 
-    comparable.gt = function (atts){
-        return function(x){
+    comparable.gt = function (atts) {
+        return function (x) {
             var length = atts.length;
-            while(length){
+            while (length) {
                 length -= 2;
-                if(x.obj[atts[length]] > atts[length + 1]){
+                if (x.obj[atts[length]] > atts[length + 1]) {
                     return true;
                 }
             }
             return false;
-        }
-    },
+        };
+    };
 
-    comparable.gte = function (atts){
-        return function(x){
+    comparable.gte = function (atts) {
+        return function (x) {
             var length = atts.length;
-            while(length){
+            while (length) {
                 length -= 2;
-                if(x.obj[atts[length]] >= atts[length + 1]){
+                if (x.obj[atts[length]] >= atts[length + 1]) {
                     return true;
                 }
             }
             return false;
-        }
-    },
+        };
+    };
 
     //Extras
-    comparable.btwn = function (atts){
-        return function(x){
+    comparable.btwn = function (atts) {
+        return function (x) {
             var length = atts.length;
-            while(length){
+            while (length) {
                 length -= 3;
-                if(x.obj[atts[length]] > atts[length + 1] && x.obj[atts[length]] < atts[length + 2]){
+                if (x.obj[atts[length]] > atts[length + 1] && x.obj[atts[length]] < atts[length + 2]) {
                     return true;
                 }
             }
             return false;
-        }
-    },
+        };
+    };
     //args[0] -> 'keys','values'
     //TODO: Accept RegEx and Embedded Object Referencing
     //TODO: Test how dates would work
     //has All the listed properties
-    comparable.has = function (atts){
-        return function(x){
+    comparable.has = function (atts) {
+        return function (x) {
             var args = slice.call(atts, 1);
-            return fn.intersection(fn[atts[0]](x.obj),args).length === args.length;
-        }
-    },
+            return fn.intersection(fn[atts[0]](x.obj), args).length === args.length;
+        };
+    };
     //exclude All
-    comparable.hasNot = function (atts){//not all
-        return function(x){
+    comparable.hasNot = function (atts) {//not all
+        return function (x) {
             var args = slice.call(atts, 1);
-            return fn.intersection(fn[atts[0]](x.obj),args).length !== args.length;
-        }
-    },
+            return fn.intersection(fn[atts[0]](x.obj), args).length !== args.length;
+        };
+    };
     //include Any
-    comparable.hasAny = function (atts){//any
-        return function(x){
-            return !!fn.intersection(fn[atts[0]](x.obj),slice.call(atts, 1)).length;
-        }
-    },
+    comparable.hasAny = function (atts) {//any
+        return function (x) {
+            return !!fn.intersection(fn[atts[0]](x.obj), slice.call(atts, 1)).length;
+        };
+    };
     //exclude Any
-    comparable.hasNotAny = function (atts){//not any
-        return function(x){
-            return !fn.intersection(fn[atts[0]](x.obj),slice.call(atts, 1)).length;
-        }
-    },
+    comparable.hasNotAny = function (atts) {//not any
+        return function (x) {
+            return !fn.intersection(fn[atts[0]](x.obj), slice.call(atts, 1)).length;
+        };
+    };
 
 
     //Generic Step
@@ -2270,16 +2333,16 @@
     // expose Helios
     // some AMD build optimizers, like r.js, check for specific condition patterns like the following:
     if (typeof define == 'function' && typeof define.amd == 'object' && define.amd) {
-    	// Expose Helios to the global object even when an AMD loader is present in
-    	// case Helios was injected by a third-party script and not intended to be
-    	// loaded as a module..
-    	window.Helios = Helios;
+        // Expose Helios to the global object even when an AMD loader is present in
+        // case Helios was injected by a third-party script and not intended to be
+        // loaded as a module..
+        window.Helios = Helios;
 
-    	// define as an anonymous module so, through path mapping, it can be
-    	// referenced.
-    	define(function() {
-    	  return Helios;
-    	});
+        // define as an anonymous module so, through path mapping, it can be
+        // referenced.
+        define(function () {
+          return Helios;
+        });
     }
     // check for `exports` after `define` in case a build optimizer adds an `exports` object
     else if (freeExports) {
