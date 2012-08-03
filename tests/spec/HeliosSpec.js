@@ -61,12 +61,15 @@ describe("Heliosdb", function() {
     'inEid': '@inE',
     'outVid': '@outV',
     'inVid': '@inV',
-    'vIndicies': ['name'],
+    //'vIndicies': ['name'],
     'eIndicies': ['@label']
   };
   
    var g= Helios.newGraph(configTest);
-   g.graph.loadGraphSON(testData);
+    //g.graph.createVIndex('name');
+    g.graph.createEIndex('@label');
+    g.graph.loadGraphSON(testData);
+    g.graph.createVIndex('name');
 
   // Helios.ENV = {
   //   'id':'@rid',

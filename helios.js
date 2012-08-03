@@ -90,9 +90,7 @@
         'outEid': '_outE',
         'inEid': '_inE',
         'outVid': '_outV',
-        'inVid': '_inV',
-        'vIndicies': [],
-        'eIndicies': []
+        'inVid': '_inV'
     };
 
 
@@ -253,7 +251,9 @@
     ***************************************************************************************************/
     graphUtils.loadGraphSON = function(jsonData){
     		
-    	var i, l, rows = [], vertex = {}, edge = {};
+    	var i, l, rows = [], vertex = {}, edge = {}, 
+            hasVIndex = !utils.isEmpty(graph.v_idx),
+            hasEIndex = !utils.isEmpty(graph.e_idx);
 
         _env = Helios.ENV;
 
@@ -274,19 +274,13 @@
 			rows = jsonData.vertices;
 			l = rows.length; 
 
-            if(!!_env.vIndicies.length){
-                fn.each(_env.vIndicies, function(idxName){
-                    if(!graph.v_idx[idxName]){
-                        graph.v_idx[idxName]={};
-                    }
-                });
-            }
-
 			for(i=0; i<l;i+=1) {
 				graph.vertices[rows[i][_env.id]] = { 'obj': rows[i], 'type': 'vertex', 'outE': {}, 'inE': {} };
                 vertex = graph.vertices[rows[i][_env.id]];
                 //Add to index
-                utils.addVIndex(vertex);                
+                if(hasVIndex){
+                    utils.addVIndex(vertex);
+                }                
 			}
 		}
 		
@@ -307,7 +301,10 @@
 				graph.edges[edge.obj[_env.id]] = edge;
                 utils.associateVertices(edge);
                 //Add to index
-                utils.addEIndex(edge);
+                if(hasEIndex){
+                    utils.addEIndex(edge);
+                }                
+                
 			}
 		}
 		return Helios;
@@ -337,7 +334,9 @@
         parser,
         xmlDoc, 
         properties, 
-        tempObj = {};
+        tempObj = {}, 
+        hasVIndex = !utils.isEmpty(graph.v_idx),
+        hasEIndex = !utils.isEmpty(graph.e_idx);
 
         _env = Helios.ENV;
 
@@ -377,14 +376,6 @@
         if(!!xmlV.length){
             l = xmlV.length; 
 
-            if(!!_env.vIndicies.length){
-                fn.each(_env.vIndicies, function(idxName){
-                    if(!graph.v_idx[idxName]){
-                        graph.v_idx[idxName]={};
-                    }
-                });
-            }
-
             for(i=0; i<l;i+=1) {
                 properties = xmlV[i].getElementsByTagName("data");
                 tempObj = {};
@@ -397,21 +388,15 @@
                 graph.vertices[xmlV[i].getAttribute("id")] = { 'obj': tempObj, 'type': 'vertex', 'outE': {}, 'inE': {} };
                 vertex = graph.vertices[xmlV[i].getAttribute("id")];
                 //Add to index
-                utils.addVIndex(vertex);
+                if(hasVIndex){
+                    utils.addVIndex(vertex);
+                }
             }
         }
         
         //process edges
         if(!!xmlE.length){
             l = xmlE.length; 
-
-            if(!!_env.eIndicies.length){
-                fn.each(_env.eIndicies, function(idxName){
-                    if(!graph.e_idx[idxName]){
-                        graph.e_idx[idxName]={};
-                    }
-                });
-            }
 
             for(i=0; i<l;i+=1) {
                 properties = xmlE[i].getElementsByTagName("data");
@@ -430,11 +415,87 @@
                 edge = graph.edges[xmlE[i].getAttribute("id")];
                 utils.associateVertices(edge);
                 //Add to index
-                utils.addEIndex(edge);
+                if(hasEIndex){
+                    utils.addEIndex(edge);
+                }
             }
         }
         return Helios;
     };
+
+
+    graphUtils.createVIndex = function(idxName){
+        var vertices = [];
+           
+        if(!graph.v_idx[idxName]){
+            vertices = utils.toArray(graph.vertices);
+            graph.v_idx[idxName]={};
+            fn.each(vertices, function(vertex){
+                utils.addVIndex(vertex, idxName);
+            });
+        }
+    }
+
+    graphUtils.deleteVIndex = function(idxName){
+        delete graph.v_idx[idxName]
+    }
+
+    graphUtils.createEIndex = function(idxName){
+        var edges = [];
+           
+        if(!graph.e_idx[idxName]){
+            edges = utils.toArray(graph.edges);
+            graph.e_idx[idxName]={};
+            fn.each(edges, function(edge){
+                utils.addEIndex(edge, idxName);
+            });
+        }
+    }
+
+    graphUtils.deleteEIndex = function(idxName){
+        delete graph.e_idx[idxName]
+    }
+
+    utils.addVIndex = function(vertex, idxName){
+        
+        if(idxName){
+            if(!!vertex.obj[idxName]){
+                if(!graph.v_idx[idxName][vertex.obj[idxName]]){
+                    graph.v_idx[idxName][vertex.obj[idxName]] = {};
+                } 
+                graph.v_idx[idxName][vertex.obj[idxName]][vertex.obj[_env.id]] = vertex;
+            }
+        } else {
+            for(idxName in graph.v_idx) {
+                if(!!vertex.obj[idxName]){
+                    if(!graph.v_idx[idxName][vertex.obj[idxName]]){
+                        graph.v_idx[idxName][vertex.obj[idxName]] = {};
+                    } 
+                    graph.v_idx[idxName][vertex.obj[idxName]][vertex.obj[_env.id]] = vertex;
+                }
+            }
+        }
+    }
+
+    utils.addEIndex = function(edge, idxName){
+        if(idxName){
+            if(!!edge.obj[idxName]){
+                if(!graph.e_idx[idxName][edge.obj[idxName]]){
+                    graph.e_idx[idxName][edge.obj[idxName]] = {};
+                } 
+                graph.e_idx[idxName][edge.obj[idxName]][edge.obj[_env.id]] = edge;
+            }
+        } else {
+            for(idxName in graph.e_idx) {
+                if(!!edge.obj[idxName]){
+                    if(!graph.e_idx[idxName][edge.obj[idxName]]){
+                        graph.e_idx[idxName][edge.obj[idxName]] = {};
+                    } 
+                    graph.e_idx[idxName][edge.obj[idxName]][edge.obj[_env.id]] = edge;
+                }
+            }
+        }
+    }
 
     utils.associateVertices = function(edge){
         var vertex;
@@ -463,27 +524,7 @@
         push.call(vertex.inE[edge.obj[_env.label]], edge);
     }
 
-    utils.addVIndex = function(vertex){
-        fn.each(_env.vIndicies, function(idxName){
-            if(!!vertex.obj[idxName]){
-                if(!graph.v_idx[idxName][vertex.obj[idxName]]){
-                    graph.v_idx[idxName][vertex.obj[idxName]] = {};
-                } 
-                graph.v_idx[idxName][vertex.obj[idxName]][vertex.obj[_env.id]] = vertex;
-            }
-        });
-    }
 
-    utils.addEIndex = function(edge){
-        fn.each(_env.eIndicies, function(idxName){
-            if(!!edge.obj[idxName]){
-                if(!graph.e_idx[idxName][edge.obj[idxName]]){
-                    graph.e_idx[idxName][edge.obj[idxName]] = {};
-                } 
-                graph.e_idx[idxName][edge.obj[idxName]][edge.obj[_env.id]] = edge;
-            }
-        });
-    }
 
     /***************************************************************************************************
 
