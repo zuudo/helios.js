@@ -4,7 +4,7 @@
 
     Copyright (c) 2012 Entrendipity Pty. Ltd.
 */
-;(function (window) {/*,undefined*/
+;(function (window, undefined) {
     'use strict';
 
     /** Detect free variable 'exports' */
@@ -2284,7 +2284,7 @@
     Helios.prototype.V = V;
     Helios.prototype.E = E;
     Helios.prototype.out = out;
-    Helios.prototype.in = _in;
+    Helios.prototype['in'] = _in;
     Helios.prototype.outV = outV;
     Helios.prototype.outE = outE;
     Helios.prototype.inV = inV;
