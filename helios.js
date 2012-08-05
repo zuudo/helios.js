@@ -217,11 +217,6 @@
         return new Helios();
     };
 
-    /*Reference to Graph DB functions*/
-    Helios.Graph = function () {
-        return graphUtils;
-    }
-
     /***************************************************************************************************
 
         Graph Utils: Loads GraphSON data into Helios. Reloading the same data will replace/update existing records.
