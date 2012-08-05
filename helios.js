@@ -318,13 +318,6 @@
             rows.push(edgesJson);
         }
         l = rows.length;
-        if (!!env.eIndicies.length) {
-            fn.each(env.eIndicies, function (idxName) {
-                if (!graph.e_idx[idxName]) {
-                    graph.e_idx[idxName] = {};
-                }
-            });
-        }
         for (i = 0; i < l; i += 1) {
             edge = { 'obj': rows[i], 'type': 'edge', 'outV': {}, 'inV': {} };
             graph.edges[edge.obj[env.id]] = edge;
