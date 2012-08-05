@@ -217,6 +217,11 @@
         return new Helios();
     };
 
+    /*Reference to Graph DB functions*/
+    Helios.Graph = function () {
+        return graphUtils;
+    }
+
     /***************************************************************************************************
 
         Graph Utils: Loads GraphSON data into Helios. Reloading the same data will replace/update existing records.
@@ -254,10 +259,7 @@
     ***************************************************************************************************/
     graphUtils.loadGraphSON = function (jsonData) {
 
-        var i, l,
-            rows = [], vertex = {}, edge = {}, xmlhttp,
-            hasVIndex = !utils.isEmpty(graph.v_idx),
-            hasEIndex = !utils.isEmpty(graph.e_idx);
+        var xmlhttp;
 
         env = Helios.ENV;
 
@@ -275,44 +277,69 @@
 
 		//process vertices
 		if (jsonData.vertices) {
-			rows = jsonData.vertices;
-			l = rows.length;
-
-			for (i = 0; i < l; i += 1) {
-				graph.vertices[rows[i][env.id]] = { 'obj': rows[i], 'type': 'vertex', 'outE': {}, 'inE': {} };
-                vertex = graph.vertices[rows[i][env.id]];
-                //Add to index
-                if (hasVIndex) {
-                    utils.addVIndex(vertex);
-                }
-			}
+            graphUtils.loadVertices(jsonData.vertices);
 		}
 
 		//process edges
 		if (jsonData.edges) {
-			rows = jsonData.edges;
-			l = rows.length;
-            if (!!env.eIndicies.length) {
-                fn.each(env.eIndicies, function (idxName) {
-                    if (!graph.e_idx[idxName]) {
-                        graph.e_idx[idxName] = {};
-                    }
-                });
-            }
-			for (i = 0; i < l; i += 1) {
-
-				edge = { 'obj': rows[i], 'type': 'edge', 'outV': {}, 'inV': {} };
-				graph.edges[edge.obj[env.id]] = edge;
-                utils.associateVertices(edge);
-                //Add to index
-                if (hasEIndex) {
-                    utils.addEIndex(edge);
-                }
-            }
+            graphUtils.loadEdges(jsonData.edges);
 		}
 		return Helios;
     };
 
+    /*Use this to load JSON Verticies into Graph*/
+    graphUtils.loadVertices = function(verticesJson){
+        
+        var i, l,
+            rows = [], vertex = {},
+            hasVIndex = !utils.isEmpty(graph.v_idx);
+
+        if (utils.isArray(verticesJson)){
+            rows = verticesJson;
+        } else {
+            rows.push(verticesJson);
+        }
+        l = rows.length;
+        for (i = 0; i < l; i += 1) {
+            graph.vertices[rows[i][env.id]] = { 'obj': rows[i], 'type': 'vertex', 'outE': {}, 'inE': {} };
+            vertex = graph.vertices[rows[i][env.id]];
+            //Add to index
+            if (hasVIndex) {
+                utils.addVIndex(vertex);
+            }
+        }
+    }
+
+    /*Use this to load JSON Edges into Graph*/
+    graphUtils.loadEdges = function(edgesJson){
+        
+        var i, l,
+            rows = [], edge = {},
+            hasEIndex = !utils.isEmpty(graph.e_idx);
+
+        if (utils.isArray(edgesJson)){
+            rows = edgesJson;
+        } else {
+            rows.push(edgesJson);
+        }
+        l = rows.length;
+        if (!!env.eIndicies.length) {
+            fn.each(env.eIndicies, function (idxName) {
+                if (!graph.e_idx[idxName]) {
+                    graph.e_idx[idxName] = {};
+                }
+            });
+        }
+        for (i = 0; i < l; i += 1) {
+            edge = { 'obj': rows[i], 'type': 'edge', 'outV': {}, 'inV': {} };
+            graph.edges[edge.obj[env.id]] = edge;
+            utils.associateVertices(edge);
+            //Add to index
+            if (hasEIndex) {
+                utils.addEIndex(edge);
+            }
+        }
+    }
     /***************************************************************************************************
 
         Graph Utils: Loads GraphML data into Helios. Reloading the same data will replace/update existing records.
