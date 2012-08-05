@@ -31,7 +31,7 @@
         var that = this;
         return function () {
             var pipedArgs = [],
-                isStep = !fn.include(['as', 'back', 'loop', 'countBy', 'groupBy', 'groupSum', 'store'], that.name);
+                isStep = !fn.include(['as', 'back', 'loop', 'countBy', 'groupBy', 'groupSum', 'store', 'add'], that.name);
 
             //reset any travesal - used by tail() & head()
             this.traversedVertices = {};
@@ -286,54 +286,53 @@
     graphUtils.loadVertices = function(verticesJson){
         
         var i, l,
+            retVal = [],
             rows = [], vertex = {},
             hasVIndex = !utils.isEmpty(graph.v_idx);
 
         if (utils.isArray(verticesJson)){
             rows = verticesJson;
         } else {
-            rows.push(verticesJson);
+            push.call(rows, verticesJson);
         }
         l = rows.length;
         for (i = 0; i < l; i += 1) {
             graph.vertices[rows[i][env.id]] = { 'obj': rows[i], 'type': 'vertex', 'outE': {}, 'inE': {} };
             vertex = graph.vertices[rows[i][env.id]];
+            push.call(retVal, vertex);
             //Add to index
             if (hasVIndex) {
                 utils.addVIndex(vertex);
             }
         }
+        return retVal;
     }
 
     /*Use this to load JSON Edges into Graph*/
     graphUtils.loadEdges = function(edgesJson){
         
         var i, l,
+            retVal = [],        
             rows = [], edge = {},
             hasEIndex = !utils.isEmpty(graph.e_idx);
 
         if (utils.isArray(edgesJson)){
             rows = edgesJson;
         } else {
-            rows.push(edgesJson);
+            push.call(rows, edgesJson);
         }
         l = rows.length;
-        if (!!env.eIndicies.length) {
-            fn.each(env.eIndicies, function (idxName) {
-                if (!graph.e_idx[idxName]) {
-                    graph.e_idx[idxName] = {};
-                }
-            });
-        }
         for (i = 0; i < l; i += 1) {
             edge = { 'obj': rows[i], 'type': 'edge', 'outV': {}, 'inV': {} };
             graph.edges[edge.obj[env.id]] = edge;
             utils.associateVertices(edge);
+            push.call(retVal, edge);
             //Add to index
             if (hasEIndex) {
                 utils.addEIndex(edge);
             }
         }
+        return retVal;
     }
     /***************************************************************************************************
 
@@ -1200,7 +1199,8 @@
 
     ***************************************************************************************************/
     function e() {
-        var retVal = [], length, args = fn.flatten(slice.call(arguments, 1));
+        var retVal = [], length,
+            args = fn.flatten(slice.call(arguments, 1));
         length = args.length;
         while (length) {
             length -= 1;
@@ -2169,6 +2169,116 @@
         return JSON.parse(stringify());
     }
 
+    /*******CRUD********/
+
+    /***************************************************************************************************
+
+        @name       add()                   callable/chainable
+        @param      {Object}                JSON object - vertex property map.
+        @param      {Object}                JSON object - Edge object in specific in following format:
+                                                -> { outE: [], inE: [] }
+        @returns    {Object Array}          emits vertex objects from previous step.
+        @example
+            
+            //add method adds a vertex with an in coming edge from v(10). Path = v(10)->'knows'->'frank'
+            var result = g.v(10).add({ name: 'frank', age: '40' }, { inE: [{ '_label' : 'knows', 'weight' : 0.4 }]}).out().value();
+
+            result would contain 'frank' vertex.
+
+
+    ***************************************************************************************************/
+    function add() {
+
+        var retVal = slice.call(arguments[0]),
+            args = slice.call(arguments, 1),
+            vertices = [],
+            edges = {},
+            newEdge = {},
+            newEdges = [],
+            inEdges = [],
+            outEdges = [],
+            //newVertex = {},
+            hasOutEdges = false,
+            hasInEdges = false;
+
+        // if (hasArgs && !!!arguments[0].length) {
+        //     //Error!!
+        //     //Create the vertex but with no Edges
+        //     return [];
+        // }
+        if (utils.isArray(args[0])) {
+            vertices = args[0];
+        } else {
+            push.call(vertices, args[0]);
+        }
+
+        var i = 9000; //testing
+        fn.each(vertices, function(vertex){
+            //create vertex
+            vertex[env.id] = !!!vertex[env.id] ? i++ : vertex[env.id]; //new id
+            vertex[env.type] = 'vertex';
+
+        });
+        
+        vertices = graphUtils.loadVertices(vertices);
+
+        //{"weight":0.5,"_id":7,"_type":"edge","_outV":1,"_inV":2,"_label":"knows"},
+        edges = args[1];
+
+        if (!!edges.outE) {
+            hasOutEdges =  !!edges.outE.length;
+        }
+        if (!!edges.inE) {
+            hasInEdges =  !!edges.inE.length;
+        }        
+
+        fn.each(arguments[0], function (vertex, key, list) {
+            if (hasOutEdges) {
+                fn.each(vertices, function(newVertex){
+                    fn.each(edges.outE, function(edge){
+                        newEdge = edge;
+                        newEdge[env.id] = !!!newEdge[env.id] ? i++ : newEdge[env.id]; //new id
+                        newEdge[env.type] = 'edge';
+                        newEdge[env.outVid] = newVertex.obj[env.id];
+                        newEdge[env.inVid] = vertex.obj[env.id];
+                        push.call(newEdges, newEdge);
+                    });
+                });
+            }
+            if (hasInEdges) {
+                fn.each(vertices, function(newVertex){
+                    fn.each(edges.inE, function(edge){
+                        newEdge = {};
+                        newEdge = edge;
+                        newEdge[env.id] = !!!newEdge[env.id] ? i++ : newEdge[env.id]; //new id
+                        newEdge[env.type] = 'edge';
+                        newEdge[env.outVid] = vertex.obj[env.id];
+                        newEdge[env.inVid] = newVertex.obj[env.id];
+                        push.call(newEdges, newEdge);                        
+                    });
+                });
+            }
+
+            // if (!utils.isEmpty(vertex.outE)) {
+            //     //value = hasArgs ? fn.pick(vertex.outE, args) : vertex.outE;
+            //     fn.each(fn.flatten(fn.values(value)), function (edge) {
+            //         push.call(retVal, edge.inV);
+            //     });
+            // }
+        });
+        edges = graphUtils.loadEdges(newEdges);
+        return retVal;
+    }
+
+
+
+
+
+
+
+
+
+
     //comparables
     comparable.eq = function (atts) {
         return function (x) {
@@ -2351,6 +2461,10 @@
 
     //Misc
     Helios.prototype.clone = clone;
+
+    //CRUD
+    Helios.prototype.add = add;
+
 
     // expose Helios
     // some AMD build optimizers, like r.js, check for specific condition patterns like the following:
