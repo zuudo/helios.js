@@ -369,110 +369,110 @@ describe("Transform-Based Steps", function() {
   describe("Filter-Based Steps", function() {
     it("closure", function(){
       
-      results = g.v(10).filter(function(name) {  return this.name === name; },'marko').value();
+      results = g.v(10).where(function(name) {  return this.name === name; },'marko').value();
       expect(results.length).toEqual(1);
 
-      results = g.v(10).outE().inV().filter(function() { return true; }).value();
+      results = g.v(10).outE().inV().where(function() { return true; }).value();
       expect(results.length).toEqual(3);
       expect(results).toContainMap(configTest.id, 20);
       expect(results).toContainMap(configTest.id, 30);
       expect(results).toContainMap(configTest.id, 40);
 
-      results = g.v(10).outE().inV().filter(function() { return false; }).value();
+      results = g.v(10).outE().inV().where(function() { return false; }).value();
       expect(results.length).toEqual(0);
 
-      results = g.v(10).outE().inV().filter(function() { return this[configTest.id] === g.v(20).value()[0][configTest.id]; }).value();
+      results = g.v(10).outE().inV().where(function() { return this[configTest.id] === g.v(20).value()[0][configTest.id]; }).value();
       expect(results.length).toEqual(1);
       expect(results).toContainMap(configTest.id, 20);
 
-      results = g.v(10).outE().inV().filter(function() { return false; })
-                    .orFilter(function() { return this[configTest.id] === 20; }).value();
+      results = g.v(10).outE().inV().where(function() { return false; })
+                    .or(function() { return this[configTest.id] === 20; }).value();
       expect(results.length).toEqual(1);
       expect(results).toContainMap(configTest.id, 20);
 
       ///////////////////////////////////////////////////////////////////////////
    
-      results = g.v(10).outE().inV().filter(function() { return false; })
-                    .orFilter(function() { return this[configTest.id] === 20; })
-                    .andFilter(function() { return this.name === 'vadas'; } ).value();
+      results = g.v(10).outE().inV().where(function() { return false; })
+                    .or(function() { return this[configTest.id] === 20; })
+                    .and(function() { return this.name === 'vadas'; } ).value();
       expect(results.length).toEqual(1);
       expect(results).toContainMap(configTest.id, 20);
 
       ///////////////////////////////////////////////////////////////////////////
       
-      results = g.v(10).outE().inV().filter(function() { return false; })
-                    .orFilter(function() { return this[configTest.id] === 20; })
-                    .andFilter(function() { return this.name === 'josh';}).value();
+      results = g.v(10).outE().inV().where(function() { return false; })
+                    .or(function() { return this[configTest.id] === 20; })
+                    .and(function() { return this.name === 'josh';}).value();
 
       expect(results.length).toEqual(0);
 
     });
 
     it("eq", function() {
-      results = g.v(10).out().filter('eq',['name','vadas']).value();
+      results = g.v(10).out().where('eq',['name','vadas']).value();
       expect(results.length).toEqual(1);
       expect(results).toContainMap('name','vadas');
 
-      expect(g.V().outE().inV().filter('eq',['name','lop']).id().length).toEqual(3);
+      expect(g.V().outE().inV().where('eq',['name','lop']).id().length).toEqual(3);
       expect(g.E().outV().inE().label().length).toEqual(2);
 
     });
     it("neq", function() {
-      results = g.v(10).out().filter('neq',['name','vadas']).value();
+      results = g.v(10).out().where('neq',['name','vadas']).value();
       expect(results.length).toEqual(2);
         expect(results).toContainMap('name','josh');
         expect(results).toContainMap('name','lop');
     });
     it("lt", function() {
-      results = g.v(10).out().filter('lt',['age',30]).value();
+      results = g.v(10).out().where('lt',['age',30]).value();
       expect(results.length).toEqual(1);
       expect(results).toContainMap('name','vadas');
     });
     it("lte", function() {
-      results = g.v(10).out().filter('lte',['age',27]).value();
+      results = g.v(10).out().where('lte',['age',27]).value();
       expect(results.length).toEqual(1);
       expect(results).toContainMap('name','vadas');
     });
     it("gt", function() {
-      results = g.v(10).out().filter('gt',['age',30]).value();
+      results = g.v(10).out().where('gt',['age',30]).value();
       expect(results.length).toEqual(1);
       expect(results).toContainMap('name','josh');
     });
     it("gte", function() {
-      results = g.v(10).out().filter('gte',['age',32]).value();
+      results = g.v(10).out().where('gte',['age',32]).value();
       expect(results.length).toEqual(1);
       expect(results).toContainMap('name','josh');
     });
     it("btwn", function() {
-      results = g.v(10).out().filter('btwn',['age',30, 33]).value();
+      results = g.v(10).out().where('btwn',['age',30, 33]).value();
       expect(results.length).toEqual(1);
       expect(results).toContainMap('name','josh');
     });
     it("has", function() {
-      results = g.v(10).out().filter('has',['keys','name', 'age']).value();
+      results = g.v(10).out().where('has',['keys','name', 'age']).value();
       expect(results.length).toEqual(2);
       expect(results).toContainMap('name','josh');
       expect(results).toContainMap('name','vadas');
       
       results = [];
-      results = g.v(10).out().filter('has',['keys', 'age', 'lang']).value();
+      results = g.v(10).out().where('has',['keys', 'age', 'lang']).value();
       expect(results.length).toEqual(0);
 
     });
     it("hasNot", function() {
-      results = g.v(10).out().filter('hasNot',['keys','name', 'age']).value();
+      results = g.v(10).out().where('hasNot',['keys','name', 'age']).value();
       expect(results.length).toEqual(1);
       expect(results).toContainMap('name','lop');
 
       results = [];
 
-      results = g.v(10).out().filter('hasNot',['keys', 'age']).value();
+      results = g.v(10).out().where('hasNot',['keys', 'age']).value();
       expect(results.length).toEqual(1);
       expect(results).toContainMap('name','lop');
 
     });
     it("hasAny", function() {
-      results = g.v(10).out().filter('hasAny',['keys', 'age', 'lang']).value();
+      results = g.v(10).out().where('hasAny',['keys', 'age', 'lang']).value();
       expect(results.length).toEqual(3);
       expect(results).toContainMap('name','josh');
       expect(results).toContainMap('name','vadas');
@@ -480,60 +480,60 @@ describe("Transform-Based Steps", function() {
     });
 
     it("hasAny values", function() {
-      results = g.v(10).out().filter('hasAny',['values', 'josh', 'lop']).value();
+      results = g.v(10).out().where('hasAny',['values', 'josh', 'lop']).value();
       expect(results.length).toEqual(2);
       expect(results).toContainMap('name','josh');
       expect(results).toContainMap('name','lop');
     });
 
     it("hasNotAny", function() {
-      results = g.v(10).out().filter('hasNotAny',['keys', 'name', 'age']).value();
+      results = g.v(10).out().where('hasNotAny',['keys', 'name', 'age']).value();
       expect(results.length).toEqual(0);
     });
 
     it("and queries", function() {
-      results = g.v(10).out().filter('eq',['name','vadas'], 'gt', ['age', 25]).value();
+      results = g.v(10).out().where('eq',['name','vadas'], 'gt', ['age', 25]).value();
       expect(results.length).toEqual(1);
       expect(results).toContainMap('name','vadas');
 
       results = [];
-      results = g.v(10).out().filter('eq',['name','vadas']).andFilter('gt', ['age', 25]).value();
+      results = g.v(10).out().where('eq',['name','vadas']).and('gt', ['age', 25]).value();
       expect(results.length).toEqual(1);
       expect(results).toContainMap('name','vadas');      
 
       results = [];
-      results = g.v(10).out().filter('eq',['name','vadas']).andFilter('lt', ['age', 25]).value();
+      results = g.v(10).out().where('eq',['name','vadas']).and('lt', ['age', 25]).value();
       expect(results.length).toEqual(0);
 
     });
     it("or queries", function() {
-      results = g.v(10).out().filter('eq',['name','vadas', 'age', 32]).value();
+      results = g.v(10).out().where('eq',['name','vadas', 'age', 32]).value();
       expect(results.length).toEqual(2);
       expect(results).toContainMap('name','josh');
       expect(results).toContainMap('name','vadas');
 
       results = [];
-      results = g.v(10).out().filter('eq',['name','vadas']).orFilter('gt', ['age', 25]).value();
+      results = g.v(10).out().where('eq',['name','vadas']).or('gt', ['age', 25]).value();
       expect(results.length).toEqual(2);
       expect(results).toContainMap('name','josh');
       expect(results).toContainMap('name','vadas');
 
       results = [];
-      results = g.v(10).out().filter('eq',['name','vadas']).orFilter('gt', ['age', 25]).orFilter('eq', ['name', 'lop']).value();
+      results = g.v(10).out().where('eq',['name','vadas']).or('gt', ['age', 25]).or('eq', ['name', 'lop']).value();
       expect(results.length).toEqual(3);
       expect(results).toContainMap('name','josh');
       expect(results).toContainMap('name','vadas');
       expect(results).toContainMap('name','lop');
 
       results = [];
-      results = g.v(10).out().filter('eq',['name','vadas']).orFilter('gt', ['age', 25]).orFilter('eq', ['name', 'lop'])
-                              .andFilter('eq',['age',32]).value();
+      results = g.v(10).out().where('eq',['name','vadas']).or('gt', ['age', 25]).or('eq', ['name', 'lop'])
+                              .and('eq',['age',32]).value();
       expect(results.length).toEqual(1);
       expect(results).toContainMap('name','josh');
 
       results = [];
-      results = g.v(10).out().filter('eq',['name','vadas'],'eq',['age',32]).orFilter('lt', ['age', 30])
-                            .orFilter('eq', ['name', 'lop']).andFilter('eq',['age',32]).value();
+      results = g.v(10).out().where('eq',['name','vadas'],'eq',['age',32]).or('lt', ['age', 30])
+                            .or('eq', ['name', 'lop']).and('eq',['age',32]).value();
       expect(results.length).toEqual(0);
 
     });

@@ -949,7 +949,7 @@
         return retVal;
     };
 
-    fn.filter = function (array, func) {
+    fn.where = function (array, func) {
 
         var i, len = array.length, val, retVal = [];
 
@@ -1739,8 +1739,8 @@
 
     /***************************************************************************************************
         Allow Objects to pass that meet specified criteria
-        @name       filter()            callable/chainable
-        @alias      andFilter()         callable/chainable only after filter() has been called
+        @name       where()            callable/chainable
+        @alias      and()         callable/chainable only after where() has been called
         @param      {Function}          User defined. 'this' is a single outgoing object
         @param      {Mixed|Array}       Comma separtated or Array of Values to be passed to Function.
                                         Order of arguments should match paramaters
@@ -1763,41 +1763,41 @@
                                         passed the object will also be stored in that Array after applying the Function.
         @examples
             
-            var results = g.v(10).filter(function (name) {  return this.obj.name === name; },'marko').value();
+            var results = g.v(10).where(function (name) {  return this.obj.name === name; },'marko').value();
 
-            g.v(10).out().filter('eq',['name','vadas']).value();
-            g.v(10).out().filter('eq',['name','vadas']).value();
-            g.v(10).out().filter('neq',['name','vadas']).value();
-            g.v(10).out().filter('lt',['age',30]).value();
-            g.v(10).out().filter('lte',['age',27]).value();
-            g.v(10).out().filter('gt',['age',30]).value();
-            g.v(10).out().filter('gte',['age',32]).value();
-            g.v(10).out().filter('btwn',['age',30, 33]).value();
+            g.v(10).out().where('eq',['name','vadas']).value();
+            g.v(10).out().where('eq',['name','vadas']).value();
+            g.v(10).out().where('neq',['name','vadas']).value();
+            g.v(10).out().where('lt',['age',30]).value();
+            g.v(10).out().where('lte',['age',27]).value();
+            g.v(10).out().where('gt',['age',30]).value();
+            g.v(10).out().where('gte',['age',32]).value();
+            g.v(10).out().where('btwn',['age',30, 33]).value();
             
             *********************************************************************************************
             * has, hasNot, hasAny & hasNotAny take 'keys' or 'values' as the first value in array.      *
             *********************************************************************************************
-            g.v(10).out().filter('has',['keys','name', 'age']).value();
-            g.v(10).out().filter('hasAny',['keys', 'age', 'lang']).value();
-            g.v(10).out().filter('hasAny',['values', 'josh', 'lop']).value();
+            g.v(10).out().where('has',['keys','name', 'age']).value();
+            g.v(10).out().where('hasAny',['keys', 'age', 'lang']).value();
+            g.v(10).out().where('hasAny',['values', 'josh', 'lop']).value();
             
             *********************************************************************************************
             * passing in more Comparables are treated as logical 'AND' ie. name === vadas & age > 25    *
-            * but can also be used with the andFilter()                                                 *
+            * but can also be used with the and()                                                 *
             *********************************************************************************************            
-            g.v(10).out().filter('eq',['name','vadas'], 'gt', ['age', 25]).value();
-            g.v(10).out().filter('eq',['name','vadas']).andFilter('gt', ['age', 25]).value();
+            g.v(10).out().where('eq',['name','vadas'], 'gt', ['age', 25]).value();
+            g.v(10).out().where('eq',['name','vadas']).and('gt', ['age', 25]).value();
 
             *********************************************************************************************
             * passing in more Key/Value pairs are treated as logical 'OR' ie. name === 'vadas' ||       *
-            * age === 32 but you can also use the orFilter()                                            *
+            * age === 32 but you can also use the or()                                            *
             *********************************************************************************************            
-            g.v(10).out().filter('eq',['name','vadas', 'age', 32]).value();
-            g.v(10).out().filter('eq',['name','vadas']).orFilter('gt', ['age', 25]).value();
-            g.v(10).out().filter('eq',['name','vadas']).orFilter('gt', ['age', 25]).orFilter('eq', ['name', 'lop']).value();
+            g.v(10).out().where('eq',['name','vadas', 'age', 32]).value();
+            g.v(10).out().where('eq',['name','vadas']).or('gt', ['age', 25]).value();
+            g.v(10).out().where('eq',['name','vadas']).or('gt', ['age', 25]).or('eq', ['name', 'lop']).value();
 
     ***************************************************************************************************/
-    function filter() {
+    function where() {
 
         var retVal = [],
             records = arguments[0],
@@ -1820,16 +1820,16 @@
 
             while (argLen) {
                 argLen -= 2;
-                retVal = fn.filter(records, comparable[args[argLen]](args[argLen + 1]));
+                retVal = fn.where(records, comparable[args[argLen]](args[argLen + 1]));
             }
         }
-        this.pipeline.namedStep.filter = this.pipeline.steps.currentStep;
+        this.pipeline.namedStep.where = this.pipeline.steps.currentStep;
         return retVal;
     }
 
     /***************************************************************************************************
         Allow Objects to pass that meet specified criteria
-        @name       orFilter()          callable/chainable only after filter() has been called
+        @name       or()          callable/chainable only after where() has been called
         @param      {Function}          User defined. 'this' is a single outgoing object
         @param      {Mixed|Array}       Comma separtated or Array of Values to be passed to Function.
                                         Order of arguments should match paramaters
@@ -1851,15 +1851,15 @@
         @returns    {Object Array}      Returns the objects after apply the Function (if defined). If an Array is 
                                         passed the object will also be stored in that Array after applying the Function.
         @examples
-            g.v(10).out().filter('eq',['name','vadas']).orFilter('gt', ['age', 25]).value();
-            g.v(10).out().filter('eq',['name','vadas']).orFilter('gt', ['age', 25]).orFilter('eq', ['name', 'lop']).value();
+            g.v(10).out().where('eq',['name','vadas']).or('gt', ['age', 25]).value();
+            g.v(10).out().where('eq',['name','vadas']).or('gt', ['age', 25]).or('eq', ['name', 'lop']).value();
 
     ***************************************************************************************************/
-    function orFilter() {
+    function or() {
         var retVal = [],
             prevRecords = arguments[0],
             args = slice.call(arguments, 1),
-            records = this.pipeline.steps[this.pipeline.namedStep.filter].pipedInArgs[0],
+            records = this.pipeline.steps[this.pipeline.namedStep.where].pipedInArgs[0],
             func,
             funcArgs = [],
             argLen,
@@ -1883,7 +1883,7 @@
             argLen = args.length;
             while (argLen) {
                 argLen -= 2;
-                retVal = fn.filter(records, comparable[args[argLen]](args[argLen + 1]));
+                retVal = fn.where(records, comparable[args[argLen]](args[argLen + 1]));
             }
 
         }
@@ -2433,9 +2433,9 @@
     Helios.prototype.pin = pin;
 
     //Filter-Based Steps
-    Helios.prototype.filter = filter;
-    Helios.prototype.andFilter = filter;
-    Helios.prototype.orFilter = orFilter;
+    Helios.prototype.where = where;
+    Helios.prototype.and = where;
+    Helios.prototype.or = or;
     Helios.prototype.back = back;
     Helios.prototype.except = except;
     Helios.prototype.retain = retain;
