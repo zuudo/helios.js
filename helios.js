@@ -25,13 +25,13 @@
         comparable = {},
         utils = {},
         graph = {'vertices': {}, 'edges': {}, 'v_idx': {}, 'e_idx': {}},
-        unpipedFuncs = ['label', 'id', 'value', 'stringify', 'count', 'map', 'clone', 'path', 'fork', 'pin'];
+        unpipedFuncs = ['label', 'id', 'value', 'distinct', 'stringify', 'count', 'map', 'clone', 'path', 'fork', 'pin', 'delete'];
 
     Function.prototype.pipe = function () {
         var that = this;
         return function () {
             var pipedArgs = [],
-                isStep = !fn.include(['as', 'back', 'loop', 'countBy', 'groupBy', 'groupSum', 'store', 'add'], that.name);
+                isStep = !fn.include(['as', 'back', 'loop', 'countBy', 'groupBy', 'groupSum', 'store', 'add', 'update', 'assignOutE', 'assignInE'], that.name);
 
             //reset any travesal - used by tail() & head()
             this.traversedVertices = {};
@@ -647,14 +647,14 @@
         var r = [], o = {}, i, comp;
         for (i = 0; i < arr2.length; i += 1) {
             if (!!isObj) {
-                o[arr2[i].obj[env.id]] = true;
+                o[arr2[i][env.id]] = true;
             } else {
                 o[arr2[i]] = true;
             }
         }
 
         for (i = 0; i < arr1.length; i += 1) {
-            comp = !!isObj ? arr1[i].obj[env.id] : arr1[i];
+            comp = !!isObj ? arr1[i][env.id] : arr1[i];
             if (!!o[comp]) {
                 r.push(arr1[i]);
             }
@@ -667,14 +667,14 @@
         var r = [], o = {}, i, comp;
         for (i = 0; i < arr2.length; i += 1) {
             if (!!isObj) {
-                o[arr2[i].obj[env.id]] = true;
+                o[arr2[i][env.id]] = true;
             } else {
                 o[arr2[i]] = true;
             }
         }
 
         for (i = 0; i < arr1.length; i += 1) {
-            comp = !!isObj ? arr1[i].obj[env.id] : arr1[i];
+            comp = !!isObj ? arr1[i][env.id] : arr1[i];
             if (!o[comp]) {
                 r.push(arr1[i]);
             }
@@ -740,7 +740,7 @@
     };
 
     fn.sumBy = function (array, o, props) {
-        //TODO: Need to cater for CURRENCIES
+        //TODO: Need to cater for CURRENCY values
 
         var retVal = arguments[0],
             i,
@@ -759,35 +759,21 @@
             element = array[i].obj;
             for (j = 0; j < propsLen; j += 1) {
                 if (!o[props[j]]) {
-                    o[props[j]] = element[props[j]];
+                    o[props[j]] = utils.isNumber(element[props[j]]) ? element[props[j]] : 0;
                 } else {
-                    o[props[j]] += element[props[j]];
+                    o[props[j]] += utils.isNumber(element[props[j]]) ? element[props[j]] : 0;
                 }
             }
         }
         return retVal;
     };
 
-    /***************************************************************************************************
-        Remove duplicate objects
-        @name       dedup()             callable/chainable
-        @returns    {Object Array}      emits an Object Array
-        @example
-
-        g.v(10).out().in().dedup().value();
-
-    ***************************************************************************************************/
-    function dedup() {
-        var  retVal = fn.uniqueObject(arguments[0]);
-        return retVal;
-    }
-
     fn.groupBy = function (arr, o, props) {
 
         var retVal = arguments[0],
             i,
             j,
-            array = dedup(arr),
+            array = fn.uniqueObject(arr),
             l = array.length,
             element = {},
             propsLen,
@@ -993,7 +979,7 @@
 
     ***************************************************************************************************/
     function pipedValue() {
-        var retVal = [], args = arguments;
+        var retVal = [];
         if (!!this.pipedObjects[0] && !!this.pipedObjects[0].obj) {
             retVal = fn.getObjProp(this.pipedObjects);
         } else {
@@ -1004,6 +990,29 @@
         return retVal;
     }
 
+    /***************************************************************************************************
+
+        Called to emit the result from traversing the graph.
+
+        @name       distinct()          callable
+        @returns    {Object Array}      Returns a Distinct set of Referenced Object Array Vertices or Edges.
+        
+        @example
+            
+            var result = g.V().distinct();
+
+    ***************************************************************************************************/
+    function distinct() {
+        var retVal = [];
+        if (!!this.pipedObjects[0] && !!this.pipedObjects[0].obj) {
+            retVal = fn.getObjProp(fn.uniqueObject(this.pipedObjects));
+        } else {
+            retVal = this.pipedObjects;
+        }
+
+        utils.resetPipe.call(this);
+        return retVal;
+    }
     /***************************************************************************************************
 
         Creates a new instance of Helios to continue traversing the graph.
@@ -1153,7 +1162,7 @@
             }
         }
         push.call(retVal, JSON.stringify(o));
-        push.apply(retVal, this.pipedObjects);
+        push.apply(retVal, fn.getObjProp(this.pipedObjects));
         utils.resetPipe();
         return retVal;
     }
@@ -1517,6 +1526,19 @@
         return utils.toArray(graph.edges);
     }
 
+    /***************************************************************************************************
+        Remove duplicate objects
+        @name       dedup()             callable/chainable
+        @returns    {Object Array}      emits an Object Array
+        @example
+
+        g.v(10).out().in().dedup().value();
+
+    ***************************************************************************************************/
+    function dedup() {
+        var  retVal = fn.uniqueObject(arguments[0]);
+        return retVal;
+    }
 
     /***************************************************************************************************
 
@@ -1662,7 +1684,7 @@
         if (!!args.length) {
             //if pass in Array, populate it, else store as a named pipe 
             if (utils.isArray(args[0])) {
-                push.apply(args[0], arguments[0]);
+                push.apply(args[0], fn.getObjProp(arguments[0]));
             } else {
                 this.pipeline.namedStep[args[0]] = this.pipeline.steps.currentStep;
             }
@@ -1670,7 +1692,7 @@
                 func = args[1];
                 args.shift();
                 funcArgs = fn.flatten(slice.call(args, 1));
-                retVal = func.apply(arguments[0], funcArgs);
+                retVal = func.apply(fn.getObjProp(arguments[0]), funcArgs);
             }
         }
         return retVal;
@@ -1731,8 +1753,8 @@
     function except() {
 
         var arg = arguments[1], dSet, diff, retVal = [];
-        dSet = utils.isArray(arg) ? arg : this.pipeline.steps[this.pipeline.namedStep[arg]].pipedOutArgs[0];
-        retVal = fn.difference(arguments[0], dSet, true);
+        dSet = utils.isArray(arg) ? arg : fn.getObjProp(this.pipeline.steps[this.pipeline.namedStep[arg]].pipedOutArgs[0]);
+        retVal = fn.difference(fn.getObjProp(arguments[0]), dSet, true);
 
         return retVal;
     }
@@ -1920,8 +1942,8 @@
 
         var arg = arguments[1], dSet, diff, retVal = [];
 
-        dSet = utils.isArray(arg) ? arg : this.pipeline.steps[this.pipeline.namedStep[arg]].pipedOutArgs[0];
-        retVal = fn.intersection(arguments[0], dSet, true);
+        dSet = utils.isArray(arg) ? arg : fn.getObjProp(this.pipeline.steps[this.pipeline.namedStep[arg]].pipedOutArgs[0]);
+        retVal = fn.intersection(fn.getObjProp(arguments[0]), dSet, true);
         return retVal;
     }
 
@@ -2185,44 +2207,46 @@
 
             result would contain 'frank' vertex.
 
-
+            //add(new vertex props[,EdgeObj, OutArrVar]);
     ***************************************************************************************************/
     function add() {
 
         var retVal = slice.call(arguments[0]),
             args = slice.call(arguments, 1),
             vertices = [],
-            edges = {},
+            edges = {}, 
             newEdge = {},
             newEdges = [],
             inEdges = [],
             outEdges = [],
-            //newVertex = {},
             hasOutEdges = false,
-            hasInEdges = false;
+            hasInEdges = false,
+            key;
 
-        // if (hasArgs && !!!arguments[0].length) {
-        //     //Error!!
-        //     //Create the vertex but with no Edges
-        //     return [];
-        // }
         if (utils.isArray(args[0])) {
             vertices = args[0];
         } else {
             push.call(vertices, args[0]);
         }
-
-        var i = 9000; //testing
+        
         fn.each(vertices, function(vertex){
             //create vertex
-            vertex[env.id] = !!!vertex[env.id] ? i++ : vertex[env.id]; //new id
+            vertex[env.id] = uuid.v4(); //new id
             vertex[env.type] = 'vertex';
 
         });
         
         vertices = graphUtils.loadVertices(vertices);
+        
+        if (!!!args[1]) {
+            return retVal;
+        }
+        if (!!args[1] && utils.isArray(args[1])) {
+            //args[1].length = 0;
+            push.apply(args[1], fn.getObjProp(vertices));
+            return retVal;
+        }
 
-        //{"weight":0.5,"_id":7,"_type":"edge","_outV":1,"_inV":2,"_label":"knows"},
         edges = args[1];
 
         if (!!edges.outE) {
@@ -2231,14 +2255,18 @@
         if (!!edges.inE) {
             hasInEdges =  !!edges.inE.length;
         }        
-
-        fn.each(arguments[0], function (vertex, key, list) {
+        fn.each(arguments[0], function (vertex) {
             if (hasOutEdges) {
                 fn.each(vertices, function(newVertex){
                     fn.each(edges.outE, function(edge){
-                        newEdge = edge;
-                        newEdge[env.id] = !!!newEdge[env.id] ? i++ : newEdge[env.id]; //new id
+                        newEdge = {};
                         newEdge[env.type] = 'edge';
+                        for (key in edge) {
+                            if (edge.hasOwnProperty(key)) {
+                                newEdge[key] = edge[key];    
+                            }
+                        }
+                        newEdge[env.id] = uuid.v4(); //new id
                         newEdge[env.outVid] = newVertex.obj[env.id];
                         newEdge[env.inVid] = vertex.obj[env.id];
                         push.call(newEdges, newEdge);
@@ -2249,28 +2277,38 @@
                 fn.each(vertices, function(newVertex){
                     fn.each(edges.inE, function(edge){
                         newEdge = {};
-                        newEdge = edge;
-                        newEdge[env.id] = !!!newEdge[env.id] ? i++ : newEdge[env.id]; //new id
                         newEdge[env.type] = 'edge';
+                        for (key in edge) {
+                            if (edge.hasOwnProperty(key)) {
+                                newEdge[key] = edge[key];    
+                            }
+                        }
+                        newEdge[env.id] = uuid.v4(); //new id
                         newEdge[env.outVid] = vertex.obj[env.id];
                         newEdge[env.inVid] = newVertex.obj[env.id];
-                        push.call(newEdges, newEdge);                        
+                        push.call(newEdges, newEdge);                
                     });
                 });
             }
-
-            // if (!utils.isEmpty(vertex.outE)) {
-            //     //value = hasArgs ? fn.pick(vertex.outE, args) : vertex.outE;
-            //     fn.each(fn.flatten(fn.values(value)), function (edge) {
-            //         push.call(retVal, edge.inV);
-            //     });
-            // }
         });
         edges = graphUtils.loadEdges(newEdges);
+        if (!!args[2] && utils.isArray(args[2])) {
+            //args[2].length = 0;
+            push.apply(args[2], fn.getObjProp(vertices));            
+            push.apply(args[2], fn.getObjProp(edges));
+        }
         return retVal;
     }
 
-
+/*
+Other functions
+update(obj, Function());
+delete();
+NB. All objects that need to be created should not have an id. If there is an id it is assumed
+    that the object already exists
+assignOutE('label', fromExistingVertexObj, toNewOrExistingVertexObj, optionalEdgeProps)
+assignInE('label', fromExistingVertexObj, toNewOrExistingVertexObj, optionalEdgeProps)
+*/
 
 
 
@@ -2429,8 +2467,17 @@
     Helios.prototype.path = path;
     Helios.prototype.stringify = stringify;
     Helios.prototype.value = pipedValue;
+    Helios.prototype.distinct = distinct;
     Helios.prototype.fork = fork;
     Helios.prototype.pin = pin;
+
+    /*TODO*/
+    /*
+    dedup() -> add param to dedup by ie. dedup('name')
+    limit(2) -> nb. not ordered but can be proceeded by order() to affect output
+    order() -> add param to order by ie. order('name', true): 2nd param is to specity (default) false = ASC or true = DESC
+    range('0..2') -> nb. not ordered but can be proceeded by order() to affect output
+    */
 
     //Filter-Based Steps
     Helios.prototype.where = where;

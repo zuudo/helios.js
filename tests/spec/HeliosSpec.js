@@ -60,13 +60,10 @@ describe("Heliosdb", function() {
     'outEid': '@outE',
     'inEid': '@inE',
     'outVid': '@outV',
-    'inVid': '@inV',
-    //'vIndicies': ['name'],
-    'eIndicies': ['@label']
+    'inVid': '@inV'
   };
   
    var g= Helios.newGraph(configTest);
-    //g.graph.createVIndex('name');
     g.graph.createEIndex('@label');
     g.graph.loadGraphSON(testData);
     g.graph.createVIndex('name');
@@ -86,22 +83,7 @@ describe("Heliosdb", function() {
 
   beforeEach(function() {
     this.addMatchers({
-      //one param
-      
-      toContainKeyValue: function(){
-        var arr = this.actual
-          , key = arguments[0]
-          , val = arguments[1]
 
-        for (var i = 0, len = arr.length; i < len; i++){
-            if (arr[i].obj[key] === val){
-              return true;
-            };
-        }
-        return false;
-      },
-
-      //one param
       toContainMap: function(){
         var arr = this.actual
           , key = arguments[0]
@@ -361,8 +343,8 @@ describe("Transform-Based Steps", function() {
     expect(results.length).toEqual(3);
 
     expect(results[0]).toEqual('{"step 1":["v[10]"],"step 2":["v[20]","v[40]"]}');
-    expect(results[1].obj[configTest.id]).toEqual(20);
-    expect(results[2].obj[configTest.id]).toEqual(40);
+    expect(results[1][configTest.id]).toEqual(20);
+    expect(results[2][configTest.id]).toEqual(40);
   });
 
 });
@@ -648,7 +630,7 @@ describe("Transform-Based Steps", function() {
       results = g.v(10).out('knows').store(x, function(incAge){
                       var retVal = [];
                         _.each(this, function(element){
-                          element.obj.age += incAge;
+                          element.age += incAge;
                           retVal.push(element);
                         });
                       return retVal;
@@ -656,15 +638,15 @@ describe("Transform-Based Steps", function() {
       
       expect(results[0].age).toEqual(37);
       expect(results[1].age).toEqual(42);
-      expect(results[0].age).toEqual(x[0].obj.age);
-      expect(results[1].age).toEqual(x[1].obj.age);
+      expect(results[0].age).toEqual(x[0].age);
+      expect(results[1].age).toEqual(x[1].age);
 
       ////////////////////////////////////////////
 
       results = g.v(10).out('knows').store('x',function(decAge){
                       var retVal = [];
                         _.each(this, function(element){
-                          element.obj.age -= decAge;
+                          element.age -= decAge;
                           retVal.push(element);
                         });
                       return retVal;
