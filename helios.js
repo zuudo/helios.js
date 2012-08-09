@@ -1163,9 +1163,9 @@
                     push.call(stepPaths, 'v[' + stepRecs[j].obj[env.id] + ']');
                 } else {
                     edge = stepRecs[j].obj;
-                    edgeStr = 'v[' + edge[env.outVid] + '], e[' + edge[env.id] + 
-                                '][' + edge[env.outVid] + '-' + edge[env.label] + 
-                                '->' + edge[env.inVid] + '], v[' + edge[env.inVid] + ']';
+                    edgeStr = 'v[' + edge.outV[env.id] + '], e[' + edge[env.id] + 
+                                '][' + edge.outV[env.id] + '-' + edge[env.label] + 
+                                '->' + edge.inV[env.id] + '], v[' + edge.inV[env.id] + ']';
                     push.call(stepPaths, edgeStr);
                 }
             }
