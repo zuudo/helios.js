@@ -353,8 +353,12 @@ describe("Transform-Based Steps", function() {
     
     results = g.v(10).out().stringify('name');
     expect(results).toEqual('[{"name":"vadas"},{"name":"josh"},{"name":"lop"}]');
-  });  
+  });
 
+  it("clone", function() {
+    results = g.v(10).out().clone();
+    expect(results.length).toEqual(3);
+  });  
 });
   describe("Filter-Based Steps", function() {
     it("closure", function(){

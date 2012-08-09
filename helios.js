@@ -2185,23 +2185,29 @@
 
     ***************************************************************************************************/
     function clone() {
-        return JSON.parse(stringify());
+        return JSON.parse(stringify.call(this));
     }
 
     /*******CRUD********/
 
     /***************************************************************************************************
 
-        @name       add()                   callable/chainable
-        @param      {Object}                JSON object - vertex property map.
-        @param      {Object}                JSON object - Edge object in specific in following format:
+        @name       add()                   callable/chainable. Incoming objects must be vertices.
+        @param      {!Object|Object Array}  Required. JSON object or Object Array.
+        @param      {Object}                Optional. JSON object - Edge object in specific in following format:
                                                 -> { outE: [], inE: [] }
-        @returns    {Object Array}          emits vertex objects from previous step.
+        @param      {Object}                Optional. An object variable to store added objects.
+        @returns    {Object Array}          emits objects from previous step which may or may not included
+                                            the objects just added.
+
+        ****NB. Objects should be passed in without an id. If an id present it is assumed that the object already exists.
         @example
             
             //add method adds a vertex with an in coming edge from v(10). Path = v(10)->'knows'->'frank'
             var result = g.v(10).add({ name: 'frank', age: '40' }, { inE: [{ '_label' : 'knows', 'weight' : 0.4 }]}).out().value();
-
+            var t = {};
+            var result = g.v(1).out().in().add([{ name: 'frank', age: '40' },{ name: 'lisa', age: '36' }],
+                                    { inE: [{ '_label' : 'knows', 'weight' : 0.4 }]}, t).out().value()
             result would contain 'frank' vertex.
 
             //add(new vertex props[,EdgeObj, OutArrVar]);
@@ -2210,7 +2216,9 @@
 
         var retVal = slice.call(arguments[0]),
             args = slice.call(arguments, 1),
+            pipedInVertices = fn.uniqueObject(arguments[0]),
             vertices = [],
+            newVertices = [],
             edges = {}, 
             newEdge = {},
             newEdges = [],
@@ -2225,16 +2233,31 @@
         } else {
             push.call(vertices, args[0]);
         }
-        
+
         fn.each(vertices, function(vertex){
-            //create vertex
-            vertex[env.id] = uuid.v4(); //new id
-            vertex[env.type] = 'vertex';
+            //create vertex if it doesn't have an id
+            if (!!!vertex[env.id]) {
+                vertex[env.id] = uuid.v4(); //new id
+                vertex[env.type] = 'vertex';
+                push.call(newVertices, vertex);
+            }
 
         });
         
-        vertices = graphUtils.loadVertices(vertices);
-        
+        //If there are no new vertices to add then exit
+        if (!!!newVertices.length) {
+            return retVal;
+        }
+        vertices = graphUtils.loadVertices(newVertices);
+
+        //Only continue if incoming objects were vertices
+        //as only edges can be associated with vertices
+        //valid vertex objects would have been created
+        if (!!retVal[0] && retVal[0].type !== 'vertex') {
+            return retVal;
+        }
+
+        //no arguments so just continue piping
         if (!!!args[1]) {
             return retVal;
         }
@@ -2255,7 +2278,7 @@
         if (!!edges.inE) {
             hasInEdges =  !!edges.inE.length;
         }        
-        fn.each(arguments[0], function (vertex) {
+        fn.each(pipedInVertices, function (vertex) {
             if (hasOutEdges) {
                 fn.each(vertices, function(newVertex){
                     fn.each(edges.outE, function(edge){
@@ -2307,10 +2330,109 @@
         return retVal;
     }
 
+    /***************************************************************************************************
+
+        @name       delete()                callable
+        @param      {String*|String Array}  Optional. Comma separated or string array specifying properties to delete.
+                                            If a paramater is passed only the property is deleted, if no parameter
+                                            then the object is deleted.
+        @returns    {Object Array}          emits deleted or modified objects.
+        @example
+            
+            var result = g.v(10).delete(); -> deletes v(10)
+            var result = g.v(10).delete('name'); -> deleted 'name' property in v(10)
+
+    ***************************************************************************************************/
+    function _delete() {
+        var retVal = [],
+            args = fn.flatten(slice.call(arguments, 0)),
+            dedupedObjs = [],
+            hasArgs = !!args.length,
+            sysFields = utils.toArray(env);
+
+        if (!!this.pipedObjects[0] && !!this.pipedObjects[0].obj) {
+            dedupedObjs = fn.uniqueObject(this.pipedObjects);
+            fn.each(dedupedObjs, function(element){
+                push.call(retVal, element.obj);
+                if (hasArgs) {
+                    fn.each (args, function(prop) {
+                        if (!fn.include(sysFields, prop)) {
+                            delete graph.vertices[element.obj[env.id]].obj[prop];
+                        }
+                    })
+                } else {
+                    delete graph.vertices[element.obj[env.id]];
+                }
+            })
+        }
+
+        utils.resetPipe.call(this);
+        return retVal;
+    }
+
+
+    /***************************************************************************************************
+
+        @name       update()                callable
+        @param      {!Object|Object Array}  Required. JSON object or Object Array.
+        @param      {Function}              Optional. Function to perform custom actions when updating objects
+        @param      {Object}                Optional. An object variable to store updated objects.
+        @returns    {Object Array}          emits objects from previous step which may or may not included
+                                            the updated objects.
+        @example
+            
+            var result = g.v(10).delete();
+
+    ***************************************************************************************************/
+    function update() {
+
+            var retVal = [],
+            pipedInObjs = arguments[0],
+            args = slice.call(arguments, 1),
+            func,
+            funcArgs = [],
+            argLen = args.length;
+
+        if (utils.isFunction(args[0])) {
+            func = args[0];
+            funcArgs = fn.flatten(slice.call(args, 1), true);
+
+            fn.each(records, function (element) {
+                if (func.apply(element.obj, funcArgs)) {
+                    push.call(retVal, element);
+                }
+            });
+
+        } 
+
+
+        var retVal = [],
+            args = fn.flatten(slice.call(arguments, 0)),
+            hasArgs = !!args.length,
+            sysFields = utils.toArray(env);
+
+        if (!!this.pipedObjects[0] && !!this.pipedObjects[0].obj) {
+            fn.each(this.pipedObjects, function(element){
+                push.call(retVal, element.obj);
+                if (hasArgs) {
+                    fn.each (args, function(prop) {
+                        if (!fn.include(sysFields, prop)) {
+                            delete graph.vertices[element.obj[env.id]].obj[prop];
+                        }
+                    })
+                } else {
+                    delete graph.vertices[element.obj[env.id]];
+                }
+            })
+        }
+
+        utils.resetPipe.call(this);
+        return retVal;
+    }
+
 /*
 Other functions
 update(obj, Function());
-delete();
 NB. All objects that need to be created should not have an id. If there is an id it is assumed
     that the object already exists
 assignOutE('label', fromExistingVertexObj, toNewOrExistingVertexObj, optionalEdgeProps)
@@ -2518,6 +2640,8 @@ assignInE('label', fromExistingVertexObj, toNewOrExistingVertexObj, optionalEdge
 
     //CRUD
     Helios.prototype.add = add;
+    Helios.prototype.update = update;
+    Helios.prototype['delete'] = _delete;
 
 
     // expose Helios
