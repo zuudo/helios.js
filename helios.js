@@ -1084,7 +1084,7 @@
                 return fn.pick.apply(this, params);
             });
         }
-        utils.resetPipe();
+        utils.resetPipe.call(this);
         return retVal;
     }
 
@@ -1112,7 +1112,7 @@
         } else {
             retVal = this.pipedObjects;
         }
-        utils.resetPipe();
+        utils.resetPipe.call(this);
         return JSON.stringify(retVal);
     }
 
@@ -1152,15 +1152,17 @@
                 if (stepRecs[j].type === 'vertex') {
                     push.call(stepPaths, 'v[' + stepRecs[j].obj[env.id] + ']');
                 } else {
-                    edge = stepRecs[j].obj;
-                    edgeStr = 'v[' + edge[env.outVid] + '], e[' + edge[env.id] + '][' + edge[env.outVid] + '-' + edge[env.label] + '->' + edge[env.inVid] + '], v[' + edge[env.inVid] + ']';
+                    edge = stepRecs[j];
+                    edgeStr = 'v[' + edge.outV.obj[env.id] + '], e[' + edge.obj[env.id] + 
+                                '][' + edge.outV.obj[env.id] + '-' + edge.obj[env.label] + 
+                                '->' + edge.inV.obj[env.id] + '], v[' + edge.inV.obj[env.id] + ']';
                     push.call(stepPaths, edgeStr);
                 }
             }
         }
         push.call(retVal, JSON.stringify(o));
         push.apply(retVal, fn.getObjProp(this.pipedObjects));
-        utils.resetPipe();
+        utils.resetPipe.call(this);
         return retVal;
     }
 
@@ -1666,7 +1668,7 @@
             results = g.v(10).out('knows').store(x, function (incAge) {
                                                         var retVal = [];
                                                         fn.each(this, function (element) {
-                                                          element.obj.age += incAge;
+                                                          element.age += incAge;
                                                           retVal.push(element);
                                                         });
                                                     return retVal;}, 10).value();
@@ -1782,7 +1784,7 @@
                                         passed the object will also be stored in that Array after applying the Function.
         @examples
             
-            var results = g.v(10).where(function (name) {  return this.obj.name === name; },'marko').value();
+            var results = g.v(10).where(function (name) {  return this.name === name; },'marko').value();
 
             g.v(10).out().where('eq',['name','vadas']).value();
             g.v(10).out().where('eq',['name','vadas']).value();
@@ -1956,7 +1958,7 @@
             g.v(10).out().step(function () { 
                                 var arr = []; 
                                 fn.each(this, function (element) {
-                                  arr.push(element.obj.name)}); 
+                                  arr.push(element.name)}); 
                                 return arr; }).value();
 
     ***************************************************************************************************/
