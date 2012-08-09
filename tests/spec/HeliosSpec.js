@@ -347,6 +347,14 @@ describe("Transform-Based Steps", function() {
     expect(results[2][configTest.id]).toEqual(40);
   });
 
+  it("stringify", function() {
+    results = g.v(10).out().stringify();
+    expect(results).toEqual('[{"name":"vadas","age":27,"@rid":20,"@type":"vertex"},{"name":"josh","age":32,"@rid":40,"@type":"vertex"},{"name":"lop","lang":"java","@rid":30,"@type":"vertex"}]');
+    
+    results = g.v(10).out().stringify('name');
+    expect(results).toEqual('[{"name":"vadas"},{"name":"josh"},{"name":"lop"}]');
+  });  
+
 });
   describe("Filter-Based Steps", function() {
     it("closure", function(){
