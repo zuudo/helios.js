@@ -299,8 +299,6 @@
         for (i = 0; i < l; i += 1) {
             graph.vertices[rows[i][env.id]] = { 'obj': rows[i], 'type': 'vertex', 'outE': {}, 'inE': {} };
             vertex = graph.vertices[rows[i][env.id]];
-
-            //graph.vertices.frank = graph.vertices[rows[i][env.id]];
             push.call(retVal, vertex);
             //Add to index
             if (hasVIndex) {
@@ -444,6 +442,10 @@
                 graph.edges[xmlE[i].getAttribute("id")] = { 'obj': tempObj, 'type': 'edge', 'outV': {}, 'inV': {} };
                 edge = graph.edges[xmlE[i].getAttribute("id")];
                 utils.associateVertices(edge);
+                edge.obj.outV = edge.outV.obj;
+                edge.obj.inV = edge.inV.obj;
+                delete edge.obj[env.outVid];
+                delete edge.obj[env.inVid];
                 //Add to index
                 if (hasEIndex) {
                     utils.addEIndex(edge);
