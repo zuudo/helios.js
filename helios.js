@@ -992,27 +992,21 @@
 
     /***************************************************************************************************
 
-        Called to emit the result from traversing the graph.
+        Called to emit a dedup'ed result from traversing the graph.
 
         @name       distinct()          callable
         @returns    {Object Array}      Returns a Distinct set of Referenced Object Array Vertices or Edges.
+                                        Essentially a short cut for dedup().value();
         
         @example
             
-            var result = g.V().distinct();
+            var result = g.V().out().distinct();
 
     ***************************************************************************************************/
     function distinct() {
-        var retVal = [];
-        if (!!this.pipedObjects[0] && !!this.pipedObjects[0].obj) {
-            retVal = fn.getObjProp(fn.uniqueObject(this.pipedObjects));
-        } else {
-            retVal = this.pipedObjects;
-        }
-
-        utils.resetPipe.call(this);
-        return retVal;
+        return this.dedup().value();
     }
+
     /***************************************************************************************************
 
         Creates a new instance of Helios to continue traversing the graph.
@@ -1076,7 +1070,6 @@
         @returns    {Object Array}      emits an Object Array
         @example
             
-            g.v(10).map();
             g.v(10).map('name', 'age');
             g.v(10).map(['name', 'age']);
 
@@ -1111,10 +1104,10 @@
     ***************************************************************************************************/
     function stringify() {
         var retVal = [], args = arguments;
-        if (!!this.pipedObjects[0] && !!this.pipedObjects[0].obj) {
+        if (!!args.length && !!this.pipedObjects[0] && !!this.pipedObjects[0].obj) {
             return JSON.stringify(map.apply(this, args));
         }
-        retVal = this.pipedObjects;
+        retVal = fn.getObjProp(this.pipedObjects);
         utils.resetPipe();
         return JSON.stringify(retVal);
     }
@@ -2241,9 +2234,12 @@
         if (!!!args[1]) {
             return retVal;
         }
-        if (!!args[1] && utils.isArray(args[1])) {
-            //args[1].length = 0;
-            push.apply(args[1], fn.getObjProp(vertices));
+        if (!!args[1] && !(args[1].outE || args[1].inE)) {
+            if (!!args[1].vertices) {
+                push.apply(args[1].vertices, fn.getObjProp(vertices));
+            } else {
+                args[1].vertices = fn.getObjProp(vertices);    
+            }
             return retVal;
         }
 
@@ -2292,10 +2288,17 @@
             }
         });
         edges = graphUtils.loadEdges(newEdges);
-        if (!!args[2] && utils.isArray(args[2])) {
-            //args[2].length = 0;
-            push.apply(args[2], fn.getObjProp(vertices));            
-            push.apply(args[2], fn.getObjProp(edges));
+        if (!!args[2]) {
+            if (!!args[2].vertices) {
+                push.apply(args[2].vertices, fn.getObjProp(vertices));
+            } else {
+                args[2].vertices = fn.getObjProp(vertices);    
+            }
+            if (!!args[2].edges) {
+                push.apply(args[2].edges, fn.getObjProp(edges));
+            } else {
+                args[2].edges = fn.getObjProp(edges);    
+            }
         }
         return retVal;
     }
