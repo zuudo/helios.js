@@ -299,6 +299,8 @@
         for (i = 0; i < l; i += 1) {
             graph.vertices[rows[i][env.id]] = { 'obj': rows[i], 'type': 'vertex', 'outE': {}, 'inE': {} };
             vertex = graph.vertices[rows[i][env.id]];
+
+            //graph.vertices.frank = graph.vertices[rows[i][env.id]];
             push.call(retVal, vertex);
             //Add to index
             if (hasVIndex) {
@@ -326,6 +328,10 @@
             edge = { 'obj': rows[i], 'type': 'edge', 'outV': {}, 'inV': {} };
             graph.edges[edge.obj[env.id]] = edge;
             utils.associateVertices(edge);
+            edge.obj.outV = edge.outV.obj;
+            edge.obj.inV = edge.inV.obj;
+            delete edge.obj[env.outVid];
+            delete edge.obj[env.inVid];
             push.call(retVal, edge);
             //Add to index
             if (hasEIndex) {
@@ -596,7 +602,11 @@
         var k, r = [];
         for (k in o) {
             if (o.hasOwnProperty(k)) {
-                r.push(o[k]);
+                //This is done so that when a temp id is updated from the server
+                //it won't be included in arrays and counts
+                //if (o[k].obj[env.id] == k) { 
+                    r.push(o[k]);
+                //}
             }
         }
         return r;
@@ -1152,10 +1162,10 @@
                 if (stepRecs[j].type === 'vertex') {
                     push.call(stepPaths, 'v[' + stepRecs[j].obj[env.id] + ']');
                 } else {
-                    edge = stepRecs[j];
-                    edgeStr = 'v[' + edge.outV.obj[env.id] + '], e[' + edge.obj[env.id] + 
-                                '][' + edge.outV.obj[env.id] + '-' + edge.obj[env.label] + 
-                                '->' + edge.inV.obj[env.id] + '], v[' + edge.inV.obj[env.id] + ']';
+                    edge = stepRecs[j].obj;
+                    edgeStr = 'v[' + edge[env.outVid] + '], e[' + edge[env.id] + 
+                                '][' + edge[env.outVid] + '-' + edge[env.label] + 
+                                '->' + edge[env.inVid] + '], v[' + edge[env.inVid] + ']';
                     push.call(stepPaths, edgeStr);
                 }
             }
