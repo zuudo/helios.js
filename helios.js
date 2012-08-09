@@ -1104,10 +1104,14 @@
     ***************************************************************************************************/
     function stringify() {
         var retVal = [], args = arguments;
-        if (!!args.length && !!this.pipedObjects[0] && !!this.pipedObjects[0].obj) {
-            return JSON.stringify(map.apply(this, args));
+        if (!!this.pipedObjects[0] && !!this.pipedObjects[0].obj) {
+            if (!!args.length) {
+                return JSON.stringify(map.apply(this, args));
+            }
+            retVal = fn.getObjProp(this.pipedObjects);
+        } else {
+            retVal = this.pipedObjects;
         }
-        retVal = fn.getObjProp(this.pipedObjects);
         utils.resetPipe();
         return JSON.stringify(retVal);
     }
