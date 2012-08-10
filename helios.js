@@ -91,7 +91,9 @@
         'outEid': '_outE',
         'inEid': '_inE',
         'outVid': '_outV',
-        'inVid': '_inV'
+        'inVid': '_inV',
+        'VOut':'out',
+        'VIn':'in'
     };
 
 
@@ -326,8 +328,8 @@
             edge = { 'obj': rows[i], 'type': 'edge', 'outV': {}, 'inV': {} };
             graph.edges[edge.obj[env.id]] = edge;
             utils.associateVertices(edge);
-            edge.obj.outV = edge.outV.obj;
-            edge.obj.inV = edge.inV.obj;
+            edge.obj[env.VOut] = edge.outV.obj;
+            edge.obj[env.VIn] = edge.inV.obj;
             delete edge.obj[env.outVid];
             delete edge.obj[env.inVid];
             push.call(retVal, edge);
@@ -442,8 +444,8 @@
                 graph.edges[xmlE[i].getAttribute("id")] = { 'obj': tempObj, 'type': 'edge', 'outV': {}, 'inV': {} };
                 edge = graph.edges[xmlE[i].getAttribute("id")];
                 utils.associateVertices(edge);
-                edge.obj.outV = edge.outV.obj;
-                edge.obj.inV = edge.inV.obj;
+                edge.obj[env.VOut] = edge.outV.obj;
+                edge.obj[env.VIn] = edge.inV.obj;
                 delete edge.obj[env.outVid];
                 delete edge.obj[env.inVid];
                 //Add to index
@@ -1165,9 +1167,9 @@
                     push.call(stepPaths, 'v[' + stepRecs[j].obj[env.id] + ']');
                 } else {
                     edge = stepRecs[j].obj;
-                    edgeStr = 'v[' + edge.outV[env.id] + '], e[' + edge[env.id] + 
-                                '][' + edge.outV[env.id] + '-' + edge[env.label] + 
-                                '->' + edge.inV[env.id] + '], v[' + edge.inV[env.id] + ']';
+                    edgeStr = 'v[' + edge[env.VOut][env.id] + '], e[' + edge[env.id] + 
+                                '][' + edge[env.VOut][env.id] + '-' + edge[env.label] + 
+                                '->' + edge[env.VIn][env.id] + '], v[' + edge[env.VIn][env.id] + ']';
                     push.call(stepPaths, edgeStr);
                 }
             }
@@ -2206,6 +2208,8 @@
 
     /***************************************************************************************************
 
+        Add Objects to graph
+
         @name       add()                   callable/chainable. Incoming objects must be vertices.
         @param      {!Object|Object Array}  Required. JSON object or Object Array.
         @param      {Object}                Optional. JSON object - Edge object in specific in following format:
@@ -2330,27 +2334,29 @@
         });
         edges = graphUtils.loadEdges(newEdges);
         if (!!args[2]) {
-            if (!!args[2].vertices) {
-                push.apply(args[2].vertices, fn.getObjProp(vertices));
+            if (!!args[2].vertex) {
+                push.apply(args[2].vertex, fn.getObjProp(vertices));
             } else {
-                args[2].vertices = fn.getObjProp(vertices);    
+                args[2].vertex = fn.getObjProp(vertices);    
             }
-            if (!!args[2].edges) {
-                push.apply(args[2].edges, fn.getObjProp(edges));
+            if (!!args[2].edge) {
+                push.apply(args[2].edge, fn.getObjProp(edges));
             } else {
-                args[2].edges = fn.getObjProp(edges);    
+                args[2].edge = fn.getObjProp(edges);    
             }
         }
         return retVal;
     }
 
     /***************************************************************************************************
+        
+        Delete objects or Object properties from graph
 
-        @name       delete()                callable
+        @name       delete()                callable/not chainable
         @param      {String*|String Array}  Optional. Comma separated or string array specifying properties to delete.
                                             If a paramater is passed only the property is deleted, if no parameter
                                             then the object is deleted.
-        @returns    {Object Array}          emits deleted or modified objects.
+        @returns    {Object}                emits object containing deleted or modified vertices and edges.
         @example
             
             var result = g.v(10).delete(); -> deletes v(10)
@@ -2358,24 +2364,49 @@
 
     ***************************************************************************************************/
     function _delete() {
-        var retVal = [],
+        var retVal = { vertex:[], edge:[] },
             args = fn.flatten(slice.call(arguments, 0)),
             dedupedObjs = [],
             hasArgs = !!args.length,
-            sysFields = utils.toArray(env);
+            sysFields = utils.toArray(env),
+            vertex,
+            edgeArr = [],
+            isVertex = false;
 
         if (!!this.pipedObjects[0] && !!this.pipedObjects[0].obj) {
             dedupedObjs = fn.uniqueObject(this.pipedObjects);
+            isVertex = dedupedObjs[0].type === 'vertex';
             fn.each(dedupedObjs, function(element){
-                push.call(retVal, element.obj);
                 if (hasArgs) {
                     fn.each (args, function(prop) {
                         if (!fn.include(sysFields, prop)) {
-                            delete graph.vertices[element.obj[env.id]].obj[prop];
+                            if (isVertex) {
+                                delete graph.vertices[element.obj[env.id]].obj[prop];
+                            } else {
+                                delete graph.edges[element.obj[env.id]].obj[prop];
+                            }
                         }
                     })
                 } else {
-                    delete graph.vertices[element.obj[env.id]];
+                    if (isVertex) {
+                        vertex = graph.vertices[element.obj[env.id]];
+                        //delete associated edges
+                        if (!!vertex.outE) {
+                            push.apply(edgeArr, fn.flatten(utils.toArray(vertex.outE)));
+                        }
+                        if (!!vertex.inE) {
+                            push.apply(edgeArr, fn.flatten(utils.toArray(vertex.inE)));
+                        }                        
+                        fn.each (edgeArr, function(edge){
+                            push.call(retVal.edge, edge.obj);
+                            delete graph.edges[edge.obj[env.id]];
+                        });
+                        push.call(retVal.vertex, element.obj);
+                        delete graph.vertices[element.obj[env.id]];
+                    } else {
+                        push.call(retVal.edge, element.obj);
+                        delete graph.edges[element.obj[env.id]];
+                    }
                 }
             })
         }
@@ -2386,61 +2417,64 @@
 
 
     /***************************************************************************************************
+        
+        Update or Add object properties to graph
 
         @name       update()                callable
         @param      {!Object|Object Array}  Required. JSON object or Object Array.
-        @param      {Function}              Optional. Function to perform custom actions when updating objects
         @param      {Object}                Optional. An object variable to store updated objects.
         @returns    {Object Array}          emits objects from previous step which may or may not included
                                             the updated objects.
+
+        If id passed in update just that, if no id apply to all objects.
+
         @example
             
-            var result = g.v(10).delete();
+            var result = g.v(10).update({ name: 'John', surname: 'Doe'});
 
     ***************************************************************************************************/
     function update() {
 
-            var retVal = [],
-            pipedInObjs = arguments[0],
-            args = slice.call(arguments, 1),
-            func,
-            funcArgs = [],
-            argLen = args.length;
+            var retVal = slice.call(arguments[0]),
+            args = fn.flatten(slice.call(arguments, 1, 2)),
+            varObj = slice.call(arguments, 2, 3)[0],
+            pipedInObjs = fn.uniqueObject(arguments[0]),
+            sysFields = [env.id, env.VIn, env.Vout],
+            modifiedObjs = [],
+            key;
 
-        if (utils.isFunction(args[0])) {
-            func = args[0];
-            funcArgs = fn.flatten(slice.call(args, 1), true);
-
-            fn.each(records, function (element) {
-                if (func.apply(element.obj, funcArgs)) {
-                    push.call(retVal, element);
+        fn.each(pipedInObjs, function(element){
+            fn.each (args, function(newProps) {
+                //Check to see if the update object has an id. If so,
+                //only update where equal to id
+                if (!!newProps[env.id]) {
+                    if (element.obj[env.id] == newProps[env.id]) {
+                        for (key in newProps) {
+                            if (newProps.hasOwnProperty(key) && !fn.include(sysFields, key)) {
+                                element.obj[key] = newProps[key];
+                            }
+                        }
+                    }
+                } else {
+                    for (key in newProps) {
+                        if (newProps.hasOwnProperty(key) && !fn.include(sysFields, key)) {
+                            element.obj[key] = newProps[key];
+                        }
+                    }
                 }
             });
-
-        } 
-
-
-        var retVal = [],
-            args = fn.flatten(slice.call(arguments, 0)),
-            hasArgs = !!args.length,
-            sysFields = utils.toArray(env);
-
-        if (!!this.pipedObjects[0] && !!this.pipedObjects[0].obj) {
-            fn.each(this.pipedObjects, function(element){
-                push.call(retVal, element.obj);
-                if (hasArgs) {
-                    fn.each (args, function(prop) {
-                        if (!fn.include(sysFields, prop)) {
-                            delete graph.vertices[element.obj[env.id]].obj[prop];
-                        }
-                    })
-                } else {
-                    delete graph.vertices[element.obj[env.id]];
-                }
-            })
+            push.call(modifiedObjs, element.obj);  
+        });
+        //Use pipedInObjs to determine the type of objects updated
+        if (!!varObj && !!pipedInObjs.length) {
+            if (!!varObj.vertex && pipedInObjs[0].type === 'vertex') {
+                push.apply(varObj.vertex, modifiedObjs);
+            } else if (!!varObj.edge && pipedInObjs[0].type === 'edge') {
+                push.apply(varObj.edge, modifiedObjs);
+            } else {
+                varObj[pipedInObjs[0].type] = modifiedObjs;    
+            }
         }
-
-        utils.resetPipe.call(this);
         return retVal;
     }
 
