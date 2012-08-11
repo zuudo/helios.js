@@ -143,154 +143,160 @@ describe("Transform-Based Steps", function() {
         expect(results.length).toEqual(1);
         expect(results).toContainMap('name','marko');
 
-        // expect(g.V('name','marko').out().value()).toEqual(g.v(10).out().value());
+        expect(g.V('name','marko').out().value()).toEqual(g.v(10).out().value());
 
-        // expect(g.E().value().length).toEqual(6);
+        expect(g.E().value().length).toEqual(6);
 
-        // results = g.E('@label','created').value();
-        // expect(results.length).toEqual(4);
-        // expect(results).toContainMap(configTest.id, 90);
-        // expect(results).toContainMap(configTest.id, 100);
-        // expect(results).toContainMap(configTest.id, 110);
-        // expect(results).toContainMap(configTest.id, 120);
+        results = g.E('@label','created').value();
+        expect(results.length).toEqual(4);
+        expect(results).toContainMap(configTest.id, 90);
+        expect(results).toContainMap(configTest.id, 100);
+        expect(results).toContainMap(configTest.id, 110);
+        expect(results).toContainMap(configTest.id, 120);
 
-        // results = g.v(10).out().value();
-        // expect(results.length).toEqual(3);
+        results = g.v(10).out().value();
+        expect(results.length).toEqual(3);
+        
+        expect(results).toContainMap('name','josh');
+        expect(results).toContainMap('name','vadas');
+        expect(results).toContainMap('name','lop');
 
-        // expect(results).toContainMap('name','josh');
-        // expect(results).toContainMap('name','vadas');
-        // expect(results).toContainMap('name','lop');
+        results = g.v(10).value();
+        expect(g.v([10]).value()).toEqual(g.v(results).value());
 
-        // results = g.v(10).out('knows').value();
-        // expect(results.length).toEqual(2);
+        results = g.e(70).value();
+        expect(g.e([70]).value()).toEqual(g.e(results).value());
 
-        // expect(results).toContainMap('name','josh');
-        // expect(results).toContainMap('name','vadas');
+        results = g.v(10).out('knows').value();
+        expect(results.length).toEqual(2);
 
-        // results = g.v(10).out('nonExistentLabel').value();
-        // expect(results.length).toEqual(0);
+        expect(results).toContainMap('name','josh');
+        expect(results).toContainMap('name','vadas');
 
-        // ////////////
+        results = g.v(10).out('nonExistentLabel').value();
+        expect(results.length).toEqual(0);
 
-        // results = g.v(10).outE('knows').value();
-        // expect(results.length).toEqual(2);
+        ////////////
 
-        // expect(results).toContainMap(configTest.id, 70);
-        // expect(results).toContainMap(configTest.id, 80);
+        results = g.v(10).outE('knows').value();
+        expect(results.length).toEqual(2);
 
-        // results = g.v(10).outE().value();
-        // expect(results.length).toEqual(3);
+        expect(results).toContainMap(configTest.id, 70);
+        expect(results).toContainMap(configTest.id, 80);
 
-        // expect(results).toContainMap(configTest.id, 70);
-        // expect(results).toContainMap(configTest.id, 80);
-        // expect(results).toContainMap(configTest.id, 90);
+        results = g.v(10).outE().value();
+        expect(results.length).toEqual(3);
+
+        expect(results).toContainMap(configTest.id, 70);
+        expect(results).toContainMap(configTest.id, 80);
+        expect(results).toContainMap(configTest.id, 90);
 
 
-        // /////////////
+        /////////////
 
-        // results = g.v(40).in().value();
-        // expect(results.length).toEqual(1);
+        results = g.v(40).in().value();
+        expect(results.length).toEqual(1);
 
-        // expect(results).toContainMap(configTest.id, 10);
+        expect(results).toContainMap(configTest.id, 10);
 
-        // results = g.v(40).in('knows').value();
-        // expect(results.length).toEqual(1);
+        results = g.v(40).in('knows').value();
+        expect(results.length).toEqual(1);
 
-        // expect(results).toContainMap(configTest.id, 10);
+        expect(results).toContainMap(configTest.id, 10);
 
-        // /////////////
+        /////////////
 
-        // results = g.v(40).inE().value();
-        // expect(results.length).toEqual(1);
+        results = g.v(40).inE().value();
+        expect(results.length).toEqual(1);
 
-        // expect(results).toContainMap(configTest.id, 80);
+        expect(results).toContainMap(configTest.id, 80);
 
-        // results = g.v(40).inE('knows').value();
-        // expect(results.length).toEqual(1);
+        results = g.v(40).inE('knows').value();
+        expect(results.length).toEqual(1);
 
-        // expect(results).toContainMap(configTest.id, 80);
+        expect(results).toContainMap(configTest.id, 80);
 
-        // /////////////
+        /////////////
 
-        // results = g.v(40).both().value();
-        // expect(results.length).toEqual(3);
+        results = g.v(40).both().value();
+        expect(results.length).toEqual(3);
 
-        // expect(results).toContainMap(configTest.id, 10);
-        // expect(results).toContainMap(configTest.id, 30);
-        // expect(results).toContainMap(configTest.id, 50);
+        expect(results).toContainMap(configTest.id, 10);
+        expect(results).toContainMap(configTest.id, 30);
+        expect(results).toContainMap(configTest.id, 50);
 
-        // results = g.v(40).both('created').value();
-        // expect(results.length).toEqual(2);
+        results = g.v(40).both('created').value();
+        expect(results.length).toEqual(2);
 
-        // expect(results).toContainMap(configTest.id, 30);
-        // expect(results).toContainMap(configTest.id, 50);
+        expect(results).toContainMap(configTest.id, 30);
+        expect(results).toContainMap(configTest.id, 50);
 
-        // /////////////
+        /////////////
 
-        // results = g.v(40).bothE().value();
-        // expect(results.length).toEqual(3);
+        results = g.v(40).bothE().value();
+        expect(results.length).toEqual(3);
 
-        // expect(results).toContainMap(configTest.id, 100);
-        // expect(results).toContainMap(configTest.id, 110);
-        // expect(results).toContainMap(configTest.id, 80);
+        expect(results).toContainMap(configTest.id, 100);
+        expect(results).toContainMap(configTest.id, 110);
+        expect(results).toContainMap(configTest.id, 80);
 
-        // results = g.v(40).bothE('created').value();
-        // expect(results.length).toEqual(2);
+        results = g.v(40).bothE('created').value();
+        expect(results.length).toEqual(2);
 
-        // expect(results).toContainMap(configTest.id, 100);
-        // expect(results).toContainMap(configTest.id, 110);
+        expect(results).toContainMap(configTest.id, 100);
+        expect(results).toContainMap(configTest.id, 110);
 
-        // /////////////
+        /////////////
 
-        // results = g.e(100).outV().value();
-        // expect(results.length).toEqual(1);
+        results = g.e(100).outV().value();
+        expect(results.length).toEqual(1);
 
-        // expect(results).toContainMap(configTest.id, 40);
+        expect(results).toContainMap(configTest.id, 40);
 
-        // results = g.e(100).inV().value();
-        // expect(results.length).toEqual(1);
+        results = g.e(100).inV().value();
+        expect(results.length).toEqual(1);
 
-        // expect(results).toContainMap(configTest.id, 50);
+        expect(results).toContainMap(configTest.id, 50);
 
-        // results = g.e(100).bothV().value();
-        // expect(results.length).toEqual(2);
+        results = g.e(100).bothV().value();
+        expect(results.length).toEqual(2);
 
-        // expect(results).toContainMap(configTest.id, 50);
-        // expect(results).toContainMap(configTest.id, 40);
+        expect(results).toContainMap(configTest.id, 50);
+        expect(results).toContainMap(configTest.id, 40);
  
-        // /////////////
+        /////////////
 
-        // results = g.v(10).outE('knows', 'created').value();
-        // expect(results.length).toEqual(3);
+        results = g.v(10).outE('knows', 'created').value();
+        expect(results.length).toEqual(3);
 
-        // expect(results).toContainMap(configTest.id, 70);
-        // expect(results).toContainMap(configTest.id, 80);
-        // expect(results).toContainMap(configTest.id, 90);
+        expect(results).toContainMap(configTest.id, 70);
+        expect(results).toContainMap(configTest.id, 80);
+        expect(results).toContainMap(configTest.id, 90);
 
-        // results = g.v(20).inE('knows', 'created').value();
-        // expect(results.length).toEqual(1);
+        results = g.v(20).inE('knows', 'created').value();
+        expect(results.length).toEqual(1);
 
-        // expect(results).toContainMap(configTest.id, 70);
+        expect(results).toContainMap(configTest.id, 70);
 
-        // results = g.v(20).inE('knows', 'created').value();
-        // expect(results.length).toEqual(1);
-        // expect(results).toContainMap(configTest.id, 70);
+        results = g.v(20).inE('knows', 'created').value();
+        expect(results.length).toEqual(1);
+        expect(results).toContainMap(configTest.id, 70);
         
-        // expect(g.v(10).outE('knows').value()).toContainMap(configTest.id, results[0][configTest.id]);
+        expect(g.v(10).outE('knows').value()).toContainMap(configTest.id, results[0][configTest.id]);
         
-        // results = g.v(40).bothE('knows', 'created').value();
-        // expect(results.length).toEqual(3);
+        results = g.v(40).bothE('knows', 'created').value();
+        expect(results.length).toEqual(3);
 
-        // expect(results).toContainMap(configTest.id, 80);
-        // expect(results).toContainMap(configTest.id, 110);
-        // expect(results).toContainMap(configTest.id, 100);
+        expect(results).toContainMap(configTest.id, 80);
+        expect(results).toContainMap(configTest.id, 110);
+        expect(results).toContainMap(configTest.id, 100);
 
-        // ////////
+        ////////
 
-        // expect(g.v(10).out('knows', 'created').value().length).toEqual(3);
-        // expect(g.v(20).in('knows', 'created').value().length).toEqual(1);
-        // expect(g.v(20).in('knows', 'created').value()[0][configTest.id]).toEqual(10);
-        // expect(g.v(40).both('knows', 'created').value().length).toEqual(3);
+        expect(g.v(10).out('knows', 'created').value().length).toEqual(3);
+        expect(g.v(20).in('knows', 'created').value().length).toEqual(1);
+        expect(g.v(20).in('knows', 'created').value()[0][configTest.id]).toEqual(10);
+        expect(g.v(40).both('knows', 'created').value().length).toEqual(3);
 
   });
 
