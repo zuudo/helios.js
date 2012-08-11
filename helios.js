@@ -285,19 +285,15 @@
     };
 
     /*Use this to load JSON Verticies into Graph*/
-    graphUtils.loadVertices = function(verticesJson){
+    graphUtils.loadVertices = function(){
         
-        var i, l,
+        var i,
             retVal = [],
-            rows = [], vertex = {},
+            rows =  fn.flatten(slice.call(arguments)),
+            l = rows.length, 
+            vertex = {},
             hasVIndex = !utils.isEmpty(graph.v_idx);
 
-        if (utils.isArray(verticesJson)){
-            rows = verticesJson;
-        } else {
-            push.call(rows, verticesJson);
-        }
-        l = rows.length;
         for (i = 0; i < l; i += 1) {
             graph.vertices[rows[i][env.id]] = { 'obj': rows[i], 'type': 'vertex', 'outE': {}, 'inE': {} };
             vertex = graph.vertices[rows[i][env.id]];
@@ -311,19 +307,15 @@
     }
 
     /*Use this to load JSON Edges into Graph*/
-    graphUtils.loadEdges = function(edgesJson){
+    graphUtils.loadEdges = function(){
         
-        var i, l,
+        var i,
             retVal = [],        
-            rows = [], edge = {},
+            rows = fn.flatten(slice.call(arguments)),
+            l = rows.length,
+            edge = {},
             hasEIndex = !utils.isEmpty(graph.e_idx);
 
-        if (utils.isArray(edgesJson)){
-            rows = edgesJson;
-        } else {
-            push.call(rows, edgesJson);
-        }
-        l = rows.length;
         for (i = 0; i < l; i += 1) {
             edge = { 'obj': rows[i], 'type': 'edge', 'outV': {}, 'inV': {} };
             graph.edges[edge.obj[env.id]] = edge;
@@ -490,6 +482,23 @@
         delete graph.e_idx[idxName];
     };
 
+    graphUtils.addV = function () {
+        var args = fn.flatten(slice.call(arguments, 0)),
+            newVertices = [];
+
+        fn.each(args, function(vertex){
+            //create vertex if it doesn't have an id
+            if (!!!vertex[env.id]) {
+                vertex[env.id] = uuid.v4(); //new id
+                //vertex[env.type] = 'vertex';
+                push.call(newVertices, vertex);
+            }
+
+        });
+        
+        return fn.getObjProp(graphUtils.loadVertices(newVertices));
+    }
+
     utils.addVIndex = function (vertex, idxName) {
         var idx;
         if (idxName) {
@@ -560,8 +569,6 @@
         edge.inV = vertex;
         push.call(vertex.inE[edge.obj[env.label]], edge);
     };
-
-
 
     /***************************************************************************************************
 
@@ -2223,13 +2230,54 @@
 
     /***************************************************************************************************
 
-        Add Objects to graph
+        Add vertex to graph
 
-        @name       addV()                   callable/chainable.
+        @name       addV()                  callable/chainable.
         @param      {!Object|Object Array}  Required. JSON object or Object Array.
         @returns    {Object Array}          emits objects from previous step.
 
         ****NB. Objects should be passed in without an id. If an id present it is assumed that the object already exists.
+        @example
+            
+            var t = { name: 'frank', age: '40' };
+            var result = g.v(1).out().in().addV(t).out().value();
+
+    ***************************************************************************************************/
+    function addV() {
+
+        var retVal = slice.call(arguments[0]),
+            args = fn.flatten(slice.call(arguments, 1)),
+            newVertices = [];
+
+        fn.each(args, function(vertex){
+            //create vertex if it doesn't have an id
+            if (!!!vertex[env.id]) {
+                vertex[env.id] = uuid.v4(); //temp id
+                if (!!!newVertex[env.type]) {
+                    newVertex[env.type] = 'vertex';
+                }
+                push.call(newVertices, vertex);
+            }
+
+        });
+
+        if (!!newVertices.length) {
+             graphUtils.loadVertices(newVertices);
+        }
+
+        return retVal;
+    }
+
+    /***************************************************************************************************
+
+        Add edge to graph
+
+        @name       addoutE()                   callable/chainable.
+        @param      {!Object|Object Array}  Required. JSON object or Object Array of Edges
+        @param      {!Object|Object Array}  Required. JSON object or Object Array of Vertices
+        @returns    {Object Array}          emits objects from previous step.
+
+        ****NB. New Objects should be passed in without an id. If an id present it is assumed that the object already exists.
         @example
             
             //add method adds a vertex with an in coming edge from v(10). Path = v(10)->'knows'->'frank'
@@ -2241,122 +2289,154 @@
 
             //add(new vertex props[,EdgeObj, OutArrVar]);
     ***************************************************************************************************/
-    function addV() {
+    function addOutE() {
 
         var retVal = slice.call(arguments[0]),
-            args = fn.flatten(slice.call(arguments, 1)),
-//            pipedInVertices = fn.uniqueObject(arguments[0]),
-//            vertices = [],
-            newVertices = [];//,
-            // edges = {}, 
-            // newEdge = {},
-            // newEdges = [],
-            // inEdges = [],
-            // outEdges = [],
-            // hasOutEdges = false,
-            // hasInEdges = false,
-            // key;
+            edges = fn.flatten(slice.call(arguments, 1, 2)),
+            vertices = fn.flatten(slice.call(arguments, 2, 3)),
+            pipedInVertices = fn.uniqueObject(arguments[0]),
+            newEdge = {},
+            loadedVertex = {},
+            key;
 
-        // if (utils.isArray(args[0])) {
-        //     vertices = args[0];
-        // } else {
-        //     push.call(vertices, args[0]);
-        // }
-
-        fn.each(args, function(vertex){
-            //create vertex if it doesn't have an id
-            if (!!!vertex[env.id]) {
-                vertex[env.id] = uuid.v4(); //new id
-                //vertex[env.type] = 'vertex';
-                push.call(newVertices, vertex);
+        //Raise Error if incoming objects are not vertices
+        try {
+            if ((!!retVal[0] && retVal[0].type !== 'vertex') || !!!pipedInVertices.length) {
+                throw TypeError();
             }
+            if (!!!edges.length || !!!vertices.length) {
+                throw "Required"
+            }
+        } catch (err) {
+            if (err instanceof TypeError) {
+                return "Action aborted => addOutE() can only be run against vertex objects."
+            }
+            if (err === "Required") {
+                return "Action aborted => Both addOutE() parameters are required."
+            }
+        } finally {
+            //Rollback transaction
+            //Unlock graph
+        }
 
+        fn.each(pipedInVertices, function (vertex) {
+             fn.each(vertices, function(newVertex){
+                //create vertex if it doesn't have an id
+                if (!!!newVertex[env.id]) {
+                    newVertex[env.id] = uuid.v4(); //temp id
+                    if (!!!newVertex[env.type]) {
+                        newVertex[env.type] = 'vertex';
+                    }
+                    loadedVertex = graphUtils.loadVertices(newVertex)[0];
+                } else {
+                    loadedVertex = graph.vertices[newVertex[env.id]];
+                }
+                fn.each(edges, function(edge){
+                    if (!!loadedVertex.outE[edge[env.label]]) {
+                        return;
+                    }
+                    newEdge = {};
+                    newEdge[env.type] = 'edge';
+                    newEdge[env.label] = 'NoLabel!';
+                    for (key in edge) {
+                        if (edge.hasOwnProperty(key)) {
+                            newEdge[key] = edge[key];    
+                        }
+                    }
+                    newEdge[env.id] = uuid.v4(); //temp id
+                    newEdge[env.outVid] = vertex.obj[env.id];
+                    newEdge[env.inVid] = newVertex[env.id];
+                    graphUtils.loadEdges(newEdge);
+                });
+            });
         });
-        
-        // //If there are no new vertices to add then exit
-        // if (!!!newVertices.length) {
-        //     return retVal;
-        // }
-        //vertices = 
-        graphUtils.loadVertices(newVertices);
 
-        // //Only continue if incoming objects were vertices
-        // //as only edges can be associated with vertices
-        // //valid vertex objects would have been created
-        // if (!!retVal[0] && retVal[0].type !== 'vertex') {
-        //     return retVal;
-        // }
+        return retVal;
+    }
 
-        // //no arguments so just continue piping
-        // if (!!!args[1]) {
-        //     return retVal;
-        // }
-        // if (!!args[1] && !(args[1].outE || args[1].inE)) {
-        //     if (!!args[1].vertices) {
-        //         push.apply(args[1].vertices, fn.getObjProp(vertices));
-        //     } else {
-        //         args[1].vertices = fn.getObjProp(vertices);    
-        //     }
-        //     return retVal;
-        // }
+    /***************************************************************************************************
 
-        // edges = args[1];
+        Add edge to graph
 
-        // if (!!edges.outE) {
-        //     hasOutEdges =  !!edges.outE.length;
-        // }
-        // if (!!edges.inE) {
-        //     hasInEdges =  !!edges.inE.length;
-        // }        
-        // fn.each(pipedInVertices, function (vertex) {
-        //     if (hasOutEdges) {
-        //         fn.each(vertices, function(newVertex){
-        //             fn.each(edges.outE, function(edge){
-        //                 newEdge = {};
-        //                 newEdge[env.type] = 'edge';
-        //                 for (key in edge) {
-        //                     if (edge.hasOwnProperty(key)) {
-        //                         newEdge[key] = edge[key];    
-        //                     }
-        //                 }
-        //                 newEdge[env.id] = uuid.v4(); //new id
-        //                 newEdge[env.outVid] = newVertex.obj[env.id];
-        //                 newEdge[env.inVid] = vertex.obj[env.id];
-        //                 push.call(newEdges, newEdge);
-        //             });
-        //         });
-        //     }
-        //     if (hasInEdges) {
-        //         fn.each(vertices, function(newVertex){
-        //             fn.each(edges.inE, function(edge){
-        //                 newEdge = {};
-        //                 newEdge[env.type] = 'edge';
-        //                 for (key in edge) {
-        //                     if (edge.hasOwnProperty(key)) {
-        //                         newEdge[key] = edge[key];    
-        //                     }
-        //                 }
-        //                 newEdge[env.id] = uuid.v4(); //new id
-        //                 newEdge[env.outVid] = vertex.obj[env.id];
-        //                 newEdge[env.inVid] = newVertex.obj[env.id];
-        //                 push.call(newEdges, newEdge);                
-        //             });
-        //         });
-        //     }
-        // });
-        // edges = graphUtils.loadEdges(newEdges);
-        // if (!!args[2]) {
-        //     if (!!args[2].vertex) {
-        //         push.apply(args[2].vertex, fn.getObjProp(vertices));
-        //     } else {
-        //         args[2].vertex = fn.getObjProp(vertices);    
-        //     }
-        //     if (!!args[2].edge) {
-        //         push.apply(args[2].edge, fn.getObjProp(edges));
-        //     } else {
-        //         args[2].edge = fn.getObjProp(edges);    
-        //     }
-        // }
+        @name       addInE()                callable/chainable.
+        @param      {!Object|Object Array}  Required. JSON object or Object Array of Edges
+        @param      {!Object|Object Array}  Required. JSON object or Object Array of Vertices
+        @returns    {Object Array}          emits objects from previous step.
+
+        ****NB. New Objects should be passed in without an id. If an id present it is assumed that the object already exists.
+        @example
+            
+            //add method adds a vertex with an in coming edge from v(10). Path = v(10)->'knows'->'frank'
+            var result = g.v(10).addV({ name: 'frank', age: '40' } }]}).out().value();
+            var t = {};
+            var result = g.v(1).out().in().add([{ name: 'frank', age: '40' },{ name: 'lisa', age: '36' }],
+                                    { inE: [{ '_label' : 'knows', 'weight' : 0.4 }]}, t).out().value()
+            result would contain 'frank' vertex.
+
+            //add(new vertex props[,EdgeObj, OutArrVar]);
+    ***************************************************************************************************/
+    function addInE() {
+
+        var retVal = slice.call(arguments[0]),
+            edges = fn.flatten(slice.call(arguments, 1, 2)),
+            vertices = fn.flatten(slice.call(arguments, 2, 3)),
+            pipedInVertices = fn.uniqueObject(arguments[0]),
+            newEdge = {},
+            loadedVertex = {},
+            key;
+
+        //Raise Error if incoming objects are not vertices
+        try {
+            if ((!!retVal[0] && retVal[0].type !== 'vertex') || !!!pipedInVertices.length) {
+                throw TypeError();
+            }
+            if (!!!edges.length || !!!vertices.length) {
+                throw "Required"
+            }
+        } catch (err) {
+            if (err instanceof TypeError) {
+                return "Action aborted => addInE() can only be run against vertex objects."
+            }
+            if (err === "Required") {
+                return "Action aborted => Both addInE() parameters are required."
+            }
+        } finally {
+            //Rollback transaction
+            //Unlock graph
+        }
+
+        fn.each(pipedInVertices, function (vertex) {
+             fn.each(vertices, function(newVertex){
+                //create vertex if it doesn't have an id
+                if (!!!newVertex[env.id]) {
+                    newVertex[env.id] = uuid.v4(); //temp id
+                    if (!!!newVertex[env.type]) {
+                        newVertex[env.type] = 'vertex';
+                    }
+                    loadedVertex = graphUtils.loadVertices(newVertex)[0];
+                } else {
+                    loadedVertex = graph.vertices[newVertex[env.id]];
+                }
+                fn.each(edges, function(edge){
+                    if (!!loadedVertex.outE[edge[env.label]]) {
+                        return;
+                    }
+                    newEdge = {};
+                    newEdge[env.type] = 'edge';
+                    newEdge[env.label] = 'NoLabel!';
+                    for (key in edge) {
+                        if (edge.hasOwnProperty(key)) {
+                            newEdge[key] = edge[key];    
+                        }
+                    }
+                    newEdge[env.id] = uuid.v4(); //temp id
+                    newEdge[env.outVid] = newVertex[env.id];
+                    newEdge[env.inVid] = vertex.obj[env.id];
+                    graphUtils.loadEdges(newEdge);
+                });
+            });
+        });
+
         return retVal;
     }
 
@@ -2765,6 +2845,8 @@ assignInE('label', fromExistingVertexObj, toNewOrExistingVertexObj, optionalEdge
     Helios.prototype.addV = addV;
     Helios.prototype.update = update;
     Helios.prototype['delete'] = _delete;
+    Helios.prototype.addOutE = addOutE;
+    Helios.prototype.addInE = addInE;
 
 
     // expose Helios
