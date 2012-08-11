@@ -1185,23 +1185,30 @@
         Called to obtain root vertices to begin traversal.
 
         @name       v()             callable/chainable
-        @param      {Mixed*}        Pass in comma separated list or array of ids
-        @returns    {Object Array}  emits Vertices.
+        @param      {Mixed*}        Pass in comma separated or array of ids or vertex objects
+        @returns    {Object Array}  emits Vertex Array.
         
         @example
             
-            var result = g.v(10).value();
+            var result = g.v([10, 40]).value();
+            g.v(result).value(); -> This will return the same as above
 
     ***************************************************************************************************/
     function v() {
 
         var retVal = [],
             args = fn.flatten(slice.call(arguments, 1)),
+            vid, 
             length = args.length;
 
         while (length) {
             length -= 1;
-            push.call(retVal, graph.vertices[args[length]]);
+            if (!!args[length][env.id]) {
+                vid = args[length][env.id];
+            } else {
+                vid = args[length];
+            }
+            push.call(retVal, graph.vertices[vid]);
         }
 
         return retVal;
@@ -1212,21 +1219,29 @@
         Called to obtain root edges to begin traversal.
 
         @name       e()             callable/chainable
-        @param      {Mixed*}        Pass in comma separated list or array of ids
-        @returns    {Object Array}  emits Edges.
+        @param      {Mixed*}        Pass in comma separated or array of ids or edge objects.
+        @returns    {Object Array}  emits Edge Array.
         
         @example
             
-            var result = g.e(70).value();
+            var result = g.e(70,80).value();
+            g.(result).value(); -> This will return the same as above
 
     ***************************************************************************************************/
     function e() {
         var retVal = [], length,
-            args = fn.flatten(slice.call(arguments, 1));
-        length = args.length;
+            args = fn.flatten(slice.call(arguments, 1)),
+            eid,
+            length = args.length;
+        
         while (length) {
             length -= 1;
-            push.call(retVal, graph.edges[args[length]]);
+            if (!!args[length][env.id]) {
+                eid = args[length][env.id];
+            } else {
+                eid = args[length];
+            }
+            push.call(retVal, graph.edges[eid]);
         }
         return retVal;
     }
@@ -2435,7 +2450,7 @@
     ***************************************************************************************************/
     function update() {
 
-            var retVal = slice.call(arguments[0]),
+        var retVal = slice.call(arguments[0]),
             args = fn.flatten(slice.call(arguments, 1, 2)),
             varObj = slice.call(arguments, 2, 3)[0],
             pipedInObjs = fn.uniqueObject(arguments[0]),
@@ -2478,11 +2493,72 @@
         return retVal;
     }
 
+
+    /***************************************************************************************************
+        
+        Add Edge to graph or Reassign Edge between vertices
+
+        @name       assignOutE()            callable
+        @param      {String}                Required. label.
+        @param      {Object}                Optional. An object variable to store updated objects.
+        @returns    {Object Array}          emits objects from previous step which may or may not included
+                                            the updated objects.
+
+        If id passed in update just that, if no id apply to all objects.
+
+        @example
+            
+            var result = g.v(10).assignOutE('knows', { name: 'John', surname: 'Doe'});
+
+    ***************************************************************************************************/
+    function assignOutE() {
+
+        var retVal = slice.call(arguments[0]),
+            args = fn.flatten(slice.call(arguments, 1, 2)), //label
+            varObj = slice.call(arguments, 2, 3)[0],
+            pipedInObjs = fn.uniqueObject(arguments[0]),
+            sysFields = [env.id, env.VIn, env.Vout],
+            modifiedObjs = [],
+            key;
+
+        fn.each(pipedInObjs, function(element){
+            fn.each (args, function(newProps) {
+                //Check to see if the update object has an id. If so,
+                //only update where equal to id
+                if (!!newProps[env.id]) {
+                    if (element.obj[env.id] == newProps[env.id]) {
+                        for (key in newProps) {
+                            if (newProps.hasOwnProperty(key) && !fn.include(sysFields, key)) {
+                                element.obj[key] = newProps[key];
+                            }
+                        }
+                    }
+                } else {
+                    for (key in newProps) {
+                        if (newProps.hasOwnProperty(key) && !fn.include(sysFields, key)) {
+                            element.obj[key] = newProps[key];
+                        }
+                    }
+                }
+            });
+            push.call(modifiedObjs, element.obj);  
+        });
+        //Use pipedInObjs to determine the type of objects updated
+        if (!!varObj && !!pipedInObjs.length) {
+            if (!!varObj.vertex && pipedInObjs[0].type === 'vertex') {
+                push.apply(varObj.vertex, modifiedObjs);
+            } else if (!!varObj.edge && pipedInObjs[0].type === 'edge') {
+                push.apply(varObj.edge, modifiedObjs);
+            } else {
+                varObj[pipedInObjs[0].type] = modifiedObjs;    
+            }
+        }
+        return retVal;
+    }
+
+
 /*
 Other functions
-update(obj, Function());
-NB. All objects that need to be created should not have an id. If there is an id it is assumed
-    that the object already exists
 assignOutE('label', fromExistingVertexObj, toNewOrExistingVertexObj, optionalEdgeProps)
 assignInE('label', fromExistingVertexObj, toNewOrExistingVertexObj, optionalEdgeProps)
 */
