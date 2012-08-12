@@ -2528,11 +2528,9 @@
     function update() {
 
         var retVal = slice.call(arguments[0]),
-            args = fn.flatten(slice.call(arguments, 1, 2)),
-            varObj = slice.call(arguments, 2, 3)[0],
+            args = fn.flatten(slice.call(arguments, 1)),
             pipedInObjs = fn.uniqueObject(arguments[0]),
-            sysFields = [env.id, env.VIn, env.Vout],
-            modifiedObjs = [],
+            sysFields = [env.id, env.VIn, env.VOut],
             key;
 
         fn.each(pipedInObjs, function(element){
@@ -2555,18 +2553,7 @@
                     }
                 }
             });
-            push.call(modifiedObjs, element.obj);  
         });
-        //Use pipedInObjs to determine the type of objects updated
-        if (!!varObj && !!pipedInObjs.length) {
-            if (!!varObj.vertex && pipedInObjs[0].type === 'vertex') {
-                push.apply(varObj.vertex, modifiedObjs);
-            } else if (!!varObj.edge && pipedInObjs[0].type === 'edge') {
-                push.apply(varObj.edge, modifiedObjs);
-            } else {
-                varObj[pipedInObjs[0].type] = modifiedObjs;    
-            }
-        }
         return retVal;
     }
 
