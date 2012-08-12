@@ -31,7 +31,8 @@
         var that = this;
         return function () {
             var pipedArgs = [],
-                isStep = !fn.include(['as', 'back', 'loop', 'countBy', 'groupBy', 'groupSum', 'store', 'add', 'update', 'assignOutE', 'assignInE'], that.name);
+                isStep = !fn.include(['as', 'back', 'loop', 'countBy', 'groupBy', 'groupSum', 'store', 'addV', 'update',
+                                        'addOutE', 'addInE', 'moveOutE', 'moveInE'], that.name);
 
             //reset any travesal - used by tail() & head()
             this.traversedVertices = {};
@@ -639,6 +640,10 @@
         return toString.call(o) === '[object Date]';
     };
 
+    utils.isObject = function (o) {
+        return toString.call(o) === '[object Object]';
+    };
+
     utils.isEmpty = function (o) {
         var key;
         if (!o) {
@@ -985,7 +990,31 @@
         }
     };
 
+    fn.removeEdge = function (objArr, id) {
+         var i, len, retVal = [];
 
+        //if (!utils.isFunction(func))
+          //throw new TypeError();
+
+        if (!!!id) {
+            id = objArr;
+            objArr = undefined;
+        }
+        delete graph.edges[id];
+        if (!!!objArr) {
+            return retVal;
+        }
+        len = objArr.length;
+        for (i = 0; i < len; i += 1) {
+            if (objArr[i].obj[env.id] == id) {
+                push.apply(retVal, slice.call(objArr, i + 1));
+                return retVal;
+            } else {
+                push.call(retVal, objArr[i]);
+            }
+        }
+        return retVal;
+    }
     /***************************************************************************************************
 
         Called to emit the result from traversing the graph.
@@ -2514,11 +2543,10 @@
 
         @name       update()                callable
         @param      {!Object|Object Array}  Required. JSON object or Object Array.
-        @param      {Object}                Optional. An object variable to store updated objects.
         @returns    {Object Array}          emits objects from previous step which may or may not included
                                             the updated objects.
 
-        If id passed in update just that, if no id apply to all objects.
+        If id passed in update just that, if no id apply update to all objects.
 
         @example
             
@@ -2560,81 +2588,181 @@
 
     /***************************************************************************************************
         
-        Add Edge to graph or Reassign Edge between vertices
+        Reassign Out Edge from one vertex to another
 
-        @name       assignOutE()            callable
-        @param      {String}                Required. label.
-        @param      {id | Object}           Required. An existing vertex id or existing vertex object.
-        @param      {id | Object}           Optional. As
-
-        @returns    {Object Array}          emits objects from previous step which may or may not included
-                                            the updated objects.
-
-        If id passed in update just that, if no id apply to all objects.
+        @name       assignOutE()    callable
+        @param      {String}        Required. label.
+        @param      !{id | Object}  Required. An existing vertex id or existing vertex object.
+        @param      !{id | Object}  Required. If no id is present in the Object it will create a new Vertex.
+        @param      {Object var}    Optional. Object to store created Edge.
+        @returns    {Object}        new Edge object.
 
         @example
-            
-            var result = g.v(10).assignOutE('knows', { name: 'John', surname: 'Doe'});
+
+            var result = g.v(10).assignOutE('knows', 1, { name: 'John', age: 29});
 
     ***************************************************************************************************/
-    function assignOutE() {
+    function moveOutE() {
 
         var retVal = slice.call(arguments[0]),
-            args = fn.flatten(slice.call(arguments, 1, 2)), //label
-            varObj = slice.call(arguments, 2, 3)[0],
-            pipedInObjs = fn.uniqueObject(arguments[0]),
-            sysFields = [env.id, env.VIn, env.Vout],
-            modifiedObjs = [],
-            key;
+            pipedInVertices = fn.uniqueObject(arguments[0]),
+            args = slice.call(arguments, 1),
+            label = args[0],
+            fromV = args[1],
+            toV = args[2],
+            fromVid,
+            toVid,
+            edgeVar,
+            dedupedObjs = [],
+            value,
+            key,
+            tempEdge,
+            edgeObj,
+            edgeId,
+            newEdge,
+            sysFields = utils.toArray(env),
+            self;
 
-        fn.each(pipedInObjs, function(element){
-            fn.each (args, function(newProps) {
-                //Check to see if the update object has an id. If so,
-                //only update where equal to id
-                if (!!newProps[env.id]) {
-                    if (element.obj[env.id] == newProps[env.id]) {
-                        for (key in newProps) {
-                            if (newProps.hasOwnProperty(key) && !fn.include(sysFields, key)) {
-                                element.obj[key] = newProps[key];
+        if (args.length === 4) {
+            edgeVar = args[3];
+        }
+
+        fromVid = !!fromV[env.id] ? fromV[env.id] : fromV;
+
+        if (utils.isObject(toV)) {
+            if (!!!toV[env.id]) {
+                toV[env.id] = uuid.v4(); //temp id
+                if (!!!toV[env.type]) {
+                    toV[env.type] = 'vertex';
+                }
+                graphUtils.loadVertices(toV);
+            }
+            toVid = toV[env.id];
+        } else {
+            toVid = toV;
+        }
+
+        fn.each(pipedInVertices, function (vertex) {
+            if (!utils.isEmpty(vertex.outE)) {
+                value = fn.pick(vertex.outE, label);
+                fn.each(value[label], function (edge) {
+                    if (edge.inV.obj[env.id] == fromVid) {
+                        
+                        //Create new edge
+                        tempEdge = {};
+                        edgeObj = edge.obj;
+                        for (key in edgeObj) {
+                            if (edgeObj.hasOwnProperty(key) && !fn.include(sysFields, key)) {
+                                tempEdge[key] = edgeObj[key];    
                             }
                         }
-                    }
-                } else {
-                    for (key in newProps) {
-                        if (newProps.hasOwnProperty(key) && !fn.include(sysFields, key)) {
-                            element.obj[key] = newProps[key];
+
+                        tempEdge[env.id] = uuid.v4(); //temp id
+                        tempEdge[env.label] = label;
+                        tempEdge[env.outVid] = vertex.obj[env.id];
+                        tempEdge[env.inVid] = toVid;
+                        newEdge = graphUtils.loadEdges(tempEdge)[0];
+                        if (!!edgeVar) {
+                            edgeVar.oldEdge = JSON.parse(JSON.stringify(edge.obj));
+                            edgeVar.newEdge = newEdge.obj;
                         }
+                        vertex.outE[label] = fn.removeEdge(vertex.outE[label], edge.obj[env.id]);
                     }
-                }
-            });
-            push.call(modifiedObjs, element.obj);  
-        });
-        //Use pipedInObjs to determine the type of objects updated
-        if (!!varObj && !!pipedInObjs.length) {
-            if (!!varObj.vertex && pipedInObjs[0].type === 'vertex') {
-                push.apply(varObj.vertex, modifiedObjs);
-            } else if (!!varObj.edge && pipedInObjs[0].type === 'edge') {
-                push.apply(varObj.edge, modifiedObjs);
-            } else {
-                varObj[pipedInObjs[0].type] = modifiedObjs;    
+                });
             }
-        }
+        });
+
         return retVal;
     }
 
+    /***************************************************************************************************
+        
+        Reassign In Edge from one vertex to another
 
-/*
-Other functions
-assignOutE('label', fromExistingVertexObj, toNewOrExistingVertexObj, optionalEdgeProps)
-assignInE('label', fromExistingVertexObj, toNewOrExistingVertexObj, optionalEdgeProps)
-*/
+        @name       assignInE()     callable
+        @param      {String}        Required. label.
+        @param      !{id | Object}  Required. An existing vertex id or existing vertex object.
+        @param      !{id | Object}  Required. If no id is present in the Object it will create a new Vertex.
+        @param      {Object var}    Optional. Object to store created Edge.
+        @returns    {Object}        new Edge object.
 
+        @example
 
+            var result = g.v(10).assignInE('knows', 40, { name: 'John', age: 29});
 
+    ***************************************************************************************************/
+    function moveInE() {
 
+        var retVal = slice.call(arguments[0]),
+            pipedInVertices = fn.uniqueObject(arguments[0]),
+            args = slice.call(arguments, 1),
+            label = args[0],
+            fromV = args[1],
+            toV = args[2],
+            fromVid,
+            toVid,
+            edgeVar,
+            dedupedObjs = [],
+            value,
+            key,
+            tempEdge,
+            edgeObj,
+            edgeId,
+            newEdge,
+            sysFields = utils.toArray(env),
+            self;
 
+        if (args.length === 4) {
+            edgeVar = args[3];
+        }
 
+        fromVid = !!fromV[env.id] ? fromV[env.id] : fromV;
 
+        if (utils.isObject(toV)) {
+            if (!!!toV[env.id]) {
+                toV[env.id] = uuid.v4(); //temp id
+                if (!!!toV[env.type]) {
+                    toV[env.type] = 'vertex';
+                }
+                graphUtils.loadVertices(toV);
+            }
+            toVid = toV[env.id];
+        } else {
+            toVid = toV;
+        }
+
+        fn.each(pipedInVertices, function (vertex) {
+            if (!utils.isEmpty(vertex.inE)) {
+                value = fn.pick(vertex.inE, label);
+                fn.each(value[label], function (edge) {
+                    if (edge.outV.obj[env.id] == fromVid) {
+                        
+                        //Create new edge
+                        tempEdge = {};
+                        edgeObj = edge.obj;
+                        for (key in edgeObj) {
+                            if (edgeObj.hasOwnProperty(key) && !fn.include(sysFields, key)) {
+                                tempEdge[key] = edgeObj[key];    
+                            }
+                        }
+
+                        tempEdge[env.id] = uuid.v4(); //temp id
+                        tempEdge[env.label] = label;
+                        tempEdge[env.outVid] = toVid;
+                        tempEdge[env.inVid] = vertex.obj[env.id];
+                        newEdge = graphUtils.loadEdges(tempEdge)[0];
+                        if (!!edgeVar) {
+                            edgeVar.oldEdge = JSON.parse(JSON.stringify(edge.obj));
+                            edgeVar.newEdge = newEdge.obj;
+                        }
+                        vertex.inE[label] = fn.removeEdge(vertex.inE[label], edge.obj[env.id]);
+                    }
+                });
+            }
+        });
+
+        return retVal;
+    }
 
     //comparables
     comparable.eq = function (atts) {
@@ -2834,6 +2962,8 @@ assignInE('label', fromExistingVertexObj, toNewOrExistingVertexObj, optionalEdge
     Helios.prototype['delete'] = _delete;
     Helios.prototype.addOutE = addOutE;
     Helios.prototype.addInE = addInE;
+    Helios.prototype.moveOutE = moveOutE;
+    Helios.prototype.moveInE = moveInE;
 
 
     // expose Helios
