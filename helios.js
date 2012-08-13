@@ -23,6 +23,8 @@
         fn = {}, //internal functions
         dbfn = {}, //graph database functions
         comparable = {}, //comparable functions i.e. eq, neq ...
+        hasVIndex = false,
+        hasEIndex = false,
         graph = {'vertices': {}, 'edges': {}, 'v_idx': {}, 'e_idx': {}},
         unpipedFuncs = ['label', 'id', 'value', 'distinct', 'stringify', 'count', 'map', 'clone', 'path', 'fork', 'pin', 'delete'];
 
@@ -291,8 +293,9 @@
             retVal = [],
             rows =  fn.flatten(slice.call(arguments)),
             l = rows.length, 
-            vertex = {},
-            hasVIndex = !fn.isEmpty(graph.v_idx);
+            vertex = {};
+
+        hasVIndex = !fn.isEmpty(graph.v_idx);
 
         for (i = 0; i < l; i += 1) {
             graph.vertices[rows[i][env.id]] = { 'obj': rows[i], 'type': 'vertex', 'outE': {}, 'inE': {} };
@@ -313,8 +316,9 @@
             retVal = [],        
             rows = fn.flatten(slice.call(arguments)),
             l = rows.length,
-            edge = {},
-            hasEIndex = !fn.isEmpty(graph.e_idx);
+            edge = {};
+
+        hasEIndex = !fn.isEmpty(graph.e_idx);
 
         for (i = 0; i < l; i += 1) {
             edge = { 'obj': rows[i], 'type': 'edge', 'outV': {}, 'inV': {} };
@@ -357,9 +361,10 @@
             parser,
             xmlDoc,
             properties,
-            tempObj = {},
-            hasVIndex = !fn.isEmpty(graph.v_idx),
-            hasEIndex = !fn.isEmpty(graph.e_idx);
+            tempObj = {};
+
+        hasVIndex = !fn.isEmpty(graph.v_idx);
+        hasEIndex = !fn.isEmpty(graph.e_idx);
 
         env = Helios.ENV;
 
@@ -460,10 +465,12 @@
                 fn.addVIndex(vertex, idxName);
             });
         }
+        hasVIndex = !fn.isEmpty(graph.v_idx);
     };
 
     dbfn.deleteVIndex = function (idxName) {
         delete graph.v_idx[idxName];
+        hasVIndex = !fn.isEmpty(graph.v_idx);
     };
 
     dbfn.createEIndex = function (idxName) {
@@ -476,10 +483,12 @@
                 fn.addEIndex(edge, idxName);
             });
         }
+        hasEIndex = !fn.isEmpty(graph.e_idx);
     };
 
     dbfn.deleteEIndex = function (idxName) {
         delete graph.e_idx[idxName];
+        hasEIndex = !fn.isEmpty(graph.e_idx);
     };
 
     dbfn.addV = function () {
@@ -496,7 +505,7 @@
 
         });
         
-        return fn.getObjProp(dbfn.loadVertices(newVertices));
+        return fn.toObjArray(dbfn.loadVertices(newVertices));
     }
 
     fn.addVIndex = function (vertex, idxName) {
@@ -516,6 +525,30 @@
                             graph.v_idx[idx][vertex.obj[idx]] = {};
                         }
                         graph.v_idx[idx][vertex.obj[idx]][vertex.obj[env.id]] = vertex;
+                    }
+                }
+            }
+        }
+    };
+
+    fn.removeIndexedElement = function (element) {
+        var key, idxName;
+        
+        if (element.type === 'vertex') {
+            for (idxName in graph.v_idx) {
+                if (graph.v_idx.hasOwnProperty(idxName)) {
+                    if (!!element.obj[idxName]) {
+                        key = element.obj[idxName];
+                        delete graph.v_idx[idxName][key][element.obj[env.id]];
+                    }
+                }
+            }
+        } else {
+            for (idxName in graph.e_idx) {
+                if (graph.e_idx.hasOwnProperty(idxName)) {
+                    if (!!element.obj[idxName]) {
+                        key = element.obj[idxName];
+                        delete graph.e_idx[idxName][key][element.obj[env.id]];
                     }
                 }
             }
@@ -913,7 +946,7 @@
         return result;
     };
 
-    fn.getObjProp = function (array) {
+    fn.toObjArray = function (array) {
         var i, l = array.length, result = [];
 
         for (i = 0; i < l; i += 1) {
@@ -1003,6 +1036,9 @@
         len = objArr.length;
         for (i = 0; i < len; i += 1) {
             if (objArr[i].obj[env.id] == id) {
+                if (hasEIndex) {
+                    fn.removeIndexedElement(objArr[i]);
+                }
                 push.apply(retVal, slice.call(objArr, i + 1));
                 return retVal;
             } else {
@@ -1045,7 +1081,7 @@
     function pipedValue() {
         var retVal = [];
         if (!!this.pipedObjects[0] && !!this.pipedObjects[0].obj) {
-            retVal = fn.getObjProp(this.pipedObjects);
+            retVal = fn.toObjArray(this.pipedObjects);
         } else {
             retVal = this.pipedObjects;
         }
@@ -1172,7 +1208,7 @@
             if (!!args.length) {
                 return JSON.stringify(map.apply(this, args));
             }
-            retVal = fn.getObjProp(this.pipedObjects);
+            retVal = fn.toObjArray(this.pipedObjects);
         } else {
             retVal = this.pipedObjects;
         }
@@ -1225,7 +1261,7 @@
             }
         }
         push.call(retVal, JSON.stringify(o));
-        push.apply(retVal, fn.getObjProp(this.pipedObjects));
+        push.apply(retVal, fn.toObjArray(this.pipedObjects));
         fn.resetPipe.call(this);
         return retVal;
     }
@@ -1762,7 +1798,7 @@
         if (!!args.length) {
             //if pass in Array, populate it, else store as a named pipe 
             if (fn.isArray(args[0])) {
-                push.apply(args[0], fn.getObjProp(arguments[0]));
+                push.apply(args[0], fn.toObjArray(arguments[0]));
             } else {
                 this.pipeline.namedStep[args[0]] = this.pipeline.steps.currentStep;
             }
@@ -1770,7 +1806,7 @@
                 func = args[1];
                 args.shift();
                 funcArgs = fn.flatten(slice.call(args, 1));
-                retVal = func.apply(fn.getObjProp(arguments[0]), funcArgs);
+                retVal = func.apply(fn.toObjArray(arguments[0]), funcArgs);
             }
         }
         return retVal;
@@ -1831,8 +1867,8 @@
     function except() {
 
         var arg = arguments[1], dSet, diff, retVal = [];
-        dSet = fn.isArray(arg) ? arg : fn.getObjProp(this.pipeline.steps[this.pipeline.namedStep[arg]].pipedOutArgs[0]);
-        retVal = fn.difference(fn.getObjProp(arguments[0]), dSet, true);
+        dSet = fn.isArray(arg) ? arg : fn.toObjArray(this.pipeline.steps[this.pipeline.namedStep[arg]].pipedOutArgs[0]);
+        retVal = fn.difference(fn.toObjArray(arguments[0]), dSet, true);
 
         return retVal;
     }
@@ -2020,8 +2056,8 @@
 
         var arg = arguments[1], dSet, diff, retVal = [];
 
-        dSet = fn.isArray(arg) ? arg : fn.getObjProp(this.pipeline.steps[this.pipeline.namedStep[arg]].pipedOutArgs[0]);
-        retVal = fn.intersection(fn.getObjProp(arguments[0]), dSet, true);
+        dSet = fn.isArray(arg) ? arg : fn.toObjArray(this.pipeline.steps[this.pipeline.namedStep[arg]].pipedOutArgs[0]);
+        retVal = fn.intersection(fn.toObjArray(arguments[0]), dSet, true);
         return retVal;
     }
 
@@ -2517,10 +2553,23 @@
                 if (hasArgs) {
                     fn.each (args, function(prop) {
                         if (!fn.include(sysFields, prop)) {
-                            if (isVertex) {
-                                delete graph.vertices[element.obj[env.id]].obj[prop];
+                            if (element.type === 'vertex') {
+                                if (!!graph.vertices[element.obj[env.id]].obj[prop]) {
+                                    if (!!graph.v_idx[prop]) {
+                                        fn.removeIndexedElement(element);
+                                    }
+                                    delete graph.vertices[element.obj[env.id]].obj[prop];
+                                    push.call(retVal.vertex, element.obj);
+                                }
+
                             } else {
-                                delete graph.edges[element.obj[env.id]].obj[prop];
+                                if (!!graph.edges[element.obj[env.id]].obj[prop]) {
+                                    if (!!graph.e_idx[prop]) {
+                                        fn.removeIndexedElement(element);
+                                    }
+                                    delete graph.edges[element.obj[env.id]].obj[prop];
+                                    push.call(retVal.edge, element.obj);
+                                }
                             }
                         }
                     })
@@ -2534,8 +2583,10 @@
                         if (!!element.inE) {
                             push.apply(retVal.edge, fn.removeAllEdges(element.inE));
                         }
-
-                        push.call(retVal.vertex, fn.clone(element.obj));
+                        if (hasVIndex) {
+                            fn.removeIndexedElement(element);
+                        }
+                        push.call(retVal.vertex, element.obj);
                         delete graph.vertices[element.obj[env.id]];
                     } else {
                         push.call(retVal.edge, element.obj);
