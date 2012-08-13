@@ -531,7 +531,8 @@
         }
     };
 
-    fn.removeIndexedElement = function (element) {
+    //deletes an element from all indexes
+    fn.deleteElementIndexes = function (element) {
         var key, idxName;
         
         if (element.type === 'vertex') {
@@ -540,6 +541,9 @@
                     if (!!element.obj[idxName]) {
                         key = element.obj[idxName];
                         delete graph.v_idx[idxName][key][element.obj[env.id]];
+                        if (fn.isEmpty(graph.v_idx[idxName][key])) {
+                            delete graph.v_idx[idxName][key];
+                        }                        
                     }
                 }
             }
@@ -549,11 +553,38 @@
                     if (!!element.obj[idxName]) {
                         key = element.obj[idxName];
                         delete graph.e_idx[idxName][key][element.obj[env.id]];
+                        if (fn.isEmpty(graph.e_idx[idxName][key])) {
+                            delete graph.e_idx[idxName][key];
+                        } 
                     }
                 }
             }
         }
     };
+
+    // fn.updateIndexedElement = function (fromElement, toElement, idxName) {
+    //     var key, idxName;
+        
+    //     if (element.type === 'vertex') {
+    //         for (idxName in graph.v_idx) {
+    //             if (graph.v_idx.hasOwnProperty(idxName)) {
+    //                 if (!!element.obj[idxName]) {
+    //                     key = element.obj[idxName];
+    //                     delete graph.v_idx[idxName][key][element.obj[env.id]];
+    //                 }
+    //             }
+    //         }
+    //     } else {
+    //         for (idxName in graph.e_idx) {
+    //             if (graph.e_idx.hasOwnProperty(idxName)) {
+    //                 if (!!element.obj[idxName]) {
+    //                     key = element.obj[idxName];
+    //                     delete graph.e_idx[idxName][key][element.obj[env.id]];
+    //                 }
+    //             }
+    //         }
+    //     }
+    // };
 
     fn.addEIndex = function (edge, idxName) {
         var idx;
@@ -1037,7 +1068,7 @@
         for (i = 0; i < len; i += 1) {
             if (objArr[i].obj[env.id] == id) {
                 if (hasEIndex) {
-                    fn.removeIndexedElement(objArr[i]);
+                    fn.deleteElementIndexes(objArr[i]);
                 }
                 push.apply(retVal, slice.call(objArr, i + 1));
                 return retVal;
@@ -2556,7 +2587,7 @@
                             if (element.type === 'vertex') {
                                 if (!!graph.vertices[element.obj[env.id]].obj[prop]) {
                                     if (!!graph.v_idx[prop]) {
-                                        fn.removeIndexedElement(element);
+                                        fn.deleteElementIndexes(element);
                                     }
                                     delete graph.vertices[element.obj[env.id]].obj[prop];
                                     push.call(retVal.vertex, element.obj);
@@ -2565,7 +2596,7 @@
                             } else {
                                 if (!!graph.edges[element.obj[env.id]].obj[prop]) {
                                     if (!!graph.e_idx[prop]) {
-                                        fn.removeIndexedElement(element);
+                                        fn.deleteElementIndexes(element);
                                     }
                                     delete graph.edges[element.obj[env.id]].obj[prop];
                                     push.call(retVal.edge, element.obj);
@@ -2584,7 +2615,7 @@
                             push.apply(retVal.edge, fn.removeAllEdges(element.inE));
                         }
                         if (hasVIndex) {
-                            fn.removeIndexedElement(element);
+                            fn.deleteElementIndexes(element);
                         }
                         push.call(retVal.vertex, element.obj);
                         delete graph.vertices[element.obj[env.id]];
@@ -2626,16 +2657,35 @@
             args = fn.flatten(slice.call(arguments, 1)),
             pipedInObjs = fn.uniqueObject(arguments[0]),
             sysFields = [env.id, env.VIn, env.VOut],
-            key;
+            key,
+            idxArr = [],
+            isIndexed = false;
 
-        fn.each(pipedInObjs, function(element){
-            fn.each (args, function(newProps) {
+        if (!!!pipedInObjs.length) {
+            return retVal;
+        }
+        idxArr = pipedInObjs[0].type === 'vertex' ? graph.v_idx : graph.e_idx;
+        fn.each(pipedInObjs, function(element) {
+            fn.each(args, function(newProps) {
                 //Check to see if the update object has an id. If so,
                 //only update where equal to id
                 if (!!newProps[env.id]) {
                     if (element.obj[env.id] == newProps[env.id]) {
                         for (key in newProps) {
                             if (newProps.hasOwnProperty(key) && !fn.include(sysFields, key)) {
+                                //check to see if there is an index assoc. with key
+                                if (!!idxArr[key]) {
+                                    //if there is an index move to the new location
+                                    delete idxArr[key][element.obj[key]][element.obj[env.id]];
+                                    if (fn.isEmpty(idxArr[key][element.obj[key]])) {
+                                        delete idxArr[key][element.obj[key]];
+                                    }
+                                    element.obj[key] = newProps[key];
+                                    if (!!!idxArr[key][element.obj[key]]) {
+                                        idxArr[key][element.obj[key]] = {};
+                                    }
+                                    idxArr[key][element.obj[key]][element.obj[env.id]] = element.obj;
+                                }
                                 element.obj[key] = newProps[key];
                             }
                         }
@@ -2643,6 +2693,19 @@
                 } else {
                     for (key in newProps) {
                         if (newProps.hasOwnProperty(key) && !fn.include(sysFields, key)) {
+                            //check to see if there is an index assoc. with key
+                            if (!!idxArr[key]) {
+                                //if there is an index move to the new location
+                                delete idxArr[key][element.obj[key]][element.obj[env.id]];
+                                if (fn.isEmpty(idxArr[key][element.obj[key]])) {
+                                    delete idxArr[key][element.obj[key]];
+                                }
+                                element.obj[key] = newProps[key];
+                                if (!!!idxArr[key][element.obj[key]]) {
+                                    idxArr[key][element.obj[key]] = {};
+                                }
+                                idxArr[key][element.obj[key]][element.obj[env.id]] = element.obj;
+                            }
                             element.obj[key] = newProps[key];
                         }
                     }
