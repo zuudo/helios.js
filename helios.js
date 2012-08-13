@@ -2640,15 +2640,32 @@
         Update or Add object properties to graph
 
         @name       update()                callable
-        @param      {!Object|Object Array}  Required. JSON object or Object Array.
+        @param      {!Object*|Object Array*}Required. Comma separated JSON objects or Object Arrays.
+                                            Default behavior: Order matters. 
+                                            Properties in objects with no id will over write the same properties in
+                                            objects with id if that object is passed in after.
+                                            NB.  You can pass in 2 arrays if desired. See example below. 
         @returns    {Object Array}          emits objects from previous step which may or may not included
                                             the updated objects.
-
-        If id passed in update just that, if no id apply update to all objects.
+        
+        If id passed in update just that, if no id apply update to all objects. Order matters. No id object
+        write to all object and may overwi
 
         @example
             
-            var result = g.v(10).update({ name: 'John', surname: 'Doe'});
+            var result = g.v(10).update({ name: 'John', surname: 'Doe'}); //adds surname property to all
+                                                                            updated objects
+            
+            var noIdArr = [];
+            noIdArr.push({ name: 'john'});
+
+            var idArr = [];
+            idArr.push({ '@id': 10, name: 'frank'});
+            
+            //No id objects passed in first
+            g.v(10, 40).update(noIdArr, idArr).value(); //v(10).name === 'frank'; v(40).name === 'john'; 
+            //No id objects passed in last
+            g.v(10, 40).update(idArr, noIdArr).value(); //v(10).name === 'john'; v(40).name === 'john';
 
     ***************************************************************************************************/
     function update() {
@@ -2673,6 +2690,30 @@
                     if (element.obj[env.id] == newProps[env.id]) {
                         for (key in newProps) {
                             if (newProps.hasOwnProperty(key) && !fn.include(sysFields, key)) {
+                                if (element.obj[key] !== newProps[key]) {
+                                    //check to see if there is an index assoc. with key
+                                    if (!!idxArr[key]) {
+                                        //if there is an index move to the new location
+                                        delete idxArr[key][element.obj[key]][element.obj[env.id]];
+                                        if (fn.isEmpty(idxArr[key][element.obj[key]])) {
+                                            delete idxArr[key][element.obj[key]];
+                                        }
+                                        element.obj[key] = newProps[key];
+                                        if (!!!idxArr[key][element.obj[key]]) {
+                                            idxArr[key][element.obj[key]] = {};
+                                        }
+                                        idxArr[key][element.obj[key]][element.obj[env.id]] = element.obj;
+                                    } else {
+                                        element.obj[key] = newProps[key];
+                                    }
+                                }
+                            }
+                        }
+                    }
+                } else {
+                    for (key in newProps) {
+                        if (newProps.hasOwnProperty(key) && !fn.include(sysFields, key)) {
+                            if (element.obj[key] !== newProps[key]) {
                                 //check to see if there is an index assoc. with key
                                 if (!!idxArr[key]) {
                                     //if there is an index move to the new location
@@ -2685,28 +2726,10 @@
                                         idxArr[key][element.obj[key]] = {};
                                     }
                                     idxArr[key][element.obj[key]][element.obj[env.id]] = element.obj;
+                                } else {
+                                    element.obj[key] = newProps[key];
                                 }
-                                element.obj[key] = newProps[key];
                             }
-                        }
-                    }
-                } else {
-                    for (key in newProps) {
-                        if (newProps.hasOwnProperty(key) && !fn.include(sysFields, key)) {
-                            //check to see if there is an index assoc. with key
-                            if (!!idxArr[key]) {
-                                //if there is an index move to the new location
-                                delete idxArr[key][element.obj[key]][element.obj[env.id]];
-                                if (fn.isEmpty(idxArr[key][element.obj[key]])) {
-                                    delete idxArr[key][element.obj[key]];
-                                }
-                                element.obj[key] = newProps[key];
-                                if (!!!idxArr[key][element.obj[key]]) {
-                                    idxArr[key][element.obj[key]] = {};
-                                }
-                                idxArr[key][element.obj[key]][element.obj[env.id]] = element.obj;
-                            }
-                            element.obj[key] = newProps[key];
                         }
                     }
                 }
