@@ -26,7 +26,7 @@
         hasVIndex = false,
         hasEIndex = false,
         graph = {'vertices': {}, 'edges': {}, 'v_idx': {}, 'e_idx': {}},
-        unpipedFuncs = ['label', 'id', 'value', 'distinct', 'stringify', 'count', 'map', 'clone', 'path', 'fork', 'pin', 'delete'];
+        unpipedFuncs = ['label', 'id', 'dataObj', 'value', 'distinct', 'stringify', 'count', 'map', 'clone', 'path', 'fork', 'pin', 'delete'];
 
     Function.prototype.pipe = function () {
         var that = this;
@@ -635,12 +635,8 @@
     fn.toArray = function (o) {
         var k, r = [];
         for (k in o) {
-            if (o.hasOwnProperty(k)) {
-                //This is done so that when a temp id is updated from the server
-                //it won't be included in arrays and counts
-                //if (o[k].obj[env.id] == k) { 
-                    r.push(o[k]);
-                //}
+            if (o.hasOwnProperty(k) && !fn.isFunction(o[k])) {
+                r.push(o[k]);
             }
         }
         return r;
@@ -936,6 +932,15 @@
         return result;
     };
 
+    fn.toObjHash = function (array) {
+        var i, l = array.length, result = {};
+
+        for (i = 0; i < l; i += 1) {
+            result[i] = array[i].obj;
+        }
+        return result;
+    };
+
     fn.toObjArray = function (array) {
         var i, l = array.length, result = [];
 
@@ -1060,7 +1065,7 @@
         Called to emit the result from traversing the graph.
 
         @name       pipedValue()        Not to be called directly
-        @alias      value()             callable
+        @alias      dataObj()             callable
         @returns    {Object Array}      Returns a Referenced Object Array to emitted Vertices or Edges.
         
         @example
@@ -1069,21 +1074,76 @@
 
     ***************************************************************************************************/
     function pipedValue() {
-        var retVal = [];
+        var retVal = {},
+            cachedPipe = {},
+            args = [],
+            tempArgs = [];
+
+        if (!!this.pipedObjects[0] && !!this.pipedObjects[0].obj) {
+            
+            cachedPipe.pipedObjects = this.pipedObjects;
+            retVal = fn.toObjHash(this.pipedObjects);
+            
+            retVal.toArray = function() {
+                return fn.toArray(retVal);
+            },
+            retVal.delete = function() {
+                args = slice.call(arguments);
+                if (!!args.length) {
+                    return _delete.apply(cachedPipe, args);    
+                } else {
+                    return _delete.apply(cachedPipe);    
+                }
+            },
+            retVal.commit = function() {
+                tempArgs.length = 0;
+                push.call(tempArgs, cachedPipe.pipedObjects);
+                push.apply(tempArgs, retVal.toArray());
+                return fn.toObjArray(update.apply(null, tempArgs));
+            },
+            retVal.map = function() {
+                args = slice.call(arguments);
+                if (!!args.length) {
+                    return map.apply(cachedPipe, args);    
+                } else {
+                    return map.apply(cachedPipe);    
+                }
+            },
+            retVal.stringify = function() {
+                args = slice.call(arguments);
+                if (!!args.length) {
+                    return stringify.apply(cachedPipe, args);    
+                } else {
+                    return stringify.apply(cachedPipe);    
+                }
+            }
+        } else {
+            retVal = this.pipedObjects;
+        }
+        fn.resetPipe.call(this);
+        return retVal;
+    }
+
+/***************************************************************************************************
+
+        Called to emit the result from traversing the graph.
+
+        @name       value()        
+        @returns    {Object Array}      Returns a Referenced Object Array to emitted Vertices or Edges.
+        
+        @example
+            
+            var result = g.V().value();
+
+    ***************************************************************************************************/
+    function value() {
+        var retVal = [], args = arguments;
         if (!!this.pipedObjects[0] && !!this.pipedObjects[0].obj) {
             retVal = fn.toObjArray(this.pipedObjects);
         } else {
             retVal = this.pipedObjects;
         }
 
-        if (!!retVal.length) {
-            retVal.proto.delete = function(){
-
-            };
-            retVal.prototype.commit = function(){
-
-            };
-        }
         fn.resetPipe.call(this);
         return retVal;
     }
@@ -1181,6 +1241,8 @@
                 push.apply(params, args);
                 return fn.pick.apply(this, params);
             });
+        } else {
+            retVal = fn.toObjArray(this.pipedObjects);
         }
         fn.resetPipe.call(this);
         return retVal;
@@ -3032,7 +3094,8 @@
     Helios.prototype.tail = tail;
     Helios.prototype.path = path;
     Helios.prototype.stringify = stringify;
-    Helios.prototype.value = pipedValue;
+    Helios.prototype.dataObj = pipedValue;
+    Helios.prototype.value = value;
     Helios.prototype.distinct = distinct;
     Helios.prototype.fork = fork;
     Helios.prototype.pin = pin;
