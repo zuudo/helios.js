@@ -19,11 +19,10 @@
         shift = ArrayProto.shift,
         indexOf = ArrayProto.indexOf,
         concat = ArrayProto.concat,
-        env,
-        graphUtils = {},
-        fn = {},
-        comparable = {},
-        utils = {},
+        env, //config env variables
+        fn = {}, //internal functions
+        dbfn = {}, //graph database functions
+        comparable = {}, //comparable functions i.e. eq, neq ...
         graph = {'vertices': {}, 'edges': {}, 'v_idx': {}, 'e_idx': {}},
         unpipedFuncs = ['label', 'id', 'value', 'distinct', 'stringify', 'count', 'map', 'clone', 'path', 'fork', 'pin', 'delete'];
 
@@ -75,7 +74,7 @@
         //used to prevent steps being reset for fork()
         this.preserveSteps = false;
 
-        utils.resetPipe.call(this);
+        fn.resetPipe.call(this);
         return pipe.call(this);
     }
 
@@ -191,7 +190,7 @@
     Helios.newGraph = function (aGraph, conf) {
         var isJSON = false, fileExt, key;
 
-        if (utils.isString(aGraph)) {
+        if (fn.isString(aGraph)) {
             fileExt = aGraph.split('.').pop();
             isJSON = fileExt.toLowerCase() === 'json';
         }
@@ -200,7 +199,7 @@
             isJSON = true;
         }
 
-        if ((!!aGraph && !utils.isString(aGraph) && !isJSON) || !!conf) {
+        if ((!!aGraph && !fn.isString(aGraph) && !isJSON) || !!conf) {
             if (!conf) {
                 conf = aGraph;
                 aGraph = false;
@@ -212,10 +211,10 @@
             }
         }
         if (!!aGraph && isJSON) {
-            graphUtils.loadGraphSON(aGraph);
+            dbfn.loadGraphSON(aGraph);
         }
         if (!!aGraph && !isJSON) {
-            graphUtils.loadGraphML(aGraph);
+            dbfn.loadGraphML(aGraph);
         }
         return new Helios();
     };
@@ -255,14 +254,14 @@
             g.graph.loadGraphSON(someData);
 
     ***************************************************************************************************/
-    graphUtils.loadGraphSON = function (jsonData) {
+    dbfn.loadGraphSON = function (jsonData) {
 
         var xmlhttp;
 
         env = Helios.ENV;
 
-		if (utils.isUndefined(jsonData)) { return; }
-		if (utils.isString(jsonData)) {
+		if (fn.isUndefined(jsonData)) { return; }
+		if (fn.isString(jsonData)) {
 			xmlhttp = new XMLHttpRequest();
 			xmlhttp.onreadystatechange = function () {
                 if (xmlhttp.readyState === 4) {
@@ -275,25 +274,25 @@
 
 		//process vertices
 		if (jsonData.vertices) {
-            graphUtils.loadVertices(jsonData.vertices);
+            dbfn.loadVertices(jsonData.vertices);
 		}
 
 		//process edges
 		if (jsonData.edges) {
-            graphUtils.loadEdges(jsonData.edges);
+            dbfn.loadEdges(jsonData.edges);
 		}
 		return Helios;
     };
 
     /*Use this to load JSON Verticies into Graph*/
-    graphUtils.loadVertices = function(){
+    dbfn.loadVertices = function(){
         
         var i,
             retVal = [],
             rows =  fn.flatten(slice.call(arguments)),
             l = rows.length, 
             vertex = {},
-            hasVIndex = !utils.isEmpty(graph.v_idx);
+            hasVIndex = !fn.isEmpty(graph.v_idx);
 
         for (i = 0; i < l; i += 1) {
             graph.vertices[rows[i][env.id]] = { 'obj': rows[i], 'type': 'vertex', 'outE': {}, 'inE': {} };
@@ -301,26 +300,26 @@
             push.call(retVal, vertex);
             //Add to index
             if (hasVIndex) {
-                utils.addVIndex(vertex);
+                fn.addVIndex(vertex);
             }
         }
         return retVal;
     }
 
     /*Use this to load JSON Edges into Graph*/
-    graphUtils.loadEdges = function(){
+    dbfn.loadEdges = function(){
         
         var i,
             retVal = [],        
             rows = fn.flatten(slice.call(arguments)),
             l = rows.length,
             edge = {},
-            hasEIndex = !utils.isEmpty(graph.e_idx);
+            hasEIndex = !fn.isEmpty(graph.e_idx);
 
         for (i = 0; i < l; i += 1) {
             edge = { 'obj': rows[i], 'type': 'edge', 'outV': {}, 'inV': {} };
             graph.edges[edge.obj[env.id]] = edge;
-            utils.associateVertices(edge);
+            fn.associateVertices(edge);
             edge.obj[env.VOut] = edge.outV.obj;
             edge.obj[env.VIn] = edge.inV.obj;
             delete edge.obj[env.outVid];
@@ -328,7 +327,7 @@
             push.call(retVal, edge);
             //Add to index
             if (hasEIndex) {
-                utils.addEIndex(edge);
+                fn.addEIndex(edge);
             }
         }
         return retVal;
@@ -349,7 +348,7 @@
             g.graph.loadGraphML(someXMLData);
 
     ***************************************************************************************************/
-    graphUtils.loadGraphML = function (xmlData) {
+    dbfn.loadGraphML = function (xmlData) {
 
         var i, j, l, propLen,
             xmlV = [], xmlE = [], vertex = {}, edge = {},
@@ -359,13 +358,13 @@
             xmlDoc,
             properties,
             tempObj = {},
-            hasVIndex = !utils.isEmpty(graph.v_idx),
-            hasEIndex = !utils.isEmpty(graph.e_idx);
+            hasVIndex = !fn.isEmpty(graph.v_idx),
+            hasEIndex = !fn.isEmpty(graph.e_idx);
 
         env = Helios.ENV;
 
-        if (utils.isUndefined(xmlData)) { return; }
-        if (utils.isString(xmlData)) {
+        if (fn.isUndefined(xmlData)) { return; }
+        if (fn.isString(xmlData)) {
 
             fileExt = xmlData.split('.').pop();
 
@@ -412,7 +411,7 @@
                 vertex = graph.vertices[xmlV[i].getAttribute("id")];
                 //Add to index
                 if (hasVIndex) {
-                    utils.addVIndex(vertex);
+                    fn.addVIndex(vertex);
                 }
             }
         }
@@ -436,14 +435,14 @@
 
                 graph.edges[xmlE[i].getAttribute("id")] = { 'obj': tempObj, 'type': 'edge', 'outV': {}, 'inV': {} };
                 edge = graph.edges[xmlE[i].getAttribute("id")];
-                utils.associateVertices(edge);
+                fn.associateVertices(edge);
                 edge.obj[env.VOut] = edge.outV.obj;
                 edge.obj[env.VIn] = edge.inV.obj;
                 delete edge.obj[env.outVid];
                 delete edge.obj[env.inVid];
                 //Add to index
                 if (hasEIndex) {
-                    utils.addEIndex(edge);
+                    fn.addEIndex(edge);
                 }
             }
         }
@@ -451,39 +450,39 @@
     };
 
 
-    graphUtils.createVIndex = function (idxName) {
+    dbfn.createVIndex = function (idxName) {
         var vertices = [];
 
         if (!graph.v_idx[idxName]) {
-            vertices = utils.toArray(graph.vertices);
+            vertices = fn.toArray(graph.vertices);
             graph.v_idx[idxName] = {};
             fn.each(vertices, function (vertex) {
-                utils.addVIndex(vertex, idxName);
+                fn.addVIndex(vertex, idxName);
             });
         }
     };
 
-    graphUtils.deleteVIndex = function (idxName) {
+    dbfn.deleteVIndex = function (idxName) {
         delete graph.v_idx[idxName];
     };
 
-    graphUtils.createEIndex = function (idxName) {
+    dbfn.createEIndex = function (idxName) {
         var edges = [];
 
         if (!graph.e_idx[idxName]) {
-            edges = utils.toArray(graph.edges);
+            edges = fn.toArray(graph.edges);
             graph.e_idx[idxName] = {};
             fn.each(edges, function (edge) {
-                utils.addEIndex(edge, idxName);
+                fn.addEIndex(edge, idxName);
             });
         }
     };
 
-    graphUtils.deleteEIndex = function (idxName) {
+    dbfn.deleteEIndex = function (idxName) {
         delete graph.e_idx[idxName];
     };
 
-    graphUtils.addV = function () {
+    dbfn.addV = function () {
         var args = fn.flatten(slice.call(arguments, 0)),
             newVertices = [];
 
@@ -497,10 +496,10 @@
 
         });
         
-        return fn.getObjProp(graphUtils.loadVertices(newVertices));
+        return fn.getObjProp(dbfn.loadVertices(newVertices));
     }
 
-    utils.addVIndex = function (vertex, idxName) {
+    fn.addVIndex = function (vertex, idxName) {
         var idx;
         if (idxName) {
             if (!!vertex.obj[idxName]) {
@@ -523,7 +522,7 @@
         }
     };
 
-    utils.addEIndex = function (edge, idxName) {
+    fn.addEIndex = function (edge, idxName) {
         var idx;
         if (idxName) {
             if (!!edge.obj[idxName]) {
@@ -546,7 +545,7 @@
         }
     };
 
-    utils.associateVertices = function (edge) {
+    fn.associateVertices = function (edge) {
         var vertex;
 
         if (!graph.vertices[edge.obj[env.outVid]]) {
@@ -583,13 +582,13 @@
             g.graph.close();
 
     ***************************************************************************************************/
-    graphUtils.close = function () {
+    dbfn.close = function () {
         graph = {'vertices': {}, 'edges': {}, 'v_idx': {}, 'e_idx': {}};
         return Helios;
     };
 
     //utils are internal utility functions
-    utils.resetPipe = function () {
+    fn.resetPipe = function () {
         if (!this.preserveSteps) {
             this.pipeline = {
                 'steps': {
@@ -600,7 +599,7 @@
         }
         //if this.pipelineCache has been created then signifies to
         //preserve step 1 - used by pin()
-        if (!utils.isEmpty(this.pipelineCache)) {
+        if (!fn.isEmpty(this.pipelineCache)) {
             this.pipeline.steps['1'] = {};
             this.pipeline.steps['1'].pipedInArgs = [];
             this.pipeline.steps['1'].func = this.pipelineCache.func;
@@ -610,7 +609,7 @@
         }
     };
 
-    utils.toArray = function (o) {
+    fn.toArray = function (o) {
         var k, r = [];
         for (k in o) {
             if (o.hasOwnProperty(k)) {
@@ -624,27 +623,27 @@
         return r;
     };
 
-    utils.isArray = function (o) {
+    fn.isArray = function (o) {
         return toString.call(o) === '[object Array]';
     };
 
-    utils.isString = function (o) {
+    fn.isString = function (o) {
         return toString.call(o) === '[object String]';
     };
 
-    utils.isNumber = function (o) {
+    fn.isNumber = function (o) {
         return toString.call(o) === '[object Number]';
     };
 
-    utils.isDate = function (o) {
+    fn.isDate = function (o) {
         return toString.call(o) === '[object Date]';
     };
 
-    utils.isObject = function (o) {
+    fn.isObject = function (o) {
         return toString.call(o) === '[object Object]';
     };
 
-    utils.isEmpty = function (o) {
+    fn.isEmpty = function (o) {
         var key;
         if (!o) {
             return true;
@@ -657,15 +656,15 @@
         return true;
     };
 
-    utils.isFunction = function (o) {
+    fn.isFunction = function (o) {
         return toString.call(o) === '[object Function]';
     };
 
-    utils.isNull = function (o) {
+    fn.isNull = function (o) {
         return toString.call(o) === '[object Null]';
     };
 
-    utils.isUndefined = function (o) {
+    fn.isUndefined = function (o) {
         return toString.call(o) === '[object Undefined]';
     };
 
@@ -785,9 +784,9 @@
             element = array[i].obj;
             for (j = 0; j < propsLen; j += 1) {
                 if (!o[props[j]]) {
-                    o[props[j]] = utils.isNumber(element[props[j]]) ? element[props[j]] : 0;
+                    o[props[j]] = fn.isNumber(element[props[j]]) ? element[props[j]] : 0;
                 } else {
-                    o[props[j]] += utils.isNumber(element[props[j]]) ? element[props[j]] : 0;
+                    o[props[j]] += fn.isNumber(element[props[j]]) ? element[props[j]] : 0;
                 }
             }
         }
@@ -894,7 +893,7 @@
     };
 
     fn.values = function (o) {
-        return utils.toArray(o);
+        return fn.toArray(o);
     };
 
     fn.pick = function (o) {
@@ -938,7 +937,7 @@
 
         while ((index += 1) < length) {
             value = array[index];
-            if (utils.isArray(value)) {
+            if (fn.isArray(value)) {
                 push.apply(result, shallow ? value : fn.flatten(value));
             } else {
                 result.push(value);
@@ -951,7 +950,7 @@
 
         var i, len = array.length, val, retVal = [];
 
-        //if (!utils.isFunction(func))
+        //if (!fn.isFunction(func))
           //throw new TypeError();
 
         for (i = 0; i < len; i += 1) {
@@ -965,7 +964,7 @@
 
         var i, len = array.length, val, retVal = [];
 
-        //if (!utils.isFunction(func))
+        //if (!fn.isFunction(func))
           //throw new TypeError();
 
         for (i = 0; i < len; i += 1) {
@@ -981,7 +980,7 @@
 
         var i, len = array.length, val, retVal = [];
 
-        //if (!utils.isFunction(func))
+        //if (!fn.isFunction(func))
           //throw new TypeError();
 
         for (i = 0; i < len; i += 1) {
@@ -1051,7 +1050,7 @@
             retVal = this.pipedObjects;
         }
 
-        utils.resetPipe.call(this);
+        fn.resetPipe.call(this);
         return retVal;
     }
 
@@ -1090,7 +1089,7 @@
 
         newHelios = new Helios();
         newHelios.pipedObjects = this.pipedObjects;
-        utils.resetPipe.call(newHelios);
+        fn.resetPipe.call(newHelios);
 
         newHelios.pipeline.steps['1'] = {};
         newHelios.pipeline.steps['1'].pipedInArgs = this.pipeline.steps[this.pipeline.steps.currentStep].pipedInArgs;
@@ -1099,7 +1098,7 @@
         newHelios.pipeline.steps.currentStep = 1;
         newHelios.preserveSteps = true;
 
-        utils.resetPipe.call(this);
+        fn.resetPipe.call(this);
         return newHelios;
     }
 
@@ -1123,8 +1122,8 @@
         newHelios.pipelineCache = {};
         newHelios.pipelineCache.pipedOutArgs = this.pipeline.steps[this.pipeline.steps.currentStep].pipedOutArgs;
         newHelios.pipelineCache.func = this.pipeline.steps[this.pipeline.steps.currentStep].func;
-        utils.resetPipe.call(this);
-        utils.resetPipe.call(newHelios);
+        fn.resetPipe.call(this);
+        fn.resetPipe.call(newHelios);
         return newHelios;
     }
 
@@ -1149,7 +1148,7 @@
                 return fn.pick.apply(this, params);
             });
         }
-        utils.resetPipe.call(this);
+        fn.resetPipe.call(this);
         return retVal;
     }
 
@@ -1177,7 +1176,7 @@
         } else {
             retVal = this.pipedObjects;
         }
-        utils.resetPipe.call(this);
+        fn.resetPipe.call(this);
         return JSON.stringify(retVal);
     }
 
@@ -1227,7 +1226,7 @@
         }
         push.call(retVal, JSON.stringify(o));
         push.apply(retVal, fn.getObjProp(this.pipedObjects));
-        utils.resetPipe.call(this);
+        fn.resetPipe.call(this);
         return retVal;
     }
 
@@ -1313,7 +1312,7 @@
         retVal = fn.map(this.pipedObjects, function (element, key, list) {
             return element.obj[env.id];
         });
-        utils.resetPipe();
+        fn.resetPipe();
         return retVal;
     }
 
@@ -1335,7 +1334,7 @@
             return element.obj[env.label];
         });
 
-        utils.resetPipe();
+        fn.resetPipe();
         return retVal;
     }
 
@@ -1358,7 +1357,7 @@
             value;
 
         fn.each(arguments[0], function (vertex, key, list) {
-            if (!utils.isEmpty(vertex.outE)) {
+            if (!fn.isEmpty(vertex.outE)) {
                 value = hasArgs ? fn.pick(vertex.outE, args) : vertex.outE;
                 fn.each(fn.flatten(fn.values(value)), function (edge) {
                     push.call(retVal, edge.inV);
@@ -1392,7 +1391,7 @@
             value;
 
         fn.each(arguments[0], function (vertex, key, list) {
-            if (!utils.isEmpty(vertex.inE)) {
+            if (!fn.isEmpty(vertex.inE)) {
                 value = hasArgs ? fn.pick(vertex.inE, args) : vertex.inE;
                 fn.each(fn.flatten(fn.values(value)), function (edge) {
                     push.call(retVal, edge.outV);
@@ -1438,13 +1437,13 @@
             value;
 
         fn.each(arguments[0], function (vertex, key, list) {
-            if (!utils.isEmpty(vertex.outE)) {
+            if (!fn.isEmpty(vertex.outE)) {
                 value = hasArgs ? fn.pick(vertex.outE, args) : vertex.outE;
                 fn.each(fn.flatten(fn.values(value)), function (edge) {
                     push.call(retVal, edge.inV);
                 });
             }
-            if (!utils.isEmpty(vertex.inE)) {
+            if (!fn.isEmpty(vertex.inE)) {
                 value = hasArgs ? fn.pick(vertex.inE, args) : vertex.inE;
                 fn.each(fn.flatten(fn.values(value)), function (edge) {
                     push.call(retVal, edge.outV);
@@ -1492,7 +1491,7 @@
             value;
 
         fn.each(arguments[0], function (vertex, key, list) {
-            if (!utils.isEmpty(vertex.outE)) {
+            if (!fn.isEmpty(vertex.outE)) {
                 value = hasArgs ? fn.pick(vertex.outE, args) : vertex.outE;
                 fn.each(fn.flatten(fn.values(value)), function (edge) {
                     push.call(retVal, edge);
@@ -1521,7 +1520,7 @@
             value;
 
         fn.each(arguments[0], function (vertex, key, list) {
-            if (!utils.isEmpty(vertex.inE)) {
+            if (!fn.isEmpty(vertex.inE)) {
                 value = hasArgs ? fn.pick(vertex.inE, args) : vertex.inE;
                 fn.each(fn.flatten(fn.values(value)), function (edge) {
                     push.call(retVal, edge);
@@ -1551,13 +1550,13 @@
 
         fn.each(arguments[0], function (vertex, key, list) {
 
-            if (!utils.isEmpty(vertex.outE)) {
+            if (!fn.isEmpty(vertex.outE)) {
                 value = hasArgs ? fn.pick(vertex.outE, args) : vertex.outE;
                 fn.each(fn.flatten(fn.values(value)), function (edge) {
                     push.call(retVal, edge);
                 });
             }
-            if (!utils.isEmpty(vertex.inE)) {
+            if (!fn.isEmpty(vertex.inE)) {
                 value = hasArgs ? fn.pick(vertex.inE, args) : vertex.inE;
                 fn.each(fn.flatten(fn.values(value)), function (edge) {
                     push.call(retVal, edge);
@@ -1581,9 +1580,9 @@
         var args = slice.call(arguments, 1);
 
         if (args.length === 2) {
-            return utils.toArray(graph.v_idx[args[0]][args[1]]);
+            return fn.toArray(graph.v_idx[args[0]][args[1]]);
         }
-        return utils.toArray(graph.vertices);
+        return fn.toArray(graph.vertices);
     }
 
     /***************************************************************************************************
@@ -1600,9 +1599,9 @@
         var args = slice.call(arguments, 1);
 
         if (args.length === 2) {
-            return utils.toArray(graph.e_idx[args[0]][args[1]]);
+            return fn.toArray(graph.e_idx[args[0]][args[1]]);
         }
-        return utils.toArray(graph.edges);
+        return fn.toArray(graph.edges);
     }
 
     /***************************************************************************************************
@@ -1645,9 +1644,9 @@
                 self.traversedVertices[vertex.obj[env.id]] = 'visited';
 
                 value = hasArgs ? fn.pick(vertex.outE, args) : vertex.outE;
-                if (utils.isEmpty(value)) {
+                if (fn.isEmpty(value)) {
                     if (hasArgs) {
-                        if (!utils.isEmpty(fn.pick(vertex.inE, args))) {
+                        if (!fn.isEmpty(fn.pick(vertex.inE, args))) {
                             push.call(retVal, vertex);
                         }
                     } else {
@@ -1698,9 +1697,9 @@
                 self.traversedVertices[vertex.obj[env.id]] = 'visited';
 
                 value = hasArgs ? fn.pick(vertex.inE, args) : vertex.inE;
-                if (utils.isEmpty(value)) {
+                if (fn.isEmpty(value)) {
                     if (hasArgs) {
-                        if (!utils.isEmpty(fn.pick(vertex.outE, args))) {
+                        if (!fn.isEmpty(fn.pick(vertex.outE, args))) {
                             push.call(retVal, vertex);
                         }
                     } else {
@@ -1762,12 +1761,12 @@
 
         if (!!args.length) {
             //if pass in Array, populate it, else store as a named pipe 
-            if (utils.isArray(args[0])) {
+            if (fn.isArray(args[0])) {
                 push.apply(args[0], fn.getObjProp(arguments[0]));
             } else {
                 this.pipeline.namedStep[args[0]] = this.pipeline.steps.currentStep;
             }
-            if (utils.isFunction(args[1])) {
+            if (fn.isFunction(args[1])) {
                 func = args[1];
                 args.shift();
                 funcArgs = fn.flatten(slice.call(args, 1));
@@ -1799,12 +1798,12 @@
         var backSteps = arguments[1],
             stepBackTo;
 
-        if (utils.isArray(backSteps)) {
+        if (fn.isArray(backSteps)) {
             return backSteps;
         }
 
-        if (utils.isString(backSteps)) {
-            if (utils.isUndefined(this.pipeline.namedStep[backSteps])) {
+        if (fn.isString(backSteps)) {
+            if (fn.isUndefined(this.pipeline.namedStep[backSteps])) {
                 return;
             }
             stepBackTo = this.pipeline.namedStep[backSteps];
@@ -1832,7 +1831,7 @@
     function except() {
 
         var arg = arguments[1], dSet, diff, retVal = [];
-        dSet = utils.isArray(arg) ? arg : fn.getObjProp(this.pipeline.steps[this.pipeline.namedStep[arg]].pipedOutArgs[0]);
+        dSet = fn.isArray(arg) ? arg : fn.getObjProp(this.pipeline.steps[this.pipeline.namedStep[arg]].pipedOutArgs[0]);
         retVal = fn.difference(fn.getObjProp(arguments[0]), dSet, true);
 
         return retVal;
@@ -1907,7 +1906,7 @@
             funcArgs = [],
             argLen = args.length;
 
-        if (utils.isFunction(args[0])) {
+        if (fn.isFunction(args[0])) {
             func = args[0];
             funcArgs = fn.flatten(slice.call(args, 1), true);
 
@@ -1968,7 +1967,7 @@
             len,
             ids = [];
 
-        if (utils.isFunction(args[0])) {
+        if (fn.isFunction(args[0])) {
             func = args[0];
             funcArgs = fn.flatten(slice.call(args, 1), true);
 
@@ -2021,7 +2020,7 @@
 
         var arg = arguments[1], dSet, diff, retVal = [];
 
-        dSet = utils.isArray(arg) ? arg : fn.getObjProp(this.pipeline.steps[this.pipeline.namedStep[arg]].pipedOutArgs[0]);
+        dSet = fn.isArray(arg) ? arg : fn.getObjProp(this.pipeline.steps[this.pipeline.namedStep[arg]].pipedOutArgs[0]);
         retVal = fn.intersection(fn.getObjProp(arguments[0]), dSet, true);
         return retVal;
     }
@@ -2049,7 +2048,7 @@
             func,
             funcArgs = [];
 
-        if (utils.isFunction(args[0])) {
+        if (fn.isFunction(args[0])) {
             func = args[0];
             funcArgs = fn.flatten(slice.call(args, 1), true);
             retVal = func.apply(arguments[0], funcArgs);
@@ -2074,7 +2073,7 @@
     function count() {
         var retVal = this.pipedObjects.length;
 
-        utils.resetPipe.call(this);
+        fn.resetPipe.call(this);
         return retVal;
     }
 
@@ -2107,7 +2106,7 @@
             objVar = args[0],
             params;
 
-        if (utils.isString(args[0])) {
+        if (fn.isString(args[0])) {
             objVar = slice.call(args);
         } else {
             params = slice.call(args, 1);
@@ -2146,7 +2145,7 @@
             objVar = args[0],
             params;
 
-        if (utils.isString(args[0])) {
+        if (fn.isString(args[0])) {
             objVar = slice.call(args);
         } else {
             params = slice.call(args, 1);
@@ -2179,7 +2178,7 @@
             objVar = args[0],
             params;
 
-        if (utils.isString(args[0])) {
+        if (fn.isString(args[0])) {
             objVar = slice.call(args);
         } else {
             params = slice.call(args, 1);
@@ -2208,7 +2207,7 @@
             objVar = args[0],
             params;
 
-        if (utils.isString(args[0])) {
+        if (fn.isString(args[0])) {
             objVar = slice.call(args);
         } else {
             params = slice.call(args, 1);
@@ -2239,7 +2238,7 @@
             toStep,
             self = this;
 
-        if (utils.isString(backSteps)) {
+        if (fn.isString(backSteps)) {
             backSteps = self.pipeline.steps.currentStep + 1 - self.pipeline.namedStep[backSteps];
         }
     
@@ -2306,7 +2305,7 @@
         });
 
         if (!!newVertices.length) {
-             graphUtils.loadVertices(newVertices);
+             dbfn.loadVertices(newVertices);
         }
 
         return retVal;
@@ -2371,7 +2370,7 @@
                     if (!!!newVertex[env.type]) {
                         newVertex[env.type] = 'vertex';
                     }
-                    loadedVertex = graphUtils.loadVertices(newVertex)[0];
+                    loadedVertex = dbfn.loadVertices(newVertex)[0];
                 } else {
                     loadedVertex = graph.vertices[newVertex[env.id]];
                 }
@@ -2390,7 +2389,7 @@
                     newEdge[env.id] = uuid.v4(); //temp id
                     newEdge[env.outVid] = vertex.obj[env.id];
                     newEdge[env.inVid] = newVertex[env.id];
-                    graphUtils.loadEdges(newEdge);
+                    dbfn.loadEdges(newEdge);
                 });
             });
         });
@@ -2457,7 +2456,7 @@
                     if (!!!newVertex[env.type]) {
                         newVertex[env.type] = 'vertex';
                     }
-                    loadedVertex = graphUtils.loadVertices(newVertex)[0];
+                    loadedVertex = dbfn.loadVertices(newVertex)[0];
                 } else {
                     loadedVertex = graph.vertices[newVertex[env.id]];
                 }
@@ -2476,7 +2475,7 @@
                     newEdge[env.id] = uuid.v4(); //temp id
                     newEdge[env.outVid] = newVertex[env.id];
                     newEdge[env.inVid] = vertex.obj[env.id];
-                    graphUtils.loadEdges(newEdge);
+                    dbfn.loadEdges(newEdge);
                 });
             });
         });
@@ -2504,7 +2503,7 @@
             args = fn.flatten(slice.call(arguments, 0)),
             dedupedObjs = [],
             hasArgs = !!args.length,
-            sysFields = utils.toArray(env),
+            sysFields = fn.toArray(env),
             vertex,
             edgeArr = [],
             eid,
@@ -2549,7 +2548,7 @@
             })
         }
 
-        utils.resetPipe.call(this);
+        fn.resetPipe.call(this);
         return retVal;
     }
 
@@ -2637,7 +2636,7 @@
             edgeObj,
             edgeId,
             newEdge,
-            sysFields = utils.toArray(env),
+            sysFields = fn.toArray(env),
             self;
 
         if (args.length === 4) {
@@ -2646,13 +2645,13 @@
 
         fromVid = !!fromV[env.id] ? fromV[env.id] : fromV;
 
-        if (utils.isObject(toV)) {
+        if (fn.isObject(toV)) {
             if (!!!toV[env.id]) {
                 toV[env.id] = uuid.v4(); //temp id
                 if (!!!toV[env.type]) {
                     toV[env.type] = 'vertex';
                 }
-                graphUtils.loadVertices(toV);
+                dbfn.loadVertices(toV);
             }
             toVid = toV[env.id];
         } else {
@@ -2660,7 +2659,7 @@
         }
 
         fn.each(pipedInVertices, function (vertex) {
-            if (!utils.isEmpty(vertex.outE)) {
+            if (!fn.isEmpty(vertex.outE)) {
                 value = fn.pick(vertex.outE, label);
                 fn.each(value[label], function (edge) {
                     if (edge.inV.obj[env.id] == fromVid) {
@@ -2678,7 +2677,7 @@
                         tempEdge[env.label] = label;
                         tempEdge[env.outVid] = vertex.obj[env.id];
                         tempEdge[env.inVid] = toVid;
-                        newEdge = graphUtils.loadEdges(tempEdge)[0];
+                        newEdge = dbfn.loadEdges(tempEdge)[0];
                         if (!!edgeVar) {
                             edgeVar.oldEdge = fn.clone(edge.obj);
                             edgeVar.newEdge = newEdge.obj;
@@ -2726,7 +2725,7 @@
             edgeObj,
             edgeId,
             newEdge,
-            sysFields = utils.toArray(env),
+            sysFields = fn.toArray(env),
             self;
 
         if (args.length === 4) {
@@ -2735,13 +2734,13 @@
 
         fromVid = !!fromV[env.id] ? fromV[env.id] : fromV;
 
-        if (utils.isObject(toV)) {
+        if (fn.isObject(toV)) {
             if (!!!toV[env.id]) {
                 toV[env.id] = uuid.v4(); //temp id
                 if (!!!toV[env.type]) {
                     toV[env.type] = 'vertex';
                 }
-                graphUtils.loadVertices(toV);
+                dbfn.loadVertices(toV);
             }
             toVid = toV[env.id];
         } else {
@@ -2749,7 +2748,7 @@
         }
 
         fn.each(pipedInVertices, function (vertex) {
-            if (!utils.isEmpty(vertex.inE)) {
+            if (!fn.isEmpty(vertex.inE)) {
                 value = fn.pick(vertex.inE, label);
                 fn.each(value[label], function (edge) {
                     if (edge.outV.obj[env.id] == fromVid) {
@@ -2767,7 +2766,7 @@
                         tempEdge[env.label] = label;
                         tempEdge[env.outVid] = toVid;
                         tempEdge[env.inVid] = vertex.obj[env.id];
-                        newEdge = graphUtils.loadEdges(tempEdge)[0];
+                        newEdge = dbfn.loadEdges(tempEdge)[0];
                         if (!!edgeVar) {
                             edgeVar.oldEdge = fn.clone(edge.obj);
                             edgeVar.newEdge = newEdge.obj;
@@ -2968,7 +2967,7 @@
     //Methods
     Helios.prototype.v = v;
     Helios.prototype.e = e;
-    Helios.prototype.graph = graphUtils;
+    Helios.prototype.graph = dbfn;
 
     //Misc
     Helios.prototype.clone = clone;
