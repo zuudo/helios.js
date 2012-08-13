@@ -491,23 +491,6 @@
         hasEIndex = !fn.isEmpty(graph.e_idx);
     };
 
-    dbfn.addV = function () {
-        var args = fn.flatten(slice.call(arguments, 0)),
-            newVertices = [];
-
-        fn.each(args, function(vertex){
-            //create vertex if it doesn't have an id
-            if (!!!vertex[env.id]) {
-                vertex[env.id] = uuid.v4(); //new id
-                //vertex[env.type] = 'vertex';
-                push.call(newVertices, vertex);
-            }
-
-        });
-        
-        return fn.toObjArray(dbfn.loadVertices(newVertices));
-    }
-
     fn.addVIndex = function (vertex, idxName) {
         var idx;
         if (idxName) {
@@ -561,30 +544,6 @@
             }
         }
     };
-
-    // fn.updateIndexedElement = function (fromElement, toElement, idxName) {
-    //     var key, idxName;
-        
-    //     if (element.type === 'vertex') {
-    //         for (idxName in graph.v_idx) {
-    //             if (graph.v_idx.hasOwnProperty(idxName)) {
-    //                 if (!!element.obj[idxName]) {
-    //                     key = element.obj[idxName];
-    //                     delete graph.v_idx[idxName][key][element.obj[env.id]];
-    //                 }
-    //             }
-    //         }
-    //     } else {
-    //         for (idxName in graph.e_idx) {
-    //             if (graph.e_idx.hasOwnProperty(idxName)) {
-    //                 if (!!element.obj[idxName]) {
-    //                     key = element.obj[idxName];
-    //                     delete graph.e_idx[idxName][key][element.obj[env.id]];
-    //                 }
-    //             }
-    //         }
-    //     }
-    // };
 
     fn.addEIndex = function (edge, idxName) {
         var idx;
@@ -1117,6 +1076,14 @@
             retVal = this.pipedObjects;
         }
 
+        if (!!retVal.length) {
+            retVal.proto.delete = function(){
+
+            };
+            retVal.prototype.commit = function(){
+
+            };
+        }
         fn.resetPipe.call(this);
         return retVal;
     }
@@ -1142,8 +1109,8 @@
 
         Creates a new instance of Helios to continue traversing the graph.
 
-        @name       fork()        callable
-        @returns    {Helios}      Returns Helios referenc
+        @name       fork()        callable/chainable
+        @returns    {Helios}      Returns Helios reference
         
         @example
             
@@ -1173,7 +1140,7 @@
 
         Creates a new instance of Helios pinned to a point in the graph for traversal.
 
-        @name       pin()         callable
+        @name       pin()         callable/chainable
         @returns    {Helios}      Returns Helios reference.
         
         @example
@@ -2675,8 +2642,7 @@
             pipedInObjs = fn.uniqueObject(arguments[0]),
             sysFields = [env.id, env.VIn, env.VOut],
             key,
-            idxArr = [],
-            isIndexed = false;
+            idxArr = [];
 
         if (!!!pipedInObjs.length) {
             return retVal;
