@@ -991,10 +991,7 @@
     };
 
     fn.removeEdge = function (objArr, id) {
-         var i, len, retVal = [];
-
-        //if (!utils.isFunction(func))
-          //throw new TypeError();
+        var i, len, retVal = [];
 
         if (!!!id) {
             id = objArr;
@@ -1011,6 +1008,24 @@
                 return retVal;
             } else {
                 push.call(retVal, objArr[i]);
+            }
+        }
+        return retVal;
+    }
+
+    fn.removeAllEdges = function (objArr) {
+        var i, len, edgeArr = [], retVal = [], eid;
+
+        for (label in objArr) {
+            if (objArr.hasOwnProperty(label)) {
+                edgeArr = objArr[label];
+                push.apply(retVal, edgeArr);
+                len = edgeArr.length;
+                for (i = 0; i < len; i += 1) {
+                    eid = edgeArr[i].obj[env.id];
+                    edgeArr[i].inV.inE[label] = fn.removeEdge(edgeArr[i].inV.inE[label], eid);
+                    edgeArr[i].outV.outE[label] = fn.removeEdge(edgeArr[i].outV.outE[label], eid);
+                }
             }
         }
         return retVal;
@@ -2492,11 +2507,13 @@
             sysFields = utils.toArray(env),
             vertex,
             edgeArr = [],
-            isVertex = false;
+            eid,
+            label,
+            inV,
+            outV;
 
         if (!!this.pipedObjects[0] && !!this.pipedObjects[0].obj) {
             dedupedObjs = fn.uniqueObject(this.pipedObjects);
-            isVertex = dedupedObjs[0].type === 'vertex';
             fn.each(dedupedObjs, function(element){
                 if (hasArgs) {
                     fn.each (args, function(prop) {
@@ -2509,24 +2526,24 @@
                         }
                     })
                 } else {
-                    if (isVertex) {
-                        vertex = graph.vertices[element.obj[env.id]];
+                    if (element.type === 'vertex') {
+                        //vertex = graph.vertices[element.obj[env.id]];
                         //delete associated edges
-                        if (!!vertex.outE) {
-                            push.apply(edgeArr, fn.flatten(utils.toArray(vertex.outE)));
+                        if (!!element.outE) {
+                            push.apply(retVal.edge, fn.removeAllEdges(element.outE));
                         }
-                        if (!!vertex.inE) {
-                            push.apply(edgeArr, fn.flatten(utils.toArray(vertex.inE)));
-                        }                        
-                        fn.each (edgeArr, function(edge){
-                            push.call(retVal.edge, edge.obj);
-                            delete graph.edges[edge.obj[env.id]];
-                        });
-                        push.call(retVal.vertex, element.obj);
+                        if (!!element.inE) {
+                            push.apply(retVal.edge, fn.removeAllEdges(element.inE));
+                        }
+
+                        push.call(retVal.vertex, fn.clone(element.obj));
                         delete graph.vertices[element.obj[env.id]];
                     } else {
                         push.call(retVal.edge, element.obj);
-                        delete graph.edges[element.obj[env.id]];
+                        eid = element.obj[env.id];
+                        label = element.obj[env.label];
+                        element.inV.inE[label] = fn.removeEdge(element.inV.inE[label], eid);
+                        element.outV.outE[label] = fn.removeEdge(element.outV.outE[label], eid);
                     }
                 }
             })
@@ -2663,7 +2680,7 @@
                         tempEdge[env.inVid] = toVid;
                         newEdge = graphUtils.loadEdges(tempEdge)[0];
                         if (!!edgeVar) {
-                            edgeVar.oldEdge = JSON.parse(JSON.stringify(edge.obj));
+                            edgeVar.oldEdge = fn.clone(edge.obj);
                             edgeVar.newEdge = newEdge.obj;
                         }
                         vertex.outE[label] = fn.removeEdge(vertex.outE[label], edge.obj[env.id]);
@@ -2752,7 +2769,7 @@
                         tempEdge[env.inVid] = vertex.obj[env.id];
                         newEdge = graphUtils.loadEdges(tempEdge)[0];
                         if (!!edgeVar) {
-                            edgeVar.oldEdge = JSON.parse(JSON.stringify(edge.obj));
+                            edgeVar.oldEdge = fn.clone(edge.obj);
                             edgeVar.newEdge = newEdge.obj;
                         }
                         vertex.inE[label] = fn.removeEdge(vertex.inE[label], edge.obj[env.id]);
