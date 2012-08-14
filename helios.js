@@ -569,10 +569,13 @@
     };
 
     fn.associateVertices = function (edge) {
-        var vertex;
+        var vertex,
+            outVobj = {},
+            inVobj = {};
 
         if (!graph.vertices[edge.obj[env.outVid]]) {
-            graph.vertices[edge.obj[env.outVid]] = { 'obj': {}, 'type': 'vertex', 'outE': {}, 'inE': {} };
+            outVobj[env.id] = edge.obj[env.outVid];
+            graph.vertices[edge.obj[env.outVid]] = { 'obj': outVobj, 'type': 'vertex', 'outE': {}, 'inE': {} };
         }
         vertex = graph.vertices[edge.obj[env.outVid]];
         if (!vertex.outE[edge.obj[env.label]]) {
@@ -582,13 +585,13 @@
         push.call(vertex.outE[edge.obj[env.label]], edge);
 
         if (!graph.vertices[edge.obj[env.inVid]]) {
-            graph.vertices[edge.obj[env.inVid]] = { 'obj': {}, 'type': 'vertex', 'outE': {}, 'inE': {} };
+            inVobj[env.id] = edge.obj[env.inVid];
+            graph.vertices[edge.obj[env.inVid]] = { 'obj': inVobj, 'type': 'vertex', 'outE': {}, 'inE': {} };
         }
         vertex = graph.vertices[edge.obj[env.inVid]];
         if (!vertex.inE[edge.obj[env.label]]) {
             vertex.inE[edge.obj[env.label]] = [];
         }
-        vertex = graph.vertices[edge.obj[env.inVid]];
         edge.inV = vertex;
         push.call(vertex.inE[edge.obj[env.label]], edge);
     };
