@@ -20,6 +20,7 @@
         indexOf = ArrayProto.indexOf,
         concat = ArrayProto.concat,
         env, //config env variables
+        server, //remote server variables
         fn = {}, //internal functions
         dbfn = {}, //graph database functions
         comparable = {}, //comparable functions i.e. eq, neq ...
@@ -97,6 +98,14 @@
         'VOut':'out',
         'VIn':'in'
     };
+
+    //remote server config
+    Helios.SERVER = {
+        'baseUri': 'localhost',
+        'port': 8182,
+        'graphName': 'graphs/tinkergraph',
+        'type':'rexster' //options -> rest, tcp, other
+    }
 
 
     /****************************************************************************************************
@@ -324,10 +333,6 @@
             edge = { 'obj': rows[i], 'type': 'edge', 'outV': {}, 'inV': {} };
             graph.edges[edge.obj[env.id]] = edge;
             fn.associateVertices(edge);
-            edge.obj[env.VOut] = edge.outV.obj;
-            edge.obj[env.VIn] = edge.inV.obj;
-            delete edge.obj[env.outVid];
-            delete edge.obj[env.inVid];
             push.call(retVal, edge);
             //Add to index
             if (hasEIndex) {
@@ -441,10 +446,6 @@
                 graph.edges[xmlE[i].getAttribute("id")] = { 'obj': tempObj, 'type': 'edge', 'outV': {}, 'inV': {} };
                 edge = graph.edges[xmlE[i].getAttribute("id")];
                 fn.associateVertices(edge);
-                edge.obj[env.VOut] = edge.outV.obj;
-                edge.obj[env.VIn] = edge.inV.obj;
-                delete edge.obj[env.outVid];
-                delete edge.obj[env.inVid];
                 //Add to index
                 if (hasEIndex) {
                     fn.addEIndex(edge);
@@ -582,6 +583,8 @@
             vertex.outE[edge.obj[env.label]] = [];
         }
         edge.outV = vertex;
+        edge.obj[env.VOut] = edge.outV.obj;
+        delete edge.obj[env.outVid];
         push.call(vertex.outE[edge.obj[env.label]], edge);
 
         if (!graph.vertices[edge.obj[env.inVid]]) {
@@ -593,6 +596,8 @@
             vertex.inE[edge.obj[env.label]] = [];
         }
         edge.inV = vertex;
+        edge.obj[env.VIn] = edge.inV.obj;
+        delete edge.obj[env.inVid];
         push.call(vertex.inE[edge.obj[env.label]], edge);
     };
 
@@ -1098,7 +1103,7 @@
                     return _delete.apply(cachedPipe);    
                 }
             },
-            retVal.commit = function() {
+            retVal.save = function() {
                 tempArgs.length = 0;
                 push.call(tempArgs, cachedPipe.pipedObjects);
                 push.apply(tempArgs, retVal.toArray());
@@ -1352,10 +1357,9 @@
 
         while (length) {
             length -= 1;
-            if (!!args[length][env.id]) {
-                vid = args[length][env.id];
-            } else {
-                vid = args[length];
+            vid = args[length];
+            if (fn.isObject(vid) && !!vid[env.id]) {
+                vid = vid[env.id];
             }
             push.call(retVal, graph.vertices[vid]);
         }
@@ -1385,10 +1389,9 @@
         
         while (length) {
             length -= 1;
-            if (!!args[length][env.id]) {
-                eid = args[length][env.id];
-            } else {
-                eid = args[length];
+            eid = args[length];
+            if (fn.isObject(eid) && !!eid[env.id]) {
+                eid = eid[env.id];
             }
             push.call(retVal, graph.edges[eid]);
         }
