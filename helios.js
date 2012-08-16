@@ -221,6 +221,7 @@
                 }
             }
         }
+        env = Helios.ENV;
         if (!!aGraph && isJSON) {
             dbfn.loadGraphSON(aGraph);
         }
@@ -455,6 +456,16 @@
         return Helios;
     };
 
+    dbfn.testHttp = function () {
+        var obj, temp;
+        promise.get('http://localhost:8182/graphs/tinkergraph/vertices/1').then(function(error, result) {
+            if (!error) {
+                obj = JSON.parse(result);
+                temp = [obj.results];
+                dbfn.loadVertices(temp);
+            }
+        });
+    };
 
     dbfn.createVIndex = function (idxName) {
         var vertices = [];
@@ -1354,6 +1365,7 @@
             args = fn.flatten(slice.call(arguments, 1)),
             vid,
             vertex,
+            p,
             length = args.length;
 
         while (length) {
@@ -1362,8 +1374,53 @@
             if (fn.isObject(vid) && !!vid[env.id]) {
                 vid = vid[env.id];
             }
-            vertex = graph.vertices[vid];
-            push.call(retVal, vertex);
+            if (!!!graph.vertices[vid]) {
+                p = new promise.Promise();
+                promise.get('http://localhost:8182/graphs/tinkergraph/vertices/1').then(function(error, result) {
+                    if (!error) {
+                        dbfn.loadVertices([JSON.parse(result).results]);
+                        push.call(retVal, graph.vertices[vid]);
+                        return retVal;
+                    }
+                });
+                push.call(retVal, p);
+            }
+            //vertex = ;
+            //push.call(retVal, graph.vertices[vid]);
+        }
+
+        return retVal;
+    }
+
+function vTest() {
+
+        var retVal = [],
+            args = fn.flatten(slice.call(arguments, 1, 2)),
+            objVar = fn.flatten(slice.call(arguments, 2, 3)),
+            vid,
+            vertex,
+            p,
+            length = args.length;
+
+        while (length) {
+            length -= 1;
+            vid = args[length];
+            if (fn.isObject(vid) && !!vid[env.id]) {
+                vid = vid[env.id];
+            }
+            if (!!!graph.vertices[vid]) {
+                //p = new promise.Promise();
+                promise.get('http://localhost:8182/graphs/tinkergraph/vertices/1').then(function(error, result) {
+                    if (!error) {
+                        dbfn.loadVertices([JSON.parse(result).results]);
+                        objVar[0].v = JSON.parse(result).results;
+                        //push.call(retVal, graph.vertices[vid]);
+                        //return retVal;
+                    }
+                });
+                //push.call(retVal, p);
+            }
+            push.call(retVal, graph.vertices[vid]);
         }
 
         return retVal;
@@ -3142,6 +3199,9 @@
     Helios.prototype.v = v;
     Helios.prototype.e = e;
     Helios.prototype.graph = dbfn;
+
+
+        Helios.prototype.vTest = vTest;
 
     //Misc
     Helios.prototype.clone = clone;
