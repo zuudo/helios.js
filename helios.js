@@ -1352,7 +1352,8 @@
 
         var retVal = [],
             args = fn.flatten(slice.call(arguments, 1)),
-            vid, 
+            vid,
+            vertex,
             length = args.length;
 
         while (length) {
@@ -1361,7 +1362,8 @@
             if (fn.isObject(vid) && !!vid[env.id]) {
                 vid = vid[env.id];
             }
-            push.call(retVal, graph.vertices[vid]);
+            vertex = graph.vertices[vid];
+            push.call(retVal, vertex);
         }
 
         return retVal;
@@ -2397,9 +2399,9 @@
         fn.each(args, function(vertex){
             //create vertex if it doesn't have an id
             if (!!!vertex[env.id]) {
-                vertex[env.id] = uuid.v4(); //temp id
-                if (!!!newVertex[env.type]) {
-                    newVertex[env.type] = 'vertex';
+                vertex[env.id] = UUID.generate(); //temp id
+                if (!!!vertex[env.type]) {
+                    vertex[env.type] = 'vertex';
                 }
                 push.call(newVertices, vertex);
             }
@@ -2468,7 +2470,7 @@
              fn.each(vertices, function(newVertex){
                 //create vertex if it doesn't have an id
                 if (!!!newVertex[env.id]) {
-                    newVertex[env.id] = uuid.v4(); //temp id
+                    newVertex[env.id] = UUID.generate(); //temp id
                     if (!!!newVertex[env.type]) {
                         newVertex[env.type] = 'vertex';
                     }
@@ -2488,7 +2490,7 @@
                             newEdge[key] = edge[key];    
                         }
                     }
-                    newEdge[env.id] = uuid.v4(); //temp id
+                    newEdge[env.id] = UUID.generate(); //temp id
                     newEdge[env.outVid] = vertex.obj[env.id];
                     newEdge[env.inVid] = newVertex[env.id];
                     dbfn.loadEdges(newEdge);
@@ -2554,7 +2556,7 @@
              fn.each(vertices, function(newVertex){
                 //create vertex if it doesn't have an id
                 if (!!!newVertex[env.id]) {
-                    newVertex[env.id] = uuid.v4(); //temp id
+                    newVertex[env.id] = UUID.generate(); //temp id
                     if (!!!newVertex[env.type]) {
                         newVertex[env.type] = 'vertex';
                     }
@@ -2574,7 +2576,7 @@
                             newEdge[key] = edge[key];    
                         }
                     }
-                    newEdge[env.id] = uuid.v4(); //temp id
+                    newEdge[env.id] = UUID.generate(); //temp id
                     newEdge[env.outVid] = newVertex[env.id];
                     newEdge[env.inVid] = vertex.obj[env.id];
                     dbfn.loadEdges(newEdge);
@@ -2818,7 +2820,7 @@
 
         if (fn.isObject(toV)) {
             if (!!!toV[env.id]) {
-                toV[env.id] = uuid.v4(); //temp id
+                toV[env.id] = UUID.generate(); //temp id
                 if (!!!toV[env.type]) {
                     toV[env.type] = 'vertex';
                 }
@@ -2844,7 +2846,7 @@
                             }
                         }
 
-                        tempEdge[env.id] = uuid.v4(); //temp id
+                        tempEdge[env.id] = UUID.generate(); //temp id
                         tempEdge[env.label] = label;
                         tempEdge[env.outVid] = vertex.obj[env.id];
                         tempEdge[env.inVid] = toVid;
@@ -2907,7 +2909,7 @@
 
         if (fn.isObject(toV)) {
             if (!!!toV[env.id]) {
-                toV[env.id] = uuid.v4(); //temp id
+                toV[env.id] = UUID.generate(); //temp id
                 if (!!!toV[env.type]) {
                     toV[env.type] = 'vertex';
                 }
@@ -2933,7 +2935,7 @@
                             }
                         }
 
-                        tempEdge[env.id] = uuid.v4(); //temp id
+                        tempEdge[env.id] = UUID.generate(); //temp id
                         tempEdge[env.label] = label;
                         tempEdge[env.outVid] = toVid;
                         tempEdge[env.inVid] = vertex.obj[env.id];
