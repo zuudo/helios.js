@@ -20,14 +20,16 @@
         indexOf = ArrayProto.indexOf,
         concat = ArrayProto.concat,
         env, //config env variables
-        server, //remote server variables
+        httpConf, //remote server variables
         fn = {}, //internal functions
         dbfn = {}, //graph database functions
         comparable = {}, //comparable functions i.e. eq, neq ...
         hasVIndex = false,
         hasEIndex = false,
         graph = {'vertices': {}, 'edges': {}, 'v_idx': {}, 'e_idx': {}},
-        unpipedFuncs = ['label', 'id', 'dataObj', 'value', 'distinct', 'stringify', 'count', 'map', 'clone', 'path', 'fork', 'pin', 'delete'];
+        unpipedFuncs = ['label', 'id', 'dataObj', 'value', 'distinct', 'stringify', 'count', 'map', 'clone', 'path', 'fork', 'pin', 'delete'],
+funcs = []
+        ;
 
     Function.prototype.pipe = function () {
         var that = this;
@@ -36,17 +38,36 @@
                 isStep = !fn.include(['as', 'back', 'loop', 'countBy', 'groupBy', 'groupSum', 'store', 'addV', 'update',
                                         'addOutE', 'addInE', 'moveOutE', 'moveInE'], that.name);
 
+                //push.call(tempARRAY, that);
+
             //reset any travesal - used by tail() & head()
             this.traversedVertices = {};
             this.traversedEdges = {};
 
+
             push.call(pipedArgs, this.pipedObjects);
             push.apply(pipedArgs, arguments);
+
             if (isStep) {
                 this.pipeline.steps[this.pipeline.steps.currentStep += 1] = { 'pipedInArgs': pipedArgs, 'func': that, 'pipedOutArgs': [] };
             }
+
+            if (Q.isPromise(this.pipedObjects)) {
+                if (isStep && this.pipeline.steps.currentStep !== 0) {
+                    push.call(this.pipeline.steps[this.pipeline.steps.currentStep].pipedOutArgs, this.pipedObjects);
+                }
+                var tempp = {
+                    args: arguments,
+                    func: that
+                }
+                
+                push.call(funcs, tempp);
+                return this;
+            }
+
             //New piped Objects to be passed to the next step
             this.pipedObjects = that.apply(this, pipedArgs);
+
             if (isStep && this.pipeline.steps.currentStep !== 0) {
                 push.call(this.pipeline.steps[this.pipeline.steps.currentStep].pipedOutArgs, this.pipedObjects);
             }
@@ -96,16 +117,14 @@
         'outVid': '_outV',
         'inVid': '_inV',
         'VOut':'out',
-        'VIn':'in'
+        'VIn':'in',
+        'http': {
+            'baseUri': 'localhost',
+            'port': 8182,
+            'graphName': 'graphs/tinkergraph',
+            'type':'rexster' //options -> rest, tcp, other            
+        }
     };
-
-    //remote server config
-    Helios.SERVER = {
-        'baseUri': 'localhost',
-        'port': 8182,
-        'graphName': 'graphs/tinkergraph',
-        'type':'rexster' //options -> rest, tcp, other
-    }
 
 
     /****************************************************************************************************
@@ -222,6 +241,8 @@
             }
         }
         env = Helios.ENV;
+        httpConf = env.http;
+
         if (!!aGraph && isJSON) {
             dbfn.loadGraphSON(aGraph);
         }
@@ -271,6 +292,7 @@
         var xmlhttp;
 
         env = Helios.ENV;
+        httpConf = env.http;
 
 		if (fn.isUndefined(jsonData)) { return; }
 		if (fn.isString(jsonData)) {
@@ -373,6 +395,7 @@
         hasEIndex = !fn.isEmpty(graph.e_idx);
 
         env = Helios.ENV;
+        httpConf = env.http;
 
         if (fn.isUndefined(xmlData)) { return; }
         if (fn.isString(xmlData)) {
@@ -1079,6 +1102,41 @@
         }
         return retVal;
     }
+
+    fn.xhr = function (options) {
+        var deferred = Q.defer(),
+            req = new XMLHttpRequest(),
+            retVal;
+
+        options.url = 'http://' + httpConf.baseUri + ":" + httpConf.port + "/" + httpConf.graphName + "/" + options.url
+
+        req.open(options.method || 'GET', options.url, true);
+
+        // Set request headers if provided.
+        Object.keys(options.headers || {}).forEach(function (key) {
+            req.setRequestHeader(key, options.headers[key]);
+        });
+
+        req.onreadystatechange = function(e) {
+            if(req.readyState !== 4) {
+                return;
+            }
+
+            if([200,304].indexOf(req.status) === -1) {
+                deferred.reject(new Error('Server responded with a status of ' + req.status));
+            } else {
+                //populate database
+                retVal = options.type === 'vertex' ? dbfn.loadVertices(JSON.parse(e.target.response).results) :
+                    dbfn.loadEdges(JSON.parse(e.target.response).results);
+                deferred.resolve(retVal);
+            }
+        };
+
+        req.send(options.data || void 0);
+
+        return deferred.promise;
+    }
+
     /***************************************************************************************************
 
         Called to emit the result from traversing the graph.
@@ -1157,6 +1215,34 @@
     ***************************************************************************************************/
     function value() {
         var retVal = [], args = arguments;
+
+var pipedArgs = [];
+
+
+if (Q.isPromise(this.pipedObjects)) {
+
+    
+
+    var result = Q.resolve(this.pipedObjects);
+    funcs.forEach(function (f) {
+        result = result.then (function (val) {
+
+            push.call(pipedArgs, val);
+            push.apply(pipedArgs, f.args);
+
+            return Q.fapply(f.func, pipedArgs);
+        });
+    });
+
+    return result.then (function (val) {
+        //fn.resetPipe.call(this);
+        return Q.fcall(fn.toObjArray, fn.flatten(val));    
+    });
+
+}
+
+
+
         if (!!this.pipedObjects[0] && !!this.pipedObjects[0].obj) {
             retVal = fn.toObjArray(this.pipedObjects);
         } else {
@@ -1164,7 +1250,12 @@
         }
 
         fn.resetPipe.call(this);
-        return retVal;
+
+        return Q.fcall(function () {
+            return retVal;
+        });
+
+        
     }
 
     /***************************************************************************************************
@@ -1365,8 +1456,8 @@
             args = fn.flatten(slice.call(arguments, 1)),
             vid,
             vertex,
-            p,
-            length = args.length;
+            length = args.length,
+            options = {};
 
         while (length) {
             length -= 1;
@@ -1375,55 +1466,14 @@
                 vid = vid[env.id];
             }
             if (!!!graph.vertices[vid]) {
-                p = new promise.Promise();
-                promise.get('http://localhost:8182/graphs/tinkergraph/vertices/1').then(function(error, result) {
-                    if (!error) {
-                        dbfn.loadVertices([JSON.parse(result).results]);
-                        push.call(retVal, graph.vertices[vid]);
-                        return retVal;
-                    }
-                });
-                push.call(retVal, p);
+                options.type = 'vertex';
+                options.url = 'vertices/' + vid;
+                push.call(retVal, fn.xhr(options));
+            } else {
+                push.call(retVal, graph.vertices[vid]);
             }
-            //vertex = ;
-            //push.call(retVal, graph.vertices[vid]);
         }
-
-        return retVal;
-    }
-
-function vTest() {
-
-        var retVal = [],
-            args = fn.flatten(slice.call(arguments, 1, 2)),
-            objVar = fn.flatten(slice.call(arguments, 2, 3)),
-            vid,
-            vertex,
-            p,
-            length = args.length;
-
-        while (length) {
-            length -= 1;
-            vid = args[length];
-            if (fn.isObject(vid) && !!vid[env.id]) {
-                vid = vid[env.id];
-            }
-            if (!!!graph.vertices[vid]) {
-                //p = new promise.Promise();
-                promise.get('http://localhost:8182/graphs/tinkergraph/vertices/1').then(function(error, result) {
-                    if (!error) {
-                        dbfn.loadVertices([JSON.parse(result).results]);
-                        objVar[0].v = JSON.parse(result).results;
-                        //push.call(retVal, graph.vertices[vid]);
-                        //return retVal;
-                    }
-                });
-                //push.call(retVal, p);
-            }
-            push.call(retVal, graph.vertices[vid]);
-        }
-
-        return retVal;
+        return Q.all(retVal);
     }
 
     /***************************************************************************************************
@@ -1499,6 +1549,7 @@ function vTest() {
         return retVal;
     }
 
+
     /***************************************************************************************************
 
         @name       out()                   callable/chainable
@@ -1515,17 +1566,50 @@ function vTest() {
         var retVal = [],
             args = slice.call(arguments, 1),
             hasArgs = !!args.length,
-            value;
+            value,
+            deferred;
 
+
+        // if (Q.isPromise(arguments[0])) {
+        //     deferred = Q.defer();
+        //     return deferred.promise;
+        // }
+
+        
         fn.each(arguments[0], function (vertex, key, list) {
             if (!fn.isEmpty(vertex.outE)) {
                 value = hasArgs ? fn.pick(vertex.outE, args) : vertex.outE;
                 fn.each(fn.flatten(fn.values(value)), function (edge) {
                     push.call(retVal, edge.inV);
                 });
+            } else {
+                deferred = Q.defer();
+
+                var xmlhttp = new XMLHttpRequest();
+                xmlhttp.onreadystatechange = function () {
+                if (xmlhttp.readyState === 4) {
+                    vertex = JSON.parse(xmlhttp.response).results;
+                    //dbfn.loadVertices([vertex]);
+                    push.apply(retVal, dbfn.loadVertices(vertex));
+                    //return retVal;
+                    deferred.resolve(retVal);
+                }
+//                push.call(retVal, vertex.obj);
+
+            };
+            xmlhttp.open("GET", 'http://localhost:8182/graphs/tinkergraph/vertices/1/out', true);
+            xmlhttp.send(null);
             }
+            
         });
+
+if (!!deferred) {
+    return deferred.promise;
+}
+
+        //deferred.resolve('hello!');
         return retVal;
+
     }
 
     /***************************************************************************************************
@@ -3199,9 +3283,6 @@ function vTest() {
     Helios.prototype.v = v;
     Helios.prototype.e = e;
     Helios.prototype.graph = dbfn;
-
-
-        Helios.prototype.vTest = vTest;
 
     //Misc
     Helios.prototype.clone = clone;
