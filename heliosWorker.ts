@@ -1,0 +1,3619 @@
+/**
+ * Created with JetBrains WebStorm.
+ * User: frank
+ * Date: 9/02/13
+ * Time: 1:32 PM
+ * To change this template use File | Settings | File Templates.
+ */
+
+/// <reference path="moment.d.ts" />
+
+module Helios {
+    interface IBase {
+        Type:string;
+    }
+
+    interface IElement extends IBase{
+        obj:{};
+        indexKeys:any;
+        addToIndex:(idx:{}, idxName?:string) => void;
+        graph:Graph;
+    }
+
+    interface IVertex {
+        outE:{};
+        inE:{};
+    }
+
+    interface IEdge {
+        outV:IVertex;
+        inV:IVertex;
+        associateVertices:(graph:Graph) => void;
+    }
+
+    export interface IGraph {
+        vertices:{};
+        edges:{};
+        v_idx:{};
+        e_idx:{};
+        _:Mogwai.Pipeline;
+    }
+
+//    interface DOMParser {
+//        parseFromString(source:string, mimeType:string): Document;
+//    }
+//
+//    declare var DOMParser:{
+//        prototype: DOMParser;
+//        new (): DOMParser;
+//    };
+
+
+    declare var moment;
+
+    var toString = Object.prototype.toString,
+        ArrayProto = Array.prototype,
+        push = ArrayProto.push,
+        slice = ArrayProto.slice,
+        indexOf = ArrayProto.indexOf;
+
+    class Element implements IElement {
+
+        indexKeys:any;
+        Type:string;
+        constructor(public obj:{}, public graph:Graph) {
+
+        }
+
+        addToIndex(idx:{}, indexName?:string):void {
+            var indexes:string[],
+                props:string[],
+                tempObj:{} = {};
+
+            indexes = !indexName ? Utils.keys(idx) : [indexName];
+            for (var i = 0, l = indexes.length; i < l; i++) {
+                props = indexes[i].indexOf(".") > -1 ? indexes[i].split(".") : [indexes[i]];
+                tempObj = this.obj;
+                for (var i2 = 0, l2 = props.length; i2 < l2; i2++) {
+                    if (tempObj.hasOwnProperty(props[i2])) {
+                        if (Utils.isObject(tempObj[props[i2]])) {
+                            tempObj = tempObj[props[i2]];
+                            //continue;
+                        } else {
+                            if (i2 < l2 - 1) {
+                                break;
+                            }
+                            var iter = Utils.isArray(tempObj[props[i2]]) ? tempObj[props[i2]] : [tempObj[props[i2]]];
+                            for (var i3 = 0, l3 = iter.length; i3 < l3; i3++) {
+                                if (!(idx[indexes[i]].hasOwnProperty(iter[i3]))) {
+                                    idx[indexes[i]][iter[i3]] = {};
+                                }
+                                idx[indexes[i]][iter[i3]][this.obj[this.graph.meta.id]] = this;
+                                push.call(this.indexKeys, indexes[i]);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    class Vertex extends Element implements IVertex {
+
+        outE:{} = {};
+        inE:{} = {};
+
+        constructor(obj:{}, graph:Graph) {
+            super(obj, graph);
+            this.Type = 'Vertex';
+            //check if there are indexes
+        }
+    }
+
+    class Edge extends Element implements IEdge {
+
+        outV:Vertex;
+        inV:Vertex;
+
+        constructor(obj:{}, graph:Graph) {
+            super(obj, graph);
+            this.Type = 'Edge';
+        }
+
+        associateVertices():void {
+            var vertex,
+                outVobj = {},
+                inVobj = {};
+
+            if (!this.graph.vertices[this.obj[this.graph.meta.outVid]]) {
+                outVobj[this.graph.meta.id] = this.obj[this.graph.meta.outVid];
+                this.graph.vertices[this.obj[this.graph.meta.outVid]] = new Vertex(outVobj, this.graph);
+            }
+            vertex = this.graph.vertices[this.obj[this.graph.meta.outVid]];
+            if (!vertex.outE[this.obj[this.graph.meta.label]]) {
+                vertex.outE[this.obj[this.graph.meta.label]] = [];
+            }
+            this.outV = vertex;
+            this.obj[this.graph.meta.VOut] = this.outV.obj;
+            delete this.obj[this.graph.meta.outVid];
+            push.call(vertex.outE[this.obj[this.graph.meta.label]], this);
+
+            if (!this.graph.vertices[this.obj[this.graph.meta.inVid]]) {
+                inVobj[this.graph.meta.id] = this.obj[this.graph.meta.inVid];
+                this.graph.vertices[this.obj[this.graph.meta.inVid]] = new Vertex(inVobj, this.graph);
+            }
+            vertex = this.graph.vertices[this.obj[this.graph.meta.inVid]];
+            if (!vertex.inE[this.obj[this.graph.meta.label]]) {
+                vertex.inE[this.obj[this.graph.meta.label]] = [];
+            }
+            this.inV = vertex;
+            this.obj[this.graph.meta.VIn] = this.inV.obj;
+            delete this.obj[this.graph.meta.inVid];
+            push.call(vertex.inE[this.obj[this.graph.meta.label]], this);
+        }
+    }
+
+    export interface IConfiguration {
+
+        pathEnabled:bool;
+
+        date:{
+            format:any;// = "DD/MM/YYYY"; //can be array
+        };
+        currency:{
+            symbol:any;//can be array
+            decimal:string;
+        };
+
+        meta:{
+            id:string;
+            label:string;
+            type:string;
+            outEid:string;
+            inEid:string;
+            outVid:string;
+            inVid:string;
+            VOut:string;
+            VIn:string;
+        };
+
+        http:{
+            baseUri:string;
+            port:number;
+            graph:string;
+            type:string;
+            ssl:bool;
+        };
+    }
+
+    export class Graph implements IGraph, IConfiguration {
+
+        vertices:{};
+        edges:{};
+
+        v_idx:{};
+        e_idx:{};
+
+        _:Mogwai.Pipeline;
+
+        pathEnabled:bool = false;
+        date:{
+            format:any;//can be array
+        } = {
+            format: "DD/MM/YYYY"
+        };
+
+        currency:{
+            symbol:any;//can be array
+            decimal:string;
+        } = {
+            symbol: '$',
+            decimal: '.'
+        };
+
+        meta:{
+            id:string;
+            label:string;
+            type:string;
+            outEid:string;
+            inEid:string;
+            outVid:string;
+            inVid:string;
+            VOut:string;
+            VIn:string;
+        } = {
+            id: '_id',
+            label: '_label',
+            type: '_type',
+            outEid: '_outE',
+            inEid: '_inE',
+            outVid: '_outV',
+            inVid: '_inV',
+            VOut: 'out',
+            VIn: 'in'
+        };
+
+        http:{
+            baseUri:string;
+            port:number;
+            graph:string;
+            type:string;
+            ssl:bool;
+        } = {
+            'baseUri': 'localhost',
+            'port': 8182,
+            'graph': 'tinker',
+            'type': 'orientdb',
+            'ssl': false
+        };
+
+        config:IConfiguration;
+
+        constructor(graph?:Graph);
+        constructor(options?:any) {
+
+            if (!!options && (options.hasOwnProperty('vertices') || options.hasOwnProperty('edges'))) {
+                for (var k in options) {
+                    if (options.hasOwnProperty(k)) {
+                        this[k] = options[k];
+                    }
+                }
+                //this.CONFIG = null;//new Configuration(this.CONFIG);
+            } else {
+                this.vertices = {};
+                this.edges = {};
+                this.v_idx = {};
+                this.e_idx = {};
+
+                if (!!options) {
+                    this.setConfiguration(options);
+                }
+            }
+            this._ = new Mogwai.Pipeline(this);
+        }
+
+//        close(): void {
+//            this = undefined;
+//        }
+
+//        setPathEnabled(turnOn:bool):bool {
+//           return this.CONFIG.pathEnabled = turnOn;
+//
+//        }
+//
+//        getPathEnabled():bool {
+//            return this.CONFIG.pathEnabled;
+//
+//        }
+//
+//        getConfiguration():Configuration {
+//            return this.CONFIG;
+//
+//        }
+//
+        //TODO: Test Configuration setting
+        setConfiguration(options:{}):void {
+
+            for (var k in options) {
+                if (options.hasOwnProperty(k)) {
+                    if (Utils.isObject(options[k])) {
+                        var o = options[k];
+                        for (var i in o) {
+                            if (o.hasOwnProperty(i)) {
+                                this[k][i] = o[i];
+                            }
+                        }
+                        continue;
+                    }
+                    this[k] = options[k];
+                }
+                this.config[k] = this[k];
+            }
+
+        }
+
+        /*Use this to load JSON formatted Vertices into Graph*/
+        loadVertices(rows:{}[]):void {
+
+            var i:number,
+                l:number = rows.length,
+                hasVIndex:bool = !Utils.isEmpty(this.v_idx),
+                vertex:Vertex;
+
+            for (i = 0; i < l; i++) {
+                vertex = new Vertex(rows[i], this);
+                this.vertices[rows[i][this.meta.id]] = vertex;
+                if (hasVIndex) {
+                    vertex.addToIndex(this.v_idx);
+                }
+            }
+        }
+
+        /*Use this to load JSON formatted Edges into Graph*/
+        loadEdges(rows:{}[]):void {
+
+            var i:number,
+                l:number,
+                edge:Edge,
+                hasEIndex:bool = !Utils.isEmpty(this.e_idx);
+
+            for (i = 0, l = rows.length; i < l; i += 1) {
+                edge = new Edge(rows[i], this);
+                this.edges[edge.obj[this.meta.id]] = edge;
+                edge.associateVertices();
+                if (hasEIndex) {
+                    edge.addToIndex(this.e_idx);
+                }
+            }
+        }
+
+        createVIndex(idxName:string):void {
+            if (!(this.v_idx.hasOwnProperty(idxName))) {
+                this.v_idx[idxName] = {};
+                for (var k in this.vertices) {
+                    if (this.vertices.hasOwnProperty(k)) {
+                        this.vertices[k].addToIndex(this.v_idx, idxName);
+                    }
+                }
+            }
+        }
+
+        createEIndex(idxName:string):void {
+            if (!(this.e_idx.hasOwnProperty(idxName))) {
+                this.e_idx[idxName] = {};
+                for (var k in this.edges) {
+                    if (this.edges.hasOwnProperty(k)) {
+                        this.edges[k].addToIndex(this.e_idx, idxName);
+                    }
+                }
+            }
+        }
+
+        deleteVIndex(idxName:string):void {
+            delete this.v_idx[idxName];
+        }
+
+        deleteEIndex(idxName:string):void {
+            delete this.e_idx[idxName];
+        }
+
+        tracePath(enabled:bool):bool {
+//            CONFIG.pathEnabled = enabled;
+//            return CONFIG.pathEnabled;
+            return false;
+        }
+
+        loadGraphSON(jsonData:string):Graph;
+        loadGraphSON(jsonData:{ vertices?:{}[]; edges?:{}[]; }):Graph;
+        loadGraphSON(jsonData:any):Graph {
+            //process vertices
+
+            var xmlhttp;
+
+            var graph:Graph = this;
+
+            if (Utils.isUndefined(jsonData)) { return null; }
+            if (Utils.isString(jsonData)) {
+                xmlhttp = new XMLHttpRequest();
+                xmlhttp.onreadystatechange = function () {
+                    if (xmlhttp.readyState === 4) {
+                        jsonData = JSON.parse(xmlhttp.responseText);
+
+                        if (!!jsonData.vertices.length) {
+                            graph.loadVertices(jsonData.vertices);
+                        }
+
+                        //process edges
+                        if (jsonData.edges) {
+                            graph.loadEdges(jsonData.edges);
+                        }
+                    }
+
+                };
+                xmlhttp.open("GET", jsonData, false/*true*/);
+                xmlhttp.send(null);
+            }
+
+            if(Utils.isString(jsonData)){
+                //get the file
+            }
+
+//            if (!!jsonData.vertices.length) {
+//                this.loadVertices(jsonData.vertices);
+//            }
+//
+//            //process edges
+//            if (jsonData.edges) {
+//                this.loadEdges(jsonData.edges);
+//            }
+            return this;
+        }
+
+
+        loadGraphML(xmlData:string):Graph {
+
+            var i, j, l, propLen,
+                xmlV = [], xmlE = [], vertex:Vertex, edge:Edge,
+                fileExt,
+                xmlhttp,
+                parser,
+                xmlDoc,
+                properties,
+                tempObj = {};
+
+            var hasVIndex = !Utils.isEmpty(this.v_idx);
+            var hasEIndex = !Utils.isEmpty(this.e_idx);
+
+            if (Utils.isUndefined(xmlData)) {
+                return null;
+            }
+            if (Utils.isString(xmlData)) {
+
+                fileExt = xmlData.split('.').pop();
+
+                if (fileExt.toLowerCase() === 'xml') {
+
+                    xmlhttp = new XMLHttpRequest();
+                    xmlhttp.onreadystatechange = function () {
+                        if (xmlhttp.readyState === 4) {
+                            xmlDoc = xmlhttp.responseXML;
+                        }
+                    };
+                    xmlhttp.open("GET", xmlData, false);
+                    xmlhttp.send(null);
+                } else {
+
+                    //if (window.DOMParser) {
+                    parser = new DOMParser();
+                    xmlDoc = parser.parseFromString(xmlData, "text/xml");
+                    /*} else {// Internet Explorer
+                     xmlDoc = new ActiveXObject("Microsoft.XMLDOM");
+                     xmlDoc.async = false;
+                     xmlDoc.loadXML(xmlData);
+                     }*/
+                }
+            }
+
+            xmlV = xmlDoc.getElementsByTagName("node");
+            xmlE = xmlDoc.getElementsByTagName("edge");
+
+            //process vertices
+            if (!!xmlV.length) {
+                l = xmlV.length;
+
+                for (i = 0; i < l; i += 1) {
+                    properties = xmlV[i].getElementsByTagName("data");
+                    tempObj = {};
+                    propLen = properties.length;
+                    for (j = 0; j < propLen; j += 1) {
+                        tempObj[properties[j].getAttribute("key")] = properties[j].firstChild.nodeValue;
+                    }
+                    tempObj[this.meta.id] = xmlV[i].getAttribute("id");
+                    vertex = new Vertex(tempObj, this);
+                    this.vertices[tempObj[this.meta.id]] = vertex;
+                    //Add to index
+                    if (hasVIndex) {
+                        vertex.addToIndex(this.v_idx);
+                    }
+                }
+            }
+
+            //process edges
+            if (!!xmlE.length) {
+                l = xmlE.length;
+
+                for (i = 0; i < l; i += 1) {
+                    properties = xmlE[i].getElementsByTagName("data");
+                    tempObj = {};
+                    propLen = properties.length;
+                    for (j = 0; j < propLen; j += 1) {
+                        tempObj[properties[j].getAttribute("key")] = properties[j].firstChild.nodeValue;
+                    }
+                    tempObj[this.meta.id] = xmlE[i].getAttribute("id");
+                    tempObj[this.meta.label] = xmlE[i].getAttribute("label");
+                    tempObj[this.meta.outVid] = xmlE[i].getAttribute("source");
+                    tempObj[this.meta.inVid] = xmlE[i].getAttribute("target");
+
+                    edge = new Edge(tempObj, this);
+                    this.edges[tempObj[this.meta.id]] = edge;
+                    edge.associateVertices();
+                    //Add to index
+                    if (hasEIndex) {
+                        edge.addToIndex(this.e_idx);
+                    }
+                }
+            }
+            return this;
+        }
+
+        v(...ids:string[]):Mogwai.Pipeline;  //g.v()
+        v(...ids:number[]):Mogwai.Pipeline;  //g.v()
+        v(...objs:{}[]):Mogwai.Pipeline;     //g.V
+        v(...args:any[]):Mogwai.Pipeline {
+
+            var pipe = [],
+                l,
+                tempObj:{} = {},
+                compObj:{} = {},
+                outputObj:{} = {},
+                subset:{} = {},
+                tempObjArray:any = {},//{ obj?:{}; }[] = [],
+                preProcObj:{} = {},
+                postProcObj:{}[] = [],
+                tempObjArrLen:number = 0;
+
+            if (!args.length) {
+                return this._.startPipe(this.vertices);
+            }
+
+            args = Utils.flatten(args);
+            l = args.length;
+
+            if (Utils.isObject(args[0])) {
+                for (var i = 0; i < l; i++) {
+                    compObj = args[i];
+
+                    //iterate through the compObj and determine whether has idx
+                    preProcObj = {};
+                    postProcObj = [];
+                    for (var k in compObj) {
+                        if (compObj.hasOwnProperty(k)) {
+                            if (this.v_idx.hasOwnProperty(k)) {
+                                //add to comparable processing
+                                preProcObj[k] = compObj[k];
+
+                            } else {
+                                //add to deferred process object
+                                postProcObj[k] = compObj[k];
+                            }
+                        }
+                    }
+                    var item;
+                    for (var prop in preProcObj) {
+                        if (preProcObj.hasOwnProperty(prop)) {
+                            var items = this.v_idx[prop];
+                            for (var m in items) {
+                                if (items.hasOwnProperty(m)) {
+                                    var funcObj = preProcObj[prop];
+                                    for (var func in funcObj) {
+                                        if (funcObj.hasOwnProperty(func)) {
+                                            //array comparables require the whole array for comparison
+                                            if (Utils.include(['$exact', '$none', '$all'], func)) {
+                                                item = items[m];
+                                                for (var it in item) {
+                                                    if (item.hasOwnProperty(it)) {
+                                                        if (Mogwai.Compare[func].call(null, item[it].obj[prop], funcObj[func])) {
+                                                            tempObj[it] = item[it];
+                                                        }
+                                                    }
+                                                }
+                                            } else {
+                                                if (Mogwai.Compare[func].call(null, m, funcObj[func])) {
+                                                    item = items[m];
+                                                    for (var it in item) {
+                                                        if (item.hasOwnProperty(it)) {
+                                                            tempObj[it] = item[it];
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                            if (!Utils.isEmpty(tempObj)) {
+                                push.call(tempObjArray, tempObj);
+                            }
+                        }
+                    }
+
+                    //I should just create a new Pipeline.
+                    var pipeline:Mogwai.Pipeline;
+                    var postIsEmpty = Utils.isEmpty(postProcObj);
+                    tempObjArrLen = tempObjArray.length;
+                    if (!!tempObjArrLen) {
+                        if (tempObjArrLen == 1) {
+                            if (postIsEmpty) {
+                                outputObj = tempObjArray[0];
+                            } else {
+                                pipeline = this._.startPipe(tempObjArray[0]);
+                                tempObjArray = Mogwai.getEndPipe.call(pipeline.where(postProcObj));
+                            }
+                        } else {
+                            if (postIsEmpty) {
+                                outputObj = Utils.intersectElement(tempObjArray);
+                            } else {
+                                pipeline = this._.startPipe(Utils.intersectElement(tempObjArray));
+                                tempObjArray = Mogwai.getEndPipe.call(pipeline.where(postProcObj));
+                            }
+                        }
+                    } else {
+                        if (!postIsEmpty) {
+                            pipeline = this._.startPipe(this.vertices);
+                            tempObjArray = Mogwai.getEndPipe.call(pipeline.where(postProcObj));
+                        }
+                    }
+                    if (!postIsEmpty) {
+                        var id;
+                        for (var ind = 0, len = tempObjArray.length; ind < len; ind++) {
+                            id = tempObjArray[ind].obj[this.meta.id];
+                            outputObj[id] = tempObjArray[ind];
+                        }
+                    }
+
+                    tempObj = {};
+                    tempObjArray = [];
+
+                }
+                return this._.startPipe(outputObj);
+            }
+            for (var i = 0; i < l; i++) {
+                push.call(pipe, this.vertices[args[i]]);
+            }
+            return this._.startPipe(pipe);
+        }
+
+        e(...ids:string[]):Mogwai.Pipeline; //g.e()
+        e(...ids:number[]):Mogwai.Pipeline; //g.e()
+        e(...objs:{}[]):Mogwai.Pipeline;    //g.E()
+        e(...args:any[]):Mogwai.Pipeline {
+
+            var pipe = [],
+                l,
+                tempObj:{} = {},
+                compObj:{} = {},
+                outputObj:{} = {},
+                subset:{} = {},
+                tempObjArray:{ obj?:{}; }[] = [],
+                preProcObj:{} = {},
+                postProcObj:{}[] = [],
+                tempObjArrLen:number = 0;
+
+            if (!args.length) {
+                return this._.startPipe(this.edges);
+            }
+
+            args = Utils.flatten(args);
+            l = args.length;
+
+            if (Utils.isObject(args[0])) {
+                for (var i = 0; i < l; i++) {
+                    compObj = args[i];
+
+                    //iterate through the compObj and determine whether has idx
+                    preProcObj = {};
+                    postProcObj = [];
+                    for (var k in compObj) {
+                        if (compObj.hasOwnProperty(k)) {
+                            if (this.e_idx.hasOwnProperty(k)) {
+                                //add to comparable processing
+                                preProcObj[k] = compObj[k];
+
+                            } else {
+                                //add to deferred process object
+                                postProcObj[k] = compObj[k];
+                            }
+                        }
+                    }
+                    var item;
+                    for (var prop in preProcObj) {
+                        if (preProcObj.hasOwnProperty(prop)) {
+                            var items = this.e_idx[prop];
+                            for (var m in items) {
+                                if (items.hasOwnProperty(m)) {
+                                    var funcObj = preProcObj[prop];
+                                    for (var func in funcObj) {
+                                        if (funcObj.hasOwnProperty(func)) {
+                                            //array comparables require the whole array for comparison
+                                            if (Utils.include(['$exact', '$none', '$all'], func)) {
+                                                item = items[m];
+                                                for (var it in item) {
+                                                    if (item.hasOwnProperty(it)) {
+                                                        if (Mogwai.Compare[func].call(null, item[it].obj[prop], funcObj[func])) {
+                                                            tempObj[it] = item[it];
+                                                        }
+                                                    }
+                                                }
+                                            } else {
+                                                if (Mogwai.Compare[func].call(null, m, funcObj[func])) {
+                                                    item = items[m];
+                                                    for (var it in item) {
+                                                        if (item.hasOwnProperty(it)) {
+                                                            tempObj[it] = item[it];
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                            if (!Utils.isEmpty(tempObj)) {
+                                tempObjArray.push(tempObj);
+                            }
+                        }
+                    }
+                    var pipeline:Mogwai.Pipeline;
+                    var postIsEmpty = Utils.isEmpty(postProcObj);
+                    tempObjArrLen = tempObjArray.length;
+                    if (!!tempObjArrLen) {
+                        if (tempObjArrLen == 1) {
+                            if (postIsEmpty) {
+                                outputObj = tempObjArray[0];
+                            } else {
+                                pipeline = this._.startPipe(tempObjArray[0]);
+                                tempObjArray = Mogwai.getEndPipe.call(pipeline.where(postProcObj));
+                            }
+                        } else {
+                            if (postIsEmpty) {
+                                outputObj = Utils.intersectElement(tempObjArray);
+                            } else {
+                                pipeline = this._.startPipe(Utils.intersectElement(tempObjArray));
+                                tempObjArray = Mogwai.getEndPipe.call(pipeline.where(postProcObj));
+                            }
+                        }
+                    } else {
+                        if (!postIsEmpty) {
+                            pipeline = this._.startPipe(this.edges);
+                            tempObjArray = Mogwai.getEndPipe.call(pipeline.where(postProcObj));
+                        }
+                    }
+                    if (!postIsEmpty) {
+                        var id;
+                        for (var ind = 0, len = tempObjArray.length; ind < len; ind++) {
+                            id = tempObjArray[ind].obj[this.meta.id];
+                            outputObj[id] = tempObjArray[ind];
+                        }
+                    }
+
+                    tempObj = {};
+                    tempObjArray = [];
+
+                }
+                return this._.startPipe(outputObj);
+            }
+            for (var i = 0; i < l; i++) {
+                push.call(pipe, this.edges[args[i]]);
+            }
+            return this._.startPipe(pipe);
+        }
+
+        //returns an id if created
+        /*addV(vertex:{}): string {
+         return "";
+         }*/
+
+    }
+
+
+
+    export module Mogwai{
+
+        export function getEndPipe():any[] {
+            return this.endPipe;
+        }
+        export interface IPipeline {
+            out:(...labels:string[])=>Pipeline;
+            in:(...labels:string[])=>Pipeline;
+
+        }
+        export class Pipeline implements IPipeline{
+
+            private pipeline:any[]; //requires Cleanup
+            private traceObj:{}; //requires Cleanup
+            private tracing:bool;
+            private tracingPath:bool;
+            private pinned:bool;
+            private snapshot:any = {};
+
+            private traversed:{};
+            private steps:{
+                currentStep:number;
+            };
+
+            private asHash:{}; //requires Cleanup
+            private endPipe:any[]; //requires Cleanup
+
+            constructor(graph:Graph, elements?:{}, clonedPipeline?:Pipeline, pinned?:bool);
+            constructor(graph:Graph, elements?:{}[], clonedPipeline?:Pipeline, pinned?:bool);
+            constructor(public graph:Graph, elements?:any, clonedPipeline?:Pipeline, public pinned?:bool) {
+
+                if (!!clonedPipeline) {
+                    this.traceObj = clonedPipeline.traceObj;
+                    this.tracing = clonedPipeline.tracing;
+                    this.traversed = clonedPipeline.traversed;
+                    this.asHash = clonedPipeline.asHash;
+                    this.tracingPath = clonedPipeline.tracingPath;
+                    this.steps = clonedPipeline.steps;
+                } else {
+                    this.tracingPath = graph.pathEnabled;
+                    this.tracing = false;
+                    this.steps = { currentStep: 1 };
+                }
+
+                if (!!elements) {
+                    this.startPipe(elements);
+                }
+
+                if (!!this.pinned) {
+                    for (var k in this) {
+                        /* TODO - check */
+                        //if (this.hasOwnProperty(k)) {
+                        this.snapshot[k] = this[k];
+                        //}
+                    }
+                }
+
+            }
+
+            startPipe(elements:any):Pipeline {
+
+                var pipe:{}[];
+
+                this.endPipe = [];
+                this.pipeline = this.tracingPath ? [] : undefined;
+
+                Utils.each(elements, function (element) {
+                    if (this.tracingPath) {
+                        pipe = [];
+                        pipe.push(element);
+                        this.pipeline.push(pipe);
+                    }
+                    this.endPipe.push(element)
+                }, this);
+
+                return this;
+            }
+
+            /***************************************************************************************************
+
+             Creates a new instance of Helios to continue traversing the graph.
+
+             fork()        callable/chainable
+             @returns    {Helios}      Returns Helios reference
+
+             @example
+             var x = {};
+             g.v(1).fork(x).in().emit();
+             x._.out().emit();
+
+             nb. x._ retains last output
+             ***************************************************************************************************/
+                fork(o:{_?:Pipeline;}):Pipeline {
+                o._ = new Pipeline(this.graph, this.endPipe, this);
+                return this;
+            }
+
+            /***************************************************************************************************
+
+             Creates a new instance of Helios pinned to a point in the graph for traversal.
+
+             pin()         callable/chainable
+             @returns    {Helios}      Returns Helios reference.
+
+             @example
+             var x;
+             g.v(1).pin(x);
+             x.out().value();
+
+             ***************************************************************************************************/
+                pin(o:{_?:Pipeline;}):Pipeline {
+                o._ = new Pipeline(this.graph, this.endPipe, this, true);
+                return this;
+            }
+
+            id():any[] {
+                return this.property(this.graph.meta.id);
+            }
+
+            /***************************************************************************************************
+
+             label()     callable
+             @returns    {Array}     emits edge labels.
+
+             @example
+
+             var result = g.e(70).label(); >> ["knows"]
+
+             ***************************************************************************************************/
+                label():any[] {
+                return this.property(this.graph.meta.label);
+            }
+
+            out(...labels:string[]):Pipeline {
+
+                var value:{},
+                    vertex:Vertex,
+                    iter:any[] = [],
+                    endPipeArray:any[] = [],
+                    hasArgs:bool = !!labels.length,
+                    isTracing:bool = !!this.tracing,
+                    traceArray:any[] = isTracing ? [] : undefined,
+                    isTracingPath:bool = !!this.tracingPath,
+                    pipes:any[],
+                    pipe:IElement[];
+
+                //var deferred = Q.defer();
+
+                if (!!this.endPipe.length && this.endPipe[0].Type !== 'Vertex') {
+                    throw new TypeError('Only accepts incoming ' + this.endPipe[0].Type + 's');
+                }
+
+                this.steps[++this.steps.currentStep] = { func: 'out', args: labels };
+
+                if (isTracingPath) {
+                    iter = this.pipeline;
+                    pipes = [];
+                } else {
+                    this.traversed = {};
+                    iter = this.endPipe;
+                }
+
+                Utils.each(iter, function (next) {
+
+                    if (isTracingPath) {
+                        vertex = slice.call(next, -1)[0];
+                    } else {
+                        vertex = next;
+                        if (this.traversed.hasOwnProperty(vertex.obj[this.graph.meta.id])) {
+                            if (!!this.traversed[vertex.obj[this.graph.meta.id]].length) {
+                                endPipeArray.push.apply(endPipeArray, this.traversed[vertex.obj[this.graph.meta.id]]);
+                            }
+                            return;
+                        } else {
+                            this.traversed[vertex.obj[this.graph.meta.id]] = [];
+                        }
+                    }
+
+                    if (Utils.isEmpty(vertex.outE) || (hasArgs && Utils.isEmpty(Utils.pick(vertex.outE, labels)))) {
+                        if (isTracing) {
+                            Utils.stopTrace(this.traceObj, vertex);
+                        }
+                        return;
+                    }
+
+                    value = hasArgs ? Utils.pick(vertex.outE, labels) : vertex.outE;
+                    Utils.each(Utils.flatten(Utils.values(value)), function (edge) {
+                        endPipeArray.push(edge.inV);
+                        if (isTracing) {
+                            traceArray.push(edge.inV.obj[this.graph.meta.id]);
+                        }
+                        if (isTracingPath) {
+                            pipe = [];
+                            pipe.push.apply(next);
+                            pipe.push(edge.inV);
+                            pipes.push(pipe);
+                        } else {
+                            push.call(this.traversed[vertex.obj[this.graph.meta.id]], edge.inV);
+                        }
+                    }, this);
+
+                    if (isTracing) {
+                        Utils.setTrace(this.traceObj, vertex, traceArray);
+                        traceArray = [];
+                    }
+                }, this);
+
+                if (isTracing) {
+                    Utils.finalizeTrace(this.traceObj);
+                }
+                if (isTracingPath) {
+                    this.pipeline = pipes;
+                } else {
+                    this.traversed = undefined;
+                }
+                this.endPipe = endPipeArray;
+
+//                //return this.endPipe;
+//                setTimeout(function(){
+//                    console.log('delay');
+//
+//                    //this.endPipe = endPipeArray;
+//                    //return deferred.resolve();
+//                }, 5000);
+//                //return deferred.promise;
+                return this;
+
+            }
+
+            in(...labels:string[]):Pipeline {
+
+                var value:{},
+                    vertex:Vertex,
+                    iter:any[] = [],
+                    endPipeArray:any[] = [],
+                    hasArgs:bool = !!labels.length,
+                    isTracing:bool = !!this.tracing,
+                    traceArray:any[] = isTracing ? [] : undefined,
+                    isTracingPath:bool = !!this.tracingPath,
+                    pipes:any[],
+                    pipe:IElement[];
+
+                if (!!this.endPipe.length && this.endPipe[0].Type !== 'Vertex') {
+                    throw new TypeError('Only accepts incoming ' + this.endPipe[0].Type + 's');
+                }
+
+                this.steps[++this.steps.currentStep] = { func: 'in', args: labels };
+
+                if (isTracingPath) {
+                    iter = this.pipeline;
+                    pipes = [];
+                } else {
+                    this.traversed = {};
+                    iter = this.endPipe;
+                }
+
+                //iter = isTracingPath ? this.pipeline : this.endPipe;
+                Utils.each(iter, function (next) {
+                    //vertex = isTracingPath ? slice.call(next, -1)[0] : next;
+
+                    if (isTracingPath) {
+                        vertex = slice.call(next, -1)[0];
+                    } else {
+                        vertex = next;
+                        if (this.traversed.hasOwnProperty(vertex.obj[this.graph.meta.id])) {
+                            if (!!this.traversed[vertex.obj[this.graph.meta.id]].length) {
+                                endPipeArray.push.apply(endPipeArray, this.traversed[vertex.obj[this.graph.meta.id]]);
+                            }
+                            return;
+                        } else {
+                            this.traversed[vertex.obj[this.graph.meta.id]] = [];
+                        }
+                    }
+
+                    if (Utils.isEmpty(vertex.inE) || (hasArgs && Utils.isEmpty(Utils.pick(vertex.inE, labels)))) {
+                        if (isTracing) {
+                            Utils.stopTrace(this.traceObj, vertex);
+                        }
+                        return;
+                    }
+                    value = hasArgs ? Utils.pick(vertex.inE, labels) : vertex.inE;
+                    Utils.each(Utils.flatten(Utils.values(value)), function (edge) {
+                        endPipeArray.push(edge.outV);
+                        if (isTracing) {
+                            traceArray.push(edge.outV.obj[this.graph.meta.id]);
+                        }
+                        if (isTracingPath) {
+                            pipe = [];
+                            pipe.push.apply(next);
+                            pipe.push(edge.outV);
+                            pipes.push(pipe);
+                        } else {
+                            push.call(this.traversed[vertex.obj[this.graph.meta.id]], edge.outV);
+                        }
+                    }, this);
+
+                    if (isTracing) {
+                        Utils.setTrace(this.traceObj, vertex, traceArray);
+                        traceArray = [];
+                    }
+
+                }, this);
+
+                if (isTracing) {
+                    Utils.finalizeTrace(this.traceObj);
+                }
+                if (isTracingPath) {
+                    this.pipeline = pipes;
+                } else {
+                    this.traversed = undefined;
+                }
+                this.endPipe = endPipeArray;
+                return this;
+
+            }
+
+            /***************************************************************************************************
+
+             @       outV()          callable/chainable
+             @returns    {Object Array}  emits the outgoing tail vertex of the edge.
+             @example
+
+             var result = g.v(40).inE().outV().value();
+
+             ***************************************************************************************************/
+                outV():Pipeline {
+
+                var edge:Edge,
+                    iter:any[],
+                    endPipeArray:any[] = [],
+                    isTracing:bool = !!this.tracing,
+                    isTracingPath:bool = !!this.tracingPath,
+                    pipes:any[] = isTracingPath ? [] : undefined,
+                    pipe:IElement[];
+                this.steps[++this.steps.currentStep] = {   func: 'outV'  };
+
+                if (!!this.endPipe.length && this.endPipe[0].Type !== 'Edge') {
+                    throw new TypeError('Step ' + this.steps.currentStep + ' only accepts incoming ' + this.endPipe[0].Type + 's');
+                }
+
+                this.traversed = isTracing ? {} : undefined;
+                iter = isTracingPath ? this.pipeline : this.endPipe;
+                Utils.each(iter, function (next) {
+                    edge = isTracingPath ? slice.call(next, -1)[0] : next;
+                    endPipeArray.push(edge.outV);
+                    if (isTracing && !(this.traversed.hasOwnProperty(edge.obj[this.graph.meta.id]))) {
+                        Utils.setTrace(this.traceObj, edge, [edge.outV.obj[this.graph.meta.id]]);
+                        this.traversed[edge.obj[this.graph.meta.id]] = true;
+                    }
+                    if (isTracingPath) {
+                        pipe = [];
+                        pipe.push.apply(pipe, next);
+                        pipe.push(edge.outV);
+                        pipes.push(pipe);
+                    }
+                }, this);
+
+                if (isTracing) {
+                    Utils.finalizeTrace(this.traceObj);
+                    this.traversed = undefined;
+                }
+                this.pipeline = isTracingPath ? pipes : undefined;
+                this.endPipe = endPipeArray;
+                return this;
+            }
+
+            /***************************************************************************************************
+
+             @       inV()           callable/chainable
+             @returns    {Object Array}  emits the incoming head vertex of the edge.
+             @example
+
+             var result = g.v(40).outE().inV().value();
+
+             ***************************************************************************************************/
+                inV():Pipeline {
+
+                var edge:Edge,
+                    iter:any[] = [],
+                    endPipeArray:any[] = [],
+                    isTracing:bool = !!this.tracing,
+                    isTracingPath:bool = !!this.tracingPath,
+                    pipes:any[] = isTracingPath ? [] : undefined,
+                    pipe:IElement[];
+                ;
+
+                this.steps[++this.steps.currentStep] = {   func: 'inV'  };
+
+                if (!!this.endPipe.length && this.endPipe[0].Type !== 'Edge') {
+                    throw new TypeError('Step ' + this.steps.currentStep + ' only accepts incoming ' + this.endPipe[0].Type + 's');
+                }
+
+                this.traversed = isTracing ? {} : undefined;
+                iter = isTracingPath ? this.pipeline : this.endPipe;
+                Utils.each(iter, function (next) {
+                    edge = isTracingPath ? slice.call(next, -1)[0] : next;
+                    endPipeArray.push(edge.inV);
+                    //push.call(endPipeArray, edge.inV);
+                    if (isTracing && !(this.traversed.hasOwnProperty(edge.obj[this.graph.meta.id]))) {
+                        Utils.setTrace(this.traceObj, edge, [edge.inV.obj[this.graph.meta.id]]);
+                        this.traversed[edge.obj[this.graph.meta.id]] = true;
+                    }
+                    if (isTracingPath) {
+                        pipe = [];
+                        pipe.push.apply(pipe, next);
+                        pipe.push(edge.inV);
+                        pipes.push(pipe);
+                    }
+                }, this);
+
+                if (isTracing) {
+                    Utils.finalizeTrace(this.traceObj);
+                    this.traversed = undefined;
+                }
+
+                this.pipeline = isTracingPath ? pipes : undefined;
+                this.endPipe = endPipeArray;
+                return this;
+            }
+
+
+            /***************************************************************************************************
+
+             @       outE()                  callable/chainable
+             @param      {String*|String Array}  Comma separated list or array of labels.
+             @returns    {Object Array}          emits the outgoing edges of the vertex.
+             @example
+
+             var result = g.v(10).outE().outV().value();
+             var result = g.v(10).outE('knows').value();
+
+             ***************************************************************************************************/
+                outE(...labels:string[]):Pipeline {
+
+                var value:{},
+                    vertex:Vertex,
+                    iter:any[] = [],
+                    endPipeArray:any[] = [],
+                    hasArgs:bool = !!labels.length,
+                    isTracing:bool = !!this.tracing,
+                    traceArray:any[] = isTracing ? [] : undefined,
+                    isTracingPath:bool = !!this.tracingPath,
+                    pipes:any[] = isTracingPath ? [] : undefined,
+                    pipe:IElement[];
+
+                if (!!this.endPipe.length && this.endPipe[0].Type !== 'Vertex') {
+                    throw new TypeError('Only accepts incoming ' + this.endPipe[0].Type + 's');
+                }
+
+                this.steps[++this.steps.currentStep] = { func: 'outE', args: labels };
+
+
+                if (isTracingPath) {
+                    iter = this.pipeline;
+                    pipes = [];
+                } else {
+                    this.traversed = {};
+                    iter = this.endPipe;
+                }
+                Utils.each(iter, function (next) {
+                    if (isTracingPath) {
+                        vertex = slice.call(next, -1)[0];
+                    } else {
+                        vertex = next;
+                        if (this.traversed.hasOwnProperty(vertex.obj[this.graph.meta.id])) {
+                            if (!!this.traversed[vertex.obj[this.graph.meta.id]].length) {
+                                endPipeArray.push.apply(endPipeArray, this.traversed[vertex.obj[this.graph.meta.id]]);
+                            }
+                            return;
+                        } else {
+                            this.traversed[vertex.obj[this.graph.meta.id]] = [];
+                        }
+                    }
+
+                    if (Utils.isEmpty(vertex.outE) || (hasArgs && Utils.isEmpty(Utils.pick(vertex.outE, labels)))) {
+                        if (isTracing) {
+                            Utils.stopTrace(this.traceObj, vertex);
+                        }
+                        return;
+                    }
+                    value = hasArgs ? Utils.pick(vertex.outE, labels) : vertex.outE;
+                    Utils.each(Utils.flatten(Utils.values(value)), function (edge) {
+                        endPipeArray.push(edge);
+                        if (isTracing) {
+                            traceArray.push(edge.obj[this.graph.meta.id]);
+                        }
+                        if (isTracingPath) {
+                            pipe = [];
+                            pipe.push.apply(next);
+                            pipe.push(edge);
+                            pipes.push(pipe);
+                        } else {
+                            push.call(this.traversed[vertex.obj[this.graph.meta.id]], edge);
+                        }
+                    }, this);
+                    if (isTracing) {
+                        Utils.setTrace(this.traceObj, vertex, traceArray);
+                        traceArray = [];
+                    }
+                }, this);
+
+                if (isTracing) {
+                    Utils.finalizeTrace(this.traceObj);
+                }
+                if (isTracingPath) {
+                    this.pipeline = pipes;
+                } else {
+                    this.traversed = undefined;
+                }
+                this.endPipe = endPipeArray;
+                return this;
+            }
+
+            /***************************************************************************************************
+
+             @       inE()                   callable/chainable
+             @param      {String*|String Array}  Comma separated list or array of labels.
+             @returns    {Object Array}          emits the incoming edges of the vertex.
+             @example
+
+             var result = g.v(10).inE().value();
+             var result = g.v(10).inE('knows').value();
+
+             ***************************************************************************************************/
+                inE(...labels:string[]):Pipeline {
+
+                var value:{},
+                    vertex:Vertex,
+                    iter:any[] = [],
+                    endPipeArray:any[] = [],
+                    hasArgs:bool = !!labels.length,
+                    isTracing:bool = !!this.tracing,
+                    traceArray:any[] = isTracing ? [] : undefined,
+                    isTracingPath:bool = !!this.tracingPath,
+                    pipes:any[] = isTracingPath ? [] : undefined,
+                    pipe:IElement[];
+
+                if (!!this.endPipe.length && this.endPipe[0].Type !== 'Vertex') {
+                    throw new TypeError('Only accepts incoming ' + this.endPipe[0].Type + 's');
+                }
+
+                this.steps[++this.steps.currentStep] = { func: 'inE', args: labels };
+
+
+                if (isTracingPath) {
+                    iter = this.pipeline;
+                    pipes = [];
+                } else {
+                    this.traversed = {};
+                    iter = this.endPipe;
+                }
+                Utils.each(iter, function (next) {
+                    if (isTracingPath) {
+                        vertex = slice.call(next, -1)[0];
+                    } else {
+                        vertex = next;
+                        if (this.traversed.hasOwnProperty(vertex.obj[this.graph.meta.id])) {
+                            if (!!this.traversed[vertex.obj[this.graph.meta.id]].length) {
+                                endPipeArray.push.apply(endPipeArray, this.traversed[vertex.obj[this.graph.meta.id]]);
+                            }
+                            return;
+                        } else {
+                            this.traversed[vertex.obj[this.graph.meta.id]] = [];
+                        }
+                    }
+
+                    if (Utils.isEmpty(vertex.inE) || (hasArgs && Utils.isEmpty(Utils.pick(vertex.inE, labels)))) {
+                        if (isTracing) {
+                            Utils.stopTrace(this.traceObj, vertex);
+                        }
+                        return;
+                    }
+                    value = hasArgs ? Utils.pick(vertex.inE, labels) : vertex.inE;
+                    Utils.each(Utils.flatten(Utils.values(value)), function (edge) {
+                        endPipeArray.push(edge);
+                        if (isTracing) {
+                            traceArray.push(edge.obj[this.graph.meta.id]);
+                        }
+                        if (isTracingPath) {
+                            pipe = [];
+                            pipe.push.apply(next);
+                            pipe.push(edge);
+                            pipes.push(pipe);
+                        } else {
+                            push.call(this.traversed[vertex.obj[this.graph.meta.id]], edge);
+                        }
+                    }, this);
+                    if (isTracing) {
+                        Utils.setTrace(this.traceObj, vertex, traceArray);
+                        traceArray = [];
+                    }
+                }, this);
+
+                if (isTracing) {
+                    Utils.finalizeTrace(this.traceObj);
+                }
+                if (isTracingPath) {
+                    this.pipeline = pipes;
+                } else {
+                    this.traversed = undefined;
+                }
+                this.endPipe = endPipeArray;
+                return this;
+            }
+
+            /***************************************************************************************************
+
+             @       both()                  callable/chainable
+             @param      {String*|String Array}  Comma separated list or array of labels.
+             @returns    {Object Array}          emits both adjacent Vertices of the vertex.
+             @example
+
+             var result = g.v(10).both().value();
+             var result = g.v(10).both('knows').value();
+
+             ****************************************************************************************************/
+                both(...labels:string[]):Pipeline {
+
+                var value:{},
+                    vertex:Vertex,
+                    iter:any[] = [],
+                    endPipeArray:any[] = [],
+                    hasArgs:bool = !!labels.length,
+                    isTracing:bool = !!this.tracing,
+                    traceArray:any[] = isTracing ? [] : undefined,
+                    isTracingPath:bool = !!this.tracingPath,
+                    pipes:any[] = isTracingPath ? [] : undefined,
+                    pipe:IElement[];
+
+                this.steps[++this.steps.currentStep] = { func: 'both', args: labels };
+
+                if (!!this.endPipe.length && this.endPipe[0].Type !== 'Vertex') {
+                    throw new TypeError('Only accepts incoming ' + this.endPipe[0].Type + 's');
+                }
+
+
+                if (isTracingPath) {
+                    iter = this.pipeline;
+                    pipes = [];
+                } else {
+                    this.traversed = {};
+                    iter = this.endPipe;
+                }
+                Utils.each(iter, function (next) {
+                    if (isTracingPath) {
+                        vertex = slice.call(next, -1)[0];
+                    } else {
+                        vertex = next;
+                        if (this.traversed.hasOwnProperty(vertex.obj[this.graph.meta.id])) {
+                            if (!!this.traversed[vertex.obj[this.graph.meta.id]].length) {
+                                endPipeArray.push.apply(endPipeArray, this.traversed[vertex.obj[this.graph.meta.id]]);
+                            }
+                            return;
+                        } else {
+                            this.traversed[vertex.obj[this.graph.meta.id]] = [];
+                        }
+                    }
+
+                    if (Utils.isEmpty(vertex.outE) || (hasArgs && Utils.isEmpty(Utils.pick(vertex.outE, labels)))) {
+                        if (isTracing) {
+                            Utils.stopTrace(this.traceObj, vertex);
+                        }
+                    } else {
+                        value = hasArgs ? Utils.pick(vertex.outE, labels) : vertex.outE;
+                        Utils.each(Utils.flatten(Utils.values(value)), function (edge) {
+                            endPipeArray.push(edge.inV);
+                            if (isTracing) {
+                                traceArray.push(edge.inV.obj[this.graph.meta.id]);
+                            }
+                            if (isTracingPath) {
+                                pipe = [];
+                                pipe.push.apply(pipe, next);
+                                pipe.push(edge.inV);
+                                pipes.push(pipe);
+                            } else {
+                                push.call(this.traversed[vertex.obj[this.graph.meta.id]], edge.inV);
+                            }
+                        }, this);
+                    }
+
+                    if (Utils.isEmpty(vertex.inE) || (hasArgs && Utils.isEmpty(Utils.pick(vertex.inE, labels)))) {
+                        if (isTracing) {
+                            Utils.stopTrace(this.traceObj, vertex);
+                        }
+                    } else {
+                        value = hasArgs ? Utils.pick(vertex.inE, labels) : vertex.inE;
+                        Utils.each(Utils.flatten(Utils.values(value)), function (edge) {
+                            endPipeArray.push(edge.outV);
+                            if (isTracing) {
+                                traceArray.push(edge.outV.obj[this.graph.meta.id]);
+                            }
+                            if (isTracingPath) {
+                                pipe = [];
+                                pipe.push.apply(pipe, next);
+                                pipe.push(edge.outV);
+                                pipes.push(pipe);
+                            } else {
+                                push.call(this.traversed[vertex.obj[this.graph.meta.id]], edge.outV);
+                            }
+                        }, this);
+                    }
+                    if (isTracing) {
+                        Utils.setTrace(this.traceObj, vertex, traceArray);
+                        traceArray = [];
+                    }
+                }, this);
+
+                if (isTracing) {
+                    Utils.finalizeTrace(this.traceObj);
+                }
+                if (isTracingPath) {
+                    this.pipeline = pipes;
+                } else {
+                    this.traversed = undefined;
+                }
+                this.endPipe = endPipeArray;
+                return this;
+            }
+
+            /***************************************************************************************************
+
+             @       bothV()         callable/chainable
+             @returns    {Object Array}  emits both incoming and outgoing vertices of the edge.
+             @example
+
+             var result = g.e(70).bothV().value();
+
+             ****************************************************************************************************/
+                bothV():Pipeline {
+
+                var edge:Edge,
+                    iter:any[] = [],
+                    endPipeArray:any[] = [],
+                    isTracing:bool = !!this.tracing,
+                    isTracingPath:bool = !!this.tracingPath,
+                    pipes:any[] = isTracingPath ? [] : undefined,
+                    pipe:IElement[];
+                ;
+
+                this.steps[++this.steps.currentStep] = { func: 'bothV'  };
+
+                if (!!this.endPipe.length && this.endPipe[0].Type !== 'Edge') {
+                    throw new TypeError('Only accepts incoming ' + this.endPipe[0].Type + 's');
+                }
+
+                this.traversed = isTracing ? {} : undefined;
+                iter = isTracingPath ? this.pipeline : this.endPipe;
+                Utils.each(iter, function (next) {
+                    edge = isTracingPath ? slice.call(next, -1)[0] : next;
+                    endPipeArray.push.apply(endPipeArray, [edge.outV, edge.inV]);
+                    if (isTracing && !(this.traversed.hasOwnProperty(edge.obj[this.graph.meta.id]))) {
+                        Utils.setTrace(this.traceObj, edge, [edge.outV.obj[this.graph.meta.id], edge.inV.obj[this.graph.meta.id]]);
+                        this.traversed[edge.obj[this.graph.meta.id]] = true;
+                    }
+                    if (isTracingPath) {
+                        pipe = [];
+                        pipe.push.apply(pipe, next);
+                        pipe.push(edge.outV);
+                        pipes.push(pipe);
+                        pipe = [];
+                        pipe.push.apply(pipe, next);
+                        pipe.push(edge.inV);
+                        pipes.push(pipe);
+                    }
+                }, this);
+
+                if (isTracing) {
+                    Utils.finalizeTrace(this.traceObj);
+                    this.traversed = undefined;
+                }
+
+                this.pipeline = isTracingPath ? pipes : undefined;
+                this.endPipe = endPipeArray;
+                return this;
+            }
+
+            /***************************************************************************************************
+
+             @       bothE()                 callable/chainable
+             @param      {String*|String Array}  Comma separated list or array of labels.
+             @returns    {Object Array}          emits both incoming and outgoing edges of the vertex.
+             @example
+
+             var result = g.v(10).bothE().value();
+             var result = g.v(10).bothE('knows').value();
+
+             ****************************************************************************************************/
+                bothE(...labels:string[]):Pipeline {
+
+                var value:{},
+                    vertex:Vertex,
+                    iter:any[] = [],
+                    endPipeArray:any[] = [],
+                    hasArgs:bool = !!labels.length,
+                    isTracing:bool = !!this.tracing,
+                    traceArray:any[] = isTracing ? [] : undefined,
+                    isTracingPath:bool = !!this.tracingPath,
+                    pipes:any[] = isTracingPath ? [] : undefined,
+                    pipe:IElement[];
+
+                this.steps[++this.steps.currentStep] = { func: 'bothE', args: labels };
+
+                if (!!this.endPipe.length && this.endPipe[0].Type !== 'Vertex') {
+                    throw new TypeError('Only accepts incoming ' + this.endPipe[0].Type + 's');
+                }
+
+                if (isTracingPath) {
+                    iter = this.pipeline;
+                    pipes = [];
+                } else {
+                    this.traversed = {};
+                    iter = this.endPipe;
+                }
+                Utils.each(iter, function (next) {
+                    if (isTracingPath) {
+                        vertex = slice.call(next, -1)[0];
+                    } else {
+                        vertex = next;
+                        if (this.traversed.hasOwnProperty(vertex.obj[this.graph.meta.id])) {
+                            if (!!this.traversed[vertex.obj[this.graph.meta.id]].length) {
+                                endPipeArray.push.apply(endPipeArray, this.traversed[vertex.obj[this.graph.meta.id]]);
+                            }
+                            return;
+                        } else {
+                            this.traversed[vertex.obj[this.graph.meta.id]] = [];
+                        }
+                    }
+
+                    if (Utils.isEmpty(vertex.outE) || (hasArgs && Utils.isEmpty(Utils.pick(vertex.outE, labels)))) {
+                        if (isTracing && (Utils.isEmpty(vertex.inE) || (hasArgs && Utils.isEmpty(Utils.pick(vertex.inE, labels))))) {
+                            Utils.stopTrace(this.traceObj, vertex);
+                        }
+                    } else {
+                        value = hasArgs ? Utils.pick(vertex.outE, labels) : vertex.outE;
+                        Utils.each(Utils.flatten(Utils.values(value)), function (edge) {
+                            endPipeArray.push.call(edge);
+                            if (isTracing) {
+                                traceArray.push(edge.obj[this.graph.meta.id]);
+                            }
+                            if (isTracingPath) {
+                                pipe = [];
+                                pipe.push.apply(pipe, next);
+                                pipe.push(edge);
+                                pipes.push(pipe);
+                            } else {
+                                push.call(this.traversed[vertex.obj[this.graph.meta.id]], edge);
+                            }
+                        }, this);
+                    }
+
+                    if (Utils.isEmpty(vertex.inE) || (hasArgs && Utils.isEmpty(Utils.pick(vertex.inE, labels)))) {
+                        if (isTracing && (Utils.isEmpty(vertex.outE) || (hasArgs && Utils.isEmpty(Utils.pick(vertex.outE, labels))))) {
+                            Utils.stopTrace(this.traceObj, vertex);
+                        }
+                    } else {
+                        value = hasArgs ? Utils.pick(vertex.inE,labels) : vertex.inE;
+                        Utils.each(Utils.flatten(Utils.values(value)), function (edge) {
+                            endPipeArray.push(edge);
+                            if (isTracing) {
+                                traceArray.push(edge.obj[this.graph.meta.id]);
+                            }
+                            if (isTracingPath) {
+                                pipe = [];
+                                pipe.push.apply(pipe, next);
+                                pipe.push(edge);
+                                pipes.push(pipe);
+                            } else {
+                                push.call(this.traversed[vertex.obj[this.graph.meta.id]], edge);
+                            }
+                        }, this);
+                    }
+                    if (isTracing) {
+                        Utils.setTrace(this.traceObj, vertex, traceArray);
+                        traceArray = [];
+                    }
+                }, this);
+
+                if (isTracing) {
+                    Utils.finalizeTrace(this.traceObj);
+                }
+                if (isTracingPath) {
+                    this.pipeline = pipes;
+                } else {
+                    this.traversed = undefined;
+                }
+                this.endPipe = endPipeArray;
+                return this;
+            }
+
+            property(prop:string):any[] {
+
+                var array:any[] = [],
+                    tempObj:{},
+                    tempProp:string,
+                    isEmbedded:bool = prop.indexOf(".") > -1;
+
+                tempProp = isEmbedded ? prop.split(".").slice(-1)[0] : prop;
+
+                Utils.each(this.endPipe, function (element) {
+                    tempObj = isEmbedded ? Utils.embeddedObject(element.obj, prop) : element.obj;
+                    if (!Utils.isObject(tempObj[tempProp]) && tempObj.hasOwnProperty(tempProp)) {
+                        array.push(tempObj[tempProp]);
+                    }
+                });
+
+                this.endPipe = [];
+                return array;
+            }
+
+            //Needs to be optimized
+            sort(order?:number):Pipeline;
+
+            sort(func?:() => bool):Pipeline;
+
+            sort(order?:any):Pipeline {
+                //order => if -1 the desc else asc
+                var endPipeArray:any[] = [],
+                    isElement:bool = !!this.endPipe.length && Utils.isElement(this.endPipe[0]),
+                    type:string;
+
+                if (!!order && Utils.isFunction(order)) {
+                    if (isElement) {
+                        type = this.endPipe[0].Type;
+                        endPipeArray = Utils.pluck(this.endPipe, this.graph.meta.id);
+                        endPipeArray.sort(order);
+                        this.endPipe = Utils.materializeElementArray(endPipeArray, this.graph, type);
+                    } else {
+                        this.endPipe.sort(order);
+                    }
+                } else {
+                    if (isElement) {
+                        type = this.endPipe[0].Type;
+                        endPipeArray = Utils.pluck(this.endPipe, this.graph.meta.id);
+                        if (!!parseInt(endPipeArray[0])) {
+                            order == -1 ? endPipeArray.sort(function (a, b) {
+                                return b - a
+                            }) : endPipeArray.sort(function (a, b) {
+                                return a - b
+                            });
+                        } else {
+                            order == -1 ? endPipeArray.reverse() : endPipeArray.sort();
+                        }
+                        this.endPipe = Utils.materializeElementArray(endPipeArray, this.graph, type);
+                    } else {
+                        order == -1 ? this.endPipe.reverse() : this.endPipe.sort();
+                    }
+                }
+
+                return this;
+
+            }
+
+            //[i..j] -> range
+            slice(start:number, end?:number):Pipeline {
+                this.endPipe = !!end ? this.endPipe.slice(start, end) : this.endPipe.slice(start);
+                return this;
+            }
+
+            //[i] -> get indexes
+            itemAt(indices:number[]):Pipeline {
+                var endPipeArray:any[] = [],
+                    idx:number[] = Utils.flatten(indices);
+
+                for (var i = 0, l = idx.length; i < l; i++) {
+                    if (idx[i] > -1 && idx[i] < this.endPipe.length) {
+                        endPipeArray.push(this.endPipe[idx[i]]);
+                    }
+                }
+                this.endPipe = endPipeArray;
+                return this;
+            }
+
+            /***************************************************************************************************
+             Remove duplicate objects
+             @       dedup()             callable/chainable
+             @returns    {Object Array}      emits an Object Array
+             @example
+
+             g.v(10).out().in().dedup().value();
+
+             ****************************************************************************************************/
+                dedup():Pipeline {
+
+                this.endPipe = Utils.uniqueElement(this.endPipe);
+                return this;
+            }
+
+
+            except(dataSet:{}[]):Pipeline {
+                var exclIds = Utils.pluck(Utils.flatten(dataSet), this.graph.meta.id);
+                var ids = Utils.pluck(this.endPipe, this.graph.meta.id);
+                //TODO:Check this
+//                var endPipeIds = Utils.difference(ids, exclIds, false);
+                var endPipeIds = Utils.difference(ids, exclIds);
+
+                this.endPipe = Utils.materializeElementArray(endPipeIds, this.graph, this.endPipe[0].Type);
+
+                return this;
+            }
+
+            //retain
+            intersect(dataSet:{}[]):Pipeline {
+
+                var intersectIds = Utils.pluck(Utils.flatten(dataSet), this.graph.meta.id);
+                var ids = Utils.pluck(this.endPipe, this.graph.meta.id);
+//                var endPipeIds = Utils.intersection(ids, intersectIds, false);
+                                                                     //TODO:Check this
+                var endPipeIds = Utils.intersection(ids, intersectIds);
+                this.endPipe = Utils.materializeElementArray(endPipeIds, this.graph, this.endPipe[0].Type);
+
+                return this;
+            }
+
+            //has() and() or()
+            where(args:{}[]):Pipeline {
+
+                var element:IElement,
+                    iter:any[] = [],
+                    l:number,
+                    nextIter:any[] = [],
+                    comparables:{}[] = [],
+                    endPipeArray:any[] = [],
+                    isTracing:bool = !!this.tracing,
+                    traceArray:any[] = isTracing ? [] : undefined,
+                    isTracingPath:bool = !!this.tracingPath,
+                    pipes:any[] = isTracingPath ? [] : undefined,
+                    funcObj:{},
+                    tempObj:{},
+                    compObj:{},
+                    tempProp:string,
+                    propVals:any[] = [],
+                    isIn:bool;
+
+                /*NEED TO TEST STOP TRACE*/
+
+                iter = isTracingPath ? this.pipeline : this.endPipe;
+
+                comparables = Utils.flatten(args);
+                l = comparables.length;
+                for (var i = 0; i < l; i++) {
+                    compObj = comparables[i];
+                    Utils.each(iter, function (next) {
+                        element = isTracingPath ? slice.call(next, -1)[0] : next;
+                        for (var prop in compObj) {
+                            isIn = false;
+                            if (compObj.hasOwnProperty(prop)) {
+                                //$has, $hasNot, $hasAll & $hasNone
+                                if (prop.charAt(0) === "$") {
+                                    propVals = compObj[prop];
+                                    if (!Compare[prop].call(null, element.obj, propVals)) {
+                                        if (i < l) {
+                                            nextIter.push(next);
+                                        } else {
+                                            Utils.stopTrace(this.traceObj, element);
+                                        }
+                                        return;
+                                    }
+                                } else {
+                                    tempObj = element.obj;
+                                    tempProp = prop;
+                                    if (tempProp.indexOf(".") > -1) {
+                                        tempObj = Utils.embeddedObject(tempObj, tempProp);
+                                        tempProp = tempProp.split(".").slice(-1)[0];
+                                    }
+                                    if (Utils.isObject(tempObj[tempProp]) || !tempObj.hasOwnProperty(tempProp)) {
+                                        if (i < l) {
+                                            nextIter.push(next);
+                                        } else {
+                                            Utils.stopTrace(this.traceObj, element);
+                                        }
+                                        return;
+                                    }
+                                    funcObj = compObj[prop];
+                                    for (var func in funcObj) {
+                                        if (funcObj.hasOwnProperty(func)) {
+                                            if (Compare[func].call(null, tempObj[tempProp], funcObj[func])) {
+                                                if (!isIn) {
+                                                    isIn = true;
+                                                }
+                                            }
+                                        }
+                                    }
+                                    if (!isIn) {
+                                        if (i < l) {
+                                            nextIter.push(next);
+                                        } else {
+                                            Utils.stopTrace(this.traceObj, element);
+                                        }
+                                        return;
+                                    }
+                                }
+                            }
+                        }
+                        endPipeArray.push(element);
+                        if (isTracingPath) {
+                            pipes.push(next);
+                        }
+                    }, this);
+                    iter = nextIter;
+                    nextIter = [];
+                }
+
+                if (isTracingPath) {
+                    this.pipeline = pipes;
+                }
+                this.endPipe = endPipeArray;
+                return this;
+            }
+
+
+            filter(func:()=>any[], ...args:any[]):Pipeline {
+                var element:IElement,
+                    iter:any[] = [],
+                    endPipeArray:any[] = [],
+                    isTracing:bool = !!this.tracing,
+                    traceArray:any[] = isTracing ? [] : undefined,
+                    isTracingPath:bool = !!this.tracingPath,
+                    pipes:any[] = isTracingPath ? [] : undefined;
+
+                iter = isTracingPath ? this.pipeline : this.endPipe;
+
+                Utils.each(iter, function (next) {
+                    element = isTracingPath ? slice.call(next, -1)[0] : next;
+                    if (func.apply(element.obj, args)) {
+                        endPipeArray.push(element);
+                        if (isTracingPath) {
+                            pipes.push(next);
+                        }
+                    } else {
+                        if (isTracing) {
+                            Utils.stopTrace(this.traceObj, element);
+                        }
+                    }
+                }, this);
+
+                if (isTracingPath) {
+                    this.pipeline = pipes;
+                }
+                this.endPipe = endPipeArray;
+                return this;
+            }
+
+            //Should this be a step?
+            //order -> select first
+            min(arg:string):Pipeline {
+                var element:IElement,
+                    iter:any[] = [],
+                    endPipeArray:IElement[] = [],
+                    isTracing:bool = !!this.tracing,
+                    traceArray:any[] = isTracing ? [] : undefined,
+                    isTracingPath:bool = !!this.tracingPath,
+                    pipes:any[] = isTracingPath ? [] : undefined,
+                    comp:number,
+                    newComp:number,
+                    tempObj:{},
+                    tempProp:string,
+                    isEmbedded:bool = arg.indexOf(".") > -1;
+
+                iter = isTracingPath ? this.pipeline : this.endPipe;
+
+                tempProp = isEmbedded ? arg.split(".").slice(-1)[0] : arg;
+
+                Utils.each(iter, function (next) {
+                    element = isTracingPath ? slice.call(next, -1)[0] : next;
+
+                    tempObj = isEmbedded ? Utils.embeddedObject(element.obj, arg) : element.obj;
+
+                    if (tempObj.hasOwnProperty(tempProp) && !Utils.isArray(tempObj[tempProp])) {
+                        if (!isNaN(Utils.parseNumber(tempObj[tempProp], this.graph.config))) {
+                            newComp = Utils.parseNumber(tempObj[tempProp], this.graph.config);
+                        } else {
+                            if (isTracing) {
+                                Utils.stopTrace(this.traceObj, element);
+                            }
+                            return;
+                        }
+
+                        if (!!comp) {
+                            if (newComp < comp) {
+                                endPipeArray = [element];
+                                if (isTracingPath) {
+                                    pipes = [];
+                                    pipes.push(next);
+                                }
+                                comp = newComp;
+                            } else if (newComp == comp) {
+                                endPipeArray.push(element);
+                                if (isTracingPath) {
+                                    pipes.push(next);
+                                }
+                            } else {
+                                if (isTracing) {
+                                    Utils.stopTrace(this.traceObj, element);
+                                }
+                            }
+                        } else {
+                            comp = newComp;
+                            endPipeArray.push(element);
+                            if (isTracingPath) {
+                                pipes.push(next);
+                            }
+                        }
+                    } else {
+                        if (isTracing) {
+                            Utils.stopTrace(this.traceObj, element);
+                        }
+                    }
+
+                }, this);
+
+                if (isTracingPath) {
+                    this.pipeline = pipes;
+                }
+                this.endPipe = endPipeArray;
+                return this;
+            }
+
+            //order -> select first
+            max(arg:string):Pipeline {
+                var element:IElement,
+                    iter:any[] = [],
+                    endPipeArray:IElement[] = [],
+                    isTracing:bool = !!this.tracing,
+                    traceArray:any[] = isTracing ? [] : undefined,
+                    isTracingPath:bool = !!this.tracingPath,
+                    pipes:any[] = isTracingPath ? [] : undefined,
+                    comp:number,
+                    newComp:number,
+                    tempObj:{},
+                    tempProp:string,
+                    isEmbedded:bool = arg.indexOf(".") > -1;
+
+                iter = isTracingPath ? this.pipeline : this.endPipe;
+
+                tempProp = isEmbedded ? arg.split(".").slice(-1)[0] : arg;
+
+                Utils.each(iter, function (next) {
+                    element = isTracingPath ? slice.call(next, -1)[0] : next;
+
+                    tempObj = isEmbedded ? Utils.embeddedObject(element.obj, arg) : element.obj;
+
+                    if (tempObj.hasOwnProperty(tempProp) && !Utils.isArray(tempObj[tempProp])) {
+                        if (!isNaN(Utils.parseNumber(tempObj[tempProp], this.graph.config))) {
+                            newComp = Utils.parseNumber(tempObj[tempProp], this.graph.config);
+                        } else {
+                            if (isTracing) {
+                                Utils.stopTrace(this.traceObj, element);
+                            }
+                            return;
+                        }
+
+                        if (!!comp) {
+                            if (newComp > comp) {
+                                endPipeArray = [element];
+                                if (isTracingPath) {
+                                    pipes = [];
+                                    pipes.push(next);
+                                }
+                                comp = newComp;
+                            } else if (newComp == comp) {
+                                endPipeArray.push(element);
+                                if (isTracingPath) {
+                                    pipes.push(next);
+                                }
+                            } else {
+                                if (isTracing) {
+                                    Utils.stopTrace(this.traceObj, element);
+                                }
+                            }
+                        } else {
+                            comp = newComp;
+                            endPipeArray.push(element);
+                            if (isTracingPath) {
+                                pipes.push(next);
+                            }
+                        }
+                    } else {
+                        if (isTracing) {
+                            Utils.stopTrace(this.traceObj, element);
+                        }
+                    }
+
+                }, this);
+
+                if (isTracingPath) {
+                    this.pipeline = pipes;
+                }
+                this.endPipe = endPipeArray;
+                return this;
+            }
+
+            //used for loop() to refer back to a point...I think
+            as(name:string):Pipeline {
+                this.asHash = this.asHash || {};
+                //Will not overwrite existing stored name
+                if (!this.asHash[name]) {
+                    this.asHash[name] = {};
+                }
+                this.asHash[name].step = this.steps.currentStep;
+                return this;
+            }
+
+            traceOn():Pipeline {
+
+                this.tracing = true;
+                this.traceObj = {};
+                if (!!this.endPipe.length) {
+                    Utils.each(this.endPipe, function (element) {
+                        if (this.traceObj[element.obj[this.graph.meta.id]]) {
+                            this.traceObj[element.obj[this.graph.meta.id]].count += 1;
+                            return;
+                        }
+                        this.traceObj[element.obj[this.graph.meta.id]] = { count: 1, element: element,
+                            tracing: [element.obj[this.graph.meta.id]],
+                            bin: [] };
+                    }, this);
+                }
+                return this;
+            }
+
+            traceOff():Pipeline {
+                this.tracing = false;
+                this.traceObj = undefined;
+                return this;
+            }
+
+
+            back():Pipeline {
+
+                var o/* = {}*/,
+                    k,
+                    array = [];
+
+                if (!this.tracing) {
+                    throw new Error('Trace is off');
+                }
+
+                for (k in this.traceObj) {
+                    if (this.traceObj.hasOwnProperty(k)) {
+                        while (!!this.traceObj[k].count) {
+                            push.call(array, this.traceObj[k].element);
+                            this.traceObj[k].count -= 1;
+                        }
+                    }
+                }
+                this.endPipe = array;
+                this.traceOn();
+                return this;
+            }
+
+            /***************************************************************************************************
+
+             Called to emit the result from traversing the graph.
+
+             count()             callable
+             @returns    {Number}            Returns count.
+
+             @example
+
+             var result = g.V().count();
+
+             ****************************************************************************************************/
+                count():number {
+                return this.endPipe.length;
+            }
+
+            /***************************************************************************************************
+             Group by property
+             group()          callable/chainable
+             @param      {Object}            Optional Object variable to store output. If an Object variable is passed
+             in the output will be stored in that variable and processing will
+             proceed as normal, otherwise the modified object is returned and
+             is not chainable
+             @param      !{String*|Array}    Comma separated String or Array of properties.
+             @returns    {Object}            emits an Object
+             @example
+
+             g.v(1).out('knows').groupBy(['salary','age']).value()
+             g.v(1).out('knows').groupBy('salary','age').value()
+             g.V().outE().inV().groupBy(['age','name']).stringify();
+
+             var t = {};
+             g.v(1).out('knows').groupBy(t,['salary','age']).value()
+
+             ****************************************************************************************************/
+                group(args:string[]):{} {
+
+                var isTracingPath:bool = !!this.tracingPath,
+                    props:string[] = [],
+                    tempObj:{},
+                    tempProp:string,
+                    groupObj:{} = {},
+                    o:{} = {},
+                    outputObj:{} = {},
+                    element:{};
+
+                args = Utils.flatten(args);
+                Utils.each(this.endPipe, function (next) {
+                    element = isTracingPath ? slice.call(next, -1)[0].obj : next.obj;
+
+                    o = {};
+                    o[element[this.graph.meta.id]] = element;
+                    for (var j = args.length - 1, propsLen = 0; j >= propsLen; j--) {
+                        tempObj = element;
+                        tempProp = args[j];
+                        if (tempProp.indexOf(".") > -1) {
+                            tempObj = Utils.embeddedObject(tempObj, tempProp);
+                            tempProp = tempProp.split(".").slice(-1)[0];
+                        }
+                        if (!(Utils.isObject(tempObj[tempProp])) && tempObj.hasOwnProperty(tempProp)) {
+                            props = Utils.isArray(tempObj[tempProp]) ? tempObj[tempProp] : [tempObj[tempProp]];
+                            for (var f = 0, flen = props.length; f < flen; f++) {
+                                groupObj[props[f]] = o;
+                            }
+                        } else {
+                            groupObj['_no_' + args[j]] = o;
+                            //give it an unclassified category
+                        }
+                        o = groupObj;
+                        groupObj = {};
+
+                    }
+                    outputObj = Utils.merge(o, outputObj);
+                });
+
+                this.endPipe = [];
+                return outputObj;
+
+            }
+
+
+            sum(args:string[]):{} {
+
+                var isTracingPath:bool = !!this.tracingPath,
+                    props:string[] = [],
+                    tempObj:{},
+                    tempProp:string,
+                    outputObj:{ summed:{}; results:{}[]; }/* = { summed: {}, results: [] }*/,
+                    o:{} = {},
+                    isEmbedded:bool = false;
+
+
+                function createChildren(val:any, ...properties:string[]):{} {
+                    var i:number = properties.length,
+                        retObj:{} = {},
+                        groupObj:{ value?:number; } = { value: val };
+
+                    retObj = groupObj;
+                    while (!!i) {
+                        groupObj = {};
+                        groupObj[properties[--i]] = retObj;
+                        retObj = groupObj;
+                    }
+
+                    return retObj;
+                }
+
+                args = Utils.flatten(args);
+                for (var i = 0, propsLen = args.length; i < propsLen; i++) {
+                    tempProp = args[i];
+                    o[tempProp] = 0;
+                    isEmbedded = false;
+                    if (args[i].indexOf(".") > -1) {
+                        tempProp = args[i].split(".").slice(-1)[0];
+                        isEmbedded = true;
+                    }
+                    Utils.each(this.endPipe, function (next) {
+                        tempObj = isTracingPath ? slice.call(next, -1)[0].obj : next.obj;
+                        if (isEmbedded) {
+                            tempObj = Utils.embeddedObject(tempObj, args[i]);
+                        }
+                        if (!(Utils.isObject(tempObj[tempProp])) && tempObj.hasOwnProperty(tempProp)) {
+                            props = Utils.isArray(tempObj[tempProp]) ? tempObj[tempProp] : [tempObj[tempProp]];
+                            for (var j = 0, len = props.length; j < len; j++) {
+                                o[args[i]] = o[args[i]] + Utils.parseNumber([props[j]], this.graph.config);
+                            }
+                        }
+                    });
+                }
+
+                props = [];
+                var o2/* = {}*/, o3 = {};
+
+                for (var k in o) {
+                    if (o.hasOwnProperty(k)) {
+                        if (k.indexOf(".") > -1) {
+                            props.push(o[k]);
+                            props.push.apply(props, k.split("."));
+                            o2 = createChildren.apply(null, props);
+                        } else {    //probably fix this
+                            o2 = {};
+                            o2[k] = {};
+                            o2[k].value = o[k];
+                        }
+                        o3 = Utils.merge(o2, o3);
+                    }
+                }
+                outputObj.summed = o3;
+                outputObj.results = this.endPipe;
+                this.endPipe = [];
+
+                return outputObj;
+            }
+
+
+            step(func:() => any[], ...args:any[]):Pipeline {
+                var endPipeArray:any[] = [];
+
+                Utils.each(this.endPipe, function (element) {
+                    endPipeArray.push(func.apply(element.obj, args));
+                });
+                this.endPipe = endPipeArray;
+                return this;
+            }
+
+            store(x:any[], func?:() => any[], ...args:any[]):Pipeline {
+
+                if (!func) {
+                    x.push.apply(x, Utils.toObjArray(this.endPipe));
+                } else {
+                    Utils.each(this.endPipe, function (element) {
+                        x.push(func.apply(element.obj, args));
+                    });
+                }
+                return this;
+            }
+
+//            /***************************************************************************************************
+//             Iterate over a specified region of the path
+//                    loop()              callable/chainable
+//             @param      !{Number|String}    Number of back steps or stored position
+//             @param      !{Number}           Number of iterations i.e. how many times to traverse those steps
+//             @returns    {Object}            emits an Object
+//             @examples
+//
+//             g.v(40).out().in().loop(2, 3).value();
+//             g.v(40).out().as('x').in().loop('x', 3).value();
+//
+//             *****************************************************************************************************/
+
+            //Need to test back() and path() functions with the loop() escpecially when there is a function involved
+            //loop(loopFor:number, stepBack:number, func?:() => any[], ...args:any[]):Pipeline;
+
+            loop(loopFor:number, stepBack?:string, func?:() => any[], ...args:any[]):Pipeline;
+
+            //loop(loopFor:any = 1, stepBack:any = 0, func?:() => any[], ...args:any[]):Pipeline {
+            loop(loopFor:any, stepBack:any, func?:() => any[], ...args:any[]):Pipeline {
+                var i:number,
+                    stepFrom:number = 0,
+                    stepTo:number = this.steps.currentStep,
+                    endPipeArray:IElement[] = [],
+                    element:IElement,
+                    iter:any[] = [],
+                    isTracing:bool = !!this.tracing,
+                    isTracingPath:bool = !!this.tracingPath,
+                    pipes:any[] = isTracingPath ? [] : undefined,
+                    hasFunction:bool = !!func && typeof func == "function",
+                    callFunc:() => void = function () {
+                        iter = isTracingPath ? this.pipeline : this.endPipe;
+                        Utils.each(iter, function (next) {
+                            element = isTracingPath ? slice.call(next, -1)[0] : next;
+                            if (func.apply(element.obj, args)) {
+                                endPipeArray.push(element);
+                                if (isTracingPath) {
+                                    pipes.push(next);
+                                }
+                            } else if (isTracing) {
+                                Utils.stopTrace(this.traceObj, element);
+                            }
+                        }, this);
+                    };
+
+                if (!!loopFor && typeof loopFor == "function") {
+                    hasFunction = true;
+                    func = loopFor;
+                    loopFor = 1;
+                } else {
+                    if (!!stepBack && typeof stepBack == "function") {
+                        hasFunction = true;
+                        func = stepBack;
+                        stepBack = 0;
+                    }
+                }
+
+                stepFrom = Utils.isString(stepBack) ? this.asHash[stepBack].step : this.steps.currentStep - stepBack;
+
+                if (stepFrom < 2) {
+                    throw Error('Cannot go loop back to step ' + stepFrom);
+                }
+
+                while (!!loopFor) {
+                    for (i = stepFrom; i <= stepTo; i++) {
+                        if (hasFunction) {
+                            callFunc.call(this);
+                        }
+                        this[this.steps[i].func].apply(this, this.steps[i].args);
+                    }
+                    --loopFor;
+                }
+                if (hasFunction) {
+                    callFunc.call(this);
+                    if (isTracingPath) {
+                        this.pipeline = pipes;
+                    }
+                    this.endPipe = endPipeArray;
+                }
+                return this;
+            }
+
+
+            //Maybe I should allow for a function to be passed in to emit() ??????
+            emit(...props:string[]):{ results:any[]; } {
+
+                var array:any[] = [],
+                    temp:any,
+                    iter:any[];
+
+                iter = this.endPipe;
+
+                if (!!this.pinned) {
+                    this.traceObj = this.snapshot.traceObj;   //????????????????????
+                    this.tracing = this.snapshot.tracing;
+                    this.traversed = this.snapshot.traversed;
+                    this.asHash = this.snapshot.asHash;
+                    this.tracingPath = this.snapshot.tracingPath;
+                    this.steps = this.snapshot.steps;
+                    this.endPipe = this.snapshot.endPipe;
+
+                } else {
+                    //reset steps
+                    this.steps = { currentStep: 0 };
+                }
+
+                if (!!iter.length) {
+                    if (!iter[0] || !Utils.isElement(iter[0])) {
+                        return {results: iter};
+                    }
+                    //if (!props.length) {
+                        return {results: Utils.toObjArray(iter)};
+                    //}
+                    /*Utils.each(Utils.toObjArray(iter), function (element) {
+                        temp = Utils.pick(element, props);
+                        if (!Utils.isEmpty(temp)) {
+                            array.push(Utils.pick(element, props));
+                        }
+                    });*/
+                }
+
+
+                return {results: array};
+            }
+
+            /***************************************************************************************************
+
+             Called to emit the stringified result from traversing the graph.
+
+             stringify()             callable
+             @param      {String*|String Array}  Comma delimited string or string array of keys to be mapped to emit.
+             @returns    {String}                Returns a string.
+
+             @example
+
+             var result = g.V().stringify();
+             var result = g.V().stringify('name','age');
+
+             ***************************************************************************************************/
+                stringify(...props:string[]):string {
+                return 'test'; //JSON.stringify(!!props.length ? this.emit.apply(this, props).results : this.emit().results);
+            }
+
+            hash():{} {
+                //reset steps
+                this.steps = { currentStep: 0 };
+                return Utils.toHash(this.endPipe);
+            }
+
+            path():any[] {
+                if (!this.tracingPath) {
+                    throw Error('Not tracing path');
+                    return;
+                }
+                //reset steps
+                this.steps = { currentStep: 0 };
+                var outputArray = [];
+                var len = this.pipeline.length;
+                for (var i = 0; i < len; i++) {
+                    push.call(outputArray, Utils.toObjArray(this.pipeline[i]));
+                }
+                this.pipeline.length = 0;
+                return outputArray;
+            }
+
+            /***************************************************************************************************
+             Clone output objects
+             @       clone()                 callable
+             @returns    {Object Array}          emits an Object Array
+             @example
+
+             g.v(10).out().clone();
+
+             ****************************************************************************************************/
+                clone():{}[] {
+                //reset steps
+                this.steps = { currentStep: 0 };
+                return JSON.parse(this.stringify());
+            }
+
+        }
+
+        export class Compare {
+            //comparables
+
+            static $eq(objVal:any, val:any, graph:Graph):bool {
+
+                var objValIsArray:bool = Utils.isArray(objVal),
+                    index:number;
+
+                objVal = objValIsArray ? Utils.unique(objVal) : [objVal];
+                index = objVal.length;
+                while (index) {
+                    --index;
+                    if (((Utils.isDate(val, graph.date) && Utils.isDate(objVal[index], graph.date))
+                        || (Utils.isMoney(val, graph.currency) && Utils.isMoney(objVal[index], graph.currency))
+                        || (!(Utils.isDate(objVal[index], graph.date) || Utils.isMoney(objVal[index], graph.currency))))
+                        && (Utils.parseNumber(objVal[index], graph.config) === Utils.parseNumber(val, graph.config))) {
+
+                        return true;
+                    }
+                }
+                return false;
+            }
+
+            static $neq(objVal:any, val:any, graph:Graph):bool {
+                return !Compare.$eq(objVal, val, graph);
+            }
+
+            static $lt(objVal:any, val:any, graph:Graph):bool {
+                var objValIsArray:bool = Utils.isArray(objVal),
+                    index:number;
+
+                objVal = objValIsArray ? Utils.unique(objVal) : [objVal];
+                index = objVal.length;
+                while (index) {
+                    --index;
+                    if (((Utils.isDate(val, graph.date) && Utils.isDate(objVal[index], graph.date))
+                        || (Utils.isMoney(val, graph.currency) && Utils.isMoney(objVal[index], graph.currency))
+                        || (!(Utils.isDate(objVal[index], graph.date) || Utils.isMoney(objVal[index], graph.currency))))
+                        && (Utils.parseNumber(objVal[index], graph.config) < Utils.parseNumber(val, graph.config))) {
+
+                        return true;
+                    }
+                }
+                return false;
+            }
+
+            static $lte(objVal:any, val:any, graph:Graph):bool {
+                var objValIsArray:bool = Utils.isArray(objVal),
+                    index:number;
+
+                objVal = objValIsArray ? Utils.unique(objVal) : [objVal];
+                index = objVal.length;
+                while (index) {
+                    --index;
+                    if (((Utils.isDate(val, graph.date) && Utils.isDate(objVal[index], graph.date))
+                        || (Utils.isMoney(val, graph.currency) && Utils.isMoney(objVal[index], graph.currency))
+                        || (!(Utils.isDate(objVal[index], graph.date) || Utils.isMoney(objVal[index], graph.currency))))
+                        && (Utils.parseNumber(objVal[index], graph.config) <= Utils.parseNumber(val, graph.config))) {
+
+                        return true;
+                    }
+                }
+                return false;
+            }
+
+            static $gt(objVal:any, val:any, graph:Graph):bool {
+                return !Compare.$lte(objVal, val, graph);
+            }
+
+            static $gte(objVal:any, val:any, graph:Graph):bool {
+                return !Compare.$lt(objVal, val, graph);
+            }
+
+            static $typeOf(objVal:any, val:string[], graph:Graph):bool {
+
+                var objValIsArray:bool = Utils.isArray(objVal),
+                    index:number,
+                    i:number = 0,
+                    valLen:number = val.length,
+                    comp:string;
+
+                index = val.length;
+                while (index) {
+                    --index;
+                    comp = val[index].toLowerCase()
+                    if (comp == 'number' && !Utils.isDate(objVal, graph.date) && !Utils.isMoney(objVal, graph.currency) && Utils.isNumber(Utils.parseNumber(objVal, graph.config))) {
+                        return true;
+                    } else if (comp == 'money' && Utils.isMoney(objVal, graph.currency)) {
+                        return true;
+                    } else if (comp == 'string' && !Utils.isDate(objVal, graph.date) && !Utils.isMoney(objVal, graph.currency) && Utils.isString(Utils.parseNumber(objVal, graph.config))) {
+                        return true;
+                    } else if (comp == 'array' && Utils.isArray(objVal)) {
+                        return true;
+                    } else if (comp == 'date' && Utils.isDate(objVal, graph.date)) {
+                        return true;
+                    }
+                }
+                return false;
+            }
+
+            static $notTypeOf(objVal:any, val:string[], graph:Graph):bool {
+                return !Compare.$typeOf(objVal, val, graph);
+            }
+
+            static $in(objVal:any, val:any[], graph:Graph):bool {
+
+                var objValIsArray:bool = Utils.isArray(objVal),
+                    index:number,
+                    i:number = 0,
+                    valLen:number = val.length;
+
+                objVal = objValIsArray ? Utils.unique(objVal) : [objVal];
+                index = objVal.length;
+                while (index) {
+                    --index;
+                    i = valLen;
+                    while (!!i) {
+                        --i;
+                        if (((Utils.isDate(val[i], graph.date) && Utils.isDate(objVal[index], graph.date))
+                            || (Utils.isMoney(val[i], graph.currency) && Utils.isMoney(objVal[index], graph.currency))
+                            || (!(Utils.isDate(objVal[index], graph.date) || Utils.isMoney(objVal[index], graph.currency))))
+                            && (Utils.parseNumber(objVal[index], graph.config) === Utils.parseNumber(val[i], graph.config))) {
+
+                            return true;
+                        }
+                    }
+                }
+                return false;
+            }
+
+            static $nin(objVal:any, val:any[], graph:Graph):bool {
+                return !Compare.$in(objVal, val, graph);
+            }
+
+            static $match(objVal:any, val:string[], graph:Graph):bool {
+                var objValIsArray:bool = Utils.isArray(objVal),
+                    index:number,
+                    i:number = 0,
+                    valLen:number = val.length;
+
+                objVal = objValIsArray ? Utils.unique(objVal) : [objVal];
+                index = objVal.length;
+                while (index) {
+                    --index;
+                    i = valLen;
+                    while (!!i) {
+                        --i;
+                        if (Utils.isString(objVal[index]) && !(objVal[index].search(val[i]) === false)) {
+                            return true;
+                        }
+                    }
+                }
+                return false;
+            }
+
+            //Array comparator
+            static $all(objVal:any[], val:any[], graph:Graph):bool {
+
+                var matches:number = 0,
+                    index:number = 0,
+                    i:number = 0,
+                    valLen:number = 0;
+
+                val = Utils.unique(val);
+                objVal = Utils.unique(objVal);
+
+                valLen = val.length;
+                index = objVal.length;
+                if (valLen <= index) {
+                    while (index) {
+                        --index;
+                        i = valLen;
+                        while (!!i) {
+                            --i;
+                            if (((Utils.isDate(val[i], graph.date) && Utils.isDate(objVal[index], graph.date))
+                                || (Utils.isMoney(val[i], graph.currency) && Utils.isMoney(objVal[index], graph.currency))
+                                || (!(Utils.isDate(objVal[index], graph.date) || Utils.isMoney(objVal[index], graph.currency))))
+                                && (Utils.parseNumber(objVal[index], graph.config) === Utils.parseNumber(val[i], graph.config))) {
+
+                                matches++;
+                            }
+                        }
+                    }
+                }
+                return matches == valLen;
+            }
+
+            //Array comparator
+            static $none(objVal:any[], val:any[], graph:Graph):bool {
+                return !Compare.$all(objVal, val, graph);
+            }
+
+            //Array comparator
+            static $exact(objVal:any[], val:any[], graph:Graph):bool {
+
+                var matches:number = 0,
+                    index:number = 0,
+                    i:number = 0,
+                    valLen:number = 0;
+
+                val = Utils.unique(val);
+                objVal = Utils.unique(objVal);
+
+                valLen = val.length;
+                index = objVal.length;
+                if (valLen == index) {
+                    while (index) {
+                        --index;
+                        i = valLen;
+                        while (!!i) {
+                            --i;
+                            if (((Utils.isDate(val[i], graph.date) && Utils.isDate(objVal[index], graph.date))
+                                || (Utils.isMoney(val[i], graph.currency) && Utils.isMoney(objVal[index], graph.currency))
+                                || (!(Utils.isDate(objVal[index], graph.date) || Utils.isMoney(objVal[index], graph.currency))))
+                                && (Utils.parseNumber(objVal[index], graph.config) === Utils.parseNumber(val[i], graph.config))) {
+
+                                matches++;
+                            }
+                        }
+                    }
+                }
+                return matches == valLen;
+            }
+
+            /*
+             $startsWith
+             $endsWith
+             $contains
+             $notContains
+             */
+
+            static $hasAny(obj:{}, val:string[]):bool {
+                var i:number = val.length,
+                    tempObj:{},
+                    tempProp:string;
+
+                while (!!i) {
+                    --i;
+                    tempObj = obj;
+                    tempProp = val[i];
+                    if (tempProp.indexOf(".") > -1) {
+                        tempObj = Utils.embeddedObject(tempObj, tempProp);
+                        tempProp = tempProp.split(".").slice(-1)[0];
+                    }
+                    if (tempObj.hasOwnProperty(tempProp)) {
+                        return true;
+                    }
+                }
+                return false;
+            }
+
+            static $hasAll(obj:{}, val:string[]):bool {
+                var i:number = val.length,
+                    matches:number,
+                    tempObj:{},
+                    tempProp:string;
+
+                while (!!i) {
+                    --i;
+                    tempObj = obj;
+                    tempProp = val[i];
+                    if (tempProp.indexOf(".") > -1) {
+                        tempObj = Utils.embeddedObject(tempObj, tempProp);
+                        tempProp = tempProp.split(".").slice(-1)[0];
+                    }
+                    if (tempObj.hasOwnProperty(tempProp)) {
+                        matches++;
+                    }
+                }
+                return matches == val.length;
+            }
+
+            static $notAny(obj:{}, val:string[]):bool {
+                return !$hasAny(obj, val);
+            }
+
+            static $notAll(obj:{}, val:string[]):bool {
+                return !$hasAll(obj, val);
+            }
+
+        }
+
+    }
+
+    class Utils {
+
+        static currencyRegex:{} = {
+            '.': /[^0-9-.]+/g,
+            ',': /[^0-9-,]+/g
+        };
+
+        static setTrace(trace:{}, element:IElement, ...ids:any[]):void {
+            var o:{};
+            var newIds = flatten(ids),
+                id:any = element.obj[element.graph.meta.id];
+
+            o = trace;
+            for (var k in o) {
+                if (o.hasOwnProperty(k) && !!o[k].tracing) {
+                    var obj = o[k];
+
+                    var ind = indexOf.call(obj.tracing, id);
+                    if (!!newIds.length && ind > -1) {
+                        push.apply(obj.bin, newIds);
+                    }
+                }
+            }
+        }
+
+        static stopTrace(trace:{}, element:IElement):void {
+            var o:{} = trace,
+                id:any = element.obj[element.graph.meta.id];
+
+            for (var k in o) {
+                if (o.hasOwnProperty(k) && ("tracing" in o[k])) {
+                    var obj = o[k];
+                    var ind = indexOf.call(obj.tracing, id);
+
+                    while (ind > -1) {
+                        obj.tracing.splice(ind, 1);
+                        ind = indexOf.call(obj.tracing, id);
+                    }
+                    if (!obj.tracing.length) {
+                        delete o[k];
+                    }
+                }
+            }
+        }
+
+
+        static finalizeTrace(trace:{}):void {
+
+            for (var k in trace) {
+                if (trace.hasOwnProperty(k) && (trace[k].hasOwnProperty("tracing"))) {
+                    var obj = trace[k];
+                    if (!obj.bin.length) {
+                        delete trace[k];
+                    } else {
+                        obj.tracing = Utils.unique(obj.bin);
+                        obj.bin = [];
+                    }
+                }
+            }
+        }
+
+        static  toArray(o) {
+            var k, r = [];
+            for (k in o) {
+                if (o.hasOwnProperty(k)) {
+                    r.push(o[k]);
+                }
+            }
+            return r;
+        }
+
+        static each(array:any, func:(element:any)=>void,/* callback?:(result:any)=>void,*/ context?:{}):void {
+
+            var i:any, len:number, val:Element;
+
+            //if (!Utils.is(func))
+            //throw new TypeError();
+
+            if (isArray(array)) {
+                len = array.length;
+                for (i = 0; i < len; i += 1) {
+                    val = array[i]; // in case func mutates this
+                    func.call(context, val);
+                }
+            } else {
+                for (i in array) {
+                    if (array.hasOwnProperty(i)) {
+                        val = array[i]; // in case func mutates this
+                        func.call(context, val);
+                    }
+                }
+            }
+            //callback()
+        }
+
+//        static  each(array:any, func:(element:any)=>void, context?:{}):void {
+//
+//            var i:any, len:number, val:Element;
+//
+//            //if (!Utils.is(func))
+//            //throw new TypeError();
+//
+//            if (isArray(array)) {
+//                len = array.length;
+//                for (i = 0; i < len; i += 1) {
+//                    val = array[i]; // in case func mutates this
+//                    func.call(context, val);
+//                }
+//            } else {
+//                for (i in array) {
+//                    if (array.hasOwnProperty(i)) {
+//                        val = array[i]; // in case func mutates this
+//                        func.call(context, val);
+//                    }
+//                }
+//            }
+//        }
+
+
+        //TODO: check intersection
+        static intersection(arr1:any[], arr2:any[]/*, isObj:bool*/) {
+
+            var r = [], o = {}, i, comp;
+            for (i = 0; i < arr2.length; i += 1) {
+//                if (!!isObj) {
+//                    o[arr2[i][this.graph.meta.id]] = true;
+//                } else {
+                  o[arr2[i]] = true;
+                //}
+            }
+
+            for (i = 0; i < arr1.length; i += 1) {
+                comp = /*!!isObj ? arr1[i][arr1[i].graph.meta.id] :*/ arr1[i];
+                if (!!o[comp]) {
+                    r.push(arr1[i]);
+                }
+            }
+            return r;
+        }
+
+        static intersectElement(elements:{}[]):{} {
+
+            var o:{}, outputObj:{} = {}, compObj:{} = elements[0];
+
+            for (var i = 1, l = elements.length; i < l; i++) {
+                o = {};
+                for (var k in elements[i]) {
+                    if (elements[i].hasOwnProperty(k)) {
+                        o[k] = true;
+                    }
+                }
+
+                for (var h in compObj) {
+                    if (!!o[h]) {
+                        outputObj[h] = compObj[h];
+                    }
+                }
+                if (isEmpty(outputObj)) {
+                    return {};
+                }
+                compObj = outputObj;
+            }
+            return outputObj;
+        }
+
+        //Utils are internal s
+        //TODO: Check difference
+        static  difference(arr1:any[], arr2:any[]/*, isObj:bool*/):any[] {
+            var r = [], o = {}, i, comp;
+            for (i = 0; i < arr2.length; i += 1) {
+//                if (!!isObj) {
+//                    o[arr2[i][arr2[i].graph.meta.id]] = true;
+//                } else {
+                    o[arr2[i]] = true;
+//                }
+            }
+
+            for (i = 0; i < arr1.length; i += 1) {
+                comp = /*!!isObj ? arr1[i][arr1[i].graph.meta.id] :*/ arr1[i];
+                if (!o[comp]) {
+                    r.push(arr1[i]);
+                }
+            }
+            return r;
+        }
+
+        static  diffElement(arr1:IElement[], arr2:IElement[]):any[] {
+            var r = [], o = {}, i, comp;
+            for (i = 0; i < arr2.length; i += 1) {
+                o[arr2[i].obj[arr2[i].graph.meta.id]] = true;
+            }
+
+            for (i = 0; i < arr1.length; i += 1) {
+                comp = arr1[i].obj[arr1[i].graph.meta.id];
+                if (!o[comp]) {
+                    r.push(arr1[i]);
+                }
+            }
+            return r;
+        }
+
+        static  unique(array:any[]) {
+
+            var o = {}, i, l = array.length, r = [];
+            for (i = 0; i < l; i += 1) {
+                o[array[i]] = array[i];
+            }
+            for (i in o) {
+                if (o.hasOwnProperty(i)) {
+                    r.push(o[i]);
+                }
+            }
+            return r;
+        }
+
+        static  uniqueElement(array:IElement[]):IElement[] {
+
+            var o = {}, i, l = array.length, r = [];
+            for (i = 0; i < l; i += 1) {
+                o[array[i].obj[array[i].graph.meta.id]] = array[i];
+            }
+            for (i in o) {
+                if (o.hasOwnProperty(i)) {
+                    r.push(o[i]);
+                }
+            }
+            return r;
+        }
+
+        static  include(array, i) {
+            return indexOf.call(array, i) === -1 ? false : true;
+        }
+
+        static  keys(o) {
+            var k, r = [];
+            for (k in o) {
+                if (o.hasOwnProperty(k)) {
+                    r.push(k);
+                }
+            }
+            return r;
+        };
+
+        static values(o) {
+            return toArray(o);
+        }
+
+        static pick(o:{}, props:string[]):{} {
+
+            var props = flatten(props),
+                i = props.length,
+                result = {},
+                tempObj,
+                tempProp;
+
+            while (i) {
+                i -= 1;
+                tempProp = props[i];
+                tempObj = o;
+                if (tempProp.indexOf(".") > -1) {
+                    tempObj = embeddedObject(o, tempProp);
+                    tempProp = tempProp.split(".").slice(-1)[0];
+                }
+
+                if (tempObj.hasOwnProperty(tempProp)) {
+                    result[tempProp] = tempObj[tempProp];
+                }
+            }
+            return result;
+        }
+
+        static  pluck(objs:{ obj?:{}; }[], prop:string):any[] {
+
+            var o,
+                i = objs.length,
+                tempObj:{},
+                tempProp:string,
+                result = [],
+                isElement:bool = false,
+                isEmbedded:bool = false;
+
+            if (!!i) {
+                isElement = !!objs[0].obj;
+            }
+            if (prop.indexOf(".") > -1) {
+                isEmbedded = true;
+                tempProp = prop.split(".").slice(-1)[0];
+            }
+            while (i) {
+                i -= 1;
+                o = isElement ? objs[i].obj : objs[i];
+                tempObj = isEmbedded ? embeddedObject(o, prop) : o;
+                if (tempObj.hasOwnProperty(tempProp)) {
+                    push.call(result, tempObj[tempProp]);
+                }
+            }
+
+            return result;
+        }
+
+        static toHash(array:IElement[]):{} {
+            var id:string,
+                i:number,
+                len:number = array.length,
+                result:{} = {},
+                o:{} = {};
+
+            if(!!len){
+                id = array[0].graph.meta.id;
+                for (i = 0; i < len; i += 1) {
+                    o = array[i].obj;
+                    result[o[id]] = o;
+                }
+            }
+
+            return result;
+        }
+
+        static  toObjArray(array:any[]):{}[] {
+            var i, l = array.length, result:{}[] = [];
+
+            for (i = 0; i < l; i += 1) {
+                result.push(array[i].obj);
+            }
+            return result;
+        }
+
+        static materializeElementArray(array:{}[], db:Graph, type:string):IElement[];
+        static materializeElementArray(array:any[], db:Graph, type:string):IElement[] {
+            var i, l = array.length,
+                result:IElement[] = [],
+                elements:{} = type == "Vertex" ? db.vertices : db.edges,
+                isObjArray:bool = false;
+
+            if (!!l) {
+                isObjArray = isObject(array[0]);
+            }
+
+            for (i = 0; i < l; i += 1) {
+                result.push(isObjArray ? elements[array[i][db.meta.id]] : elements[array[i]]);
+            }
+            return result;
+        }
+
+        static flatten(array:any[], shallow:bool = false) {
+
+            var result = [],
+                value:any,
+                index = -1,
+                length;
+
+            if (!array) {
+                return result;
+            }
+
+            length = array.length;
+
+            while ((index += 1) < length) {
+                value = array[index];
+                if (isArray(value)) {
+                    push.apply(result, shallow ? value : flatten(value));
+                } else {
+                    result.push(value);
+                }
+            }
+            return result;
+        }
+
+        static  embeddedObject(o:{}, prop:string):{} {
+            var props:string[] = prop.indexOf(".") > -1 ? prop.split(".") : [prop],
+                l:number = props.length,
+                lastProp:string = props[l - 1],
+                currentProp:string;
+
+            for (var i = 0; i < l; i++) {
+                if (o.hasOwnProperty(props[i])) {
+                    currentProp = props[i];
+                    if (!isObject(o[currentProp])) {
+                        break;
+                    }
+                    o = o[currentProp];
+                }
+            }
+            if (currentProp != lastProp) {
+                o = {};
+            }
+            return o;
+        }
+
+
+        /*
+         * Recursively merge properties of two objects
+         */
+        static  merge(obj1:{}, obj2:{}):{} {
+
+            for (var p in obj2) {
+                try {
+                    // Property in destination object set; update its value.
+                    if (obj1.hasOwnProperty(p)) {
+                        obj1[p] = merge(obj1[p], obj2[p]);
+                    } else {
+                        obj1[p] = obj2[p];
+                    }
+                } catch (e) {
+                    // Property in destination object not set; create it and set its value.
+                    obj1[p] = obj2[p];
+                }
+            }
+
+            return obj1;
+        }
+
+
+        static isArray(o:any):bool {
+            return toString.call(o) === '[object Array]';
+        }
+
+        static isString(o:any):bool {
+            return toString.call(o) === '[object String]';
+        }
+
+        static isNumber(o:any):bool {
+            return toString.call(o) === '[object Number]';
+        }
+
+        static  isObject(o:any):bool {
+            return toString.call(o) === '[object Object]';
+        }
+
+        static isEmpty(o:any):bool {
+            var key;
+            if (!o) {
+                return true;
+            }
+            for (key in o) {
+                if (o.hasOwnProperty(key)) {
+                    return !o[key];
+                }
+            }
+            return true;
+        }
+
+        static isFunction(o:any):bool {
+            return toString.call(o) === '[object ]';
+        }
+
+        static isNull(o:any):bool {
+            return toString.call(o) === '[object Null]';
+        }
+
+        static isUndefined(o:any):bool {
+            return toString.call(o) === '[object Undefined]';
+        }
+
+        static isElement(o:any):bool {
+            return o.hasOwnProperty('obj');
+        }
+
+        static isDate(o:any, date:{ format:any;}):bool {
+            return isString(o) ? moment(o, date.format).isValid() : false;
+        }
+
+        static isMoney(val:any, curr:{ symbol:any; decimal:string; }):bool {
+            var i:number,
+                l:number = curr.symbol.length;
+
+            if (isString(val)) {
+                for (i = 0; i < l; i++) {
+                    if (val.indexOf(curr.symbol[i]) > -1) {
+                        return !isNaN(parseFloat(val.replace(currencyRegex[curr.decimal], '')));
+                    }
+                }
+            }
+            return false;
+        }
+
+        //convert string to number OR return string
+        static  parseNumber(val:any, config:IConfiguration):any {
+            if (isDate(val, config.date.format)) {
+                return moment(val, config.date.format).valueOf();
+            }
+            if (isString(val)) {
+                if (isNaN(parseFloat(val.replace(currencyRegex[config.currency.decimal], '')))) {
+                    return val;
+                }
+                return parseFloat(val.replace(currencyRegex[config.currency.decimal], ''));
+            }
+            return val;
+        }
+
+
+
+
+
+
+    }
+
+
+
+
+
+//    class Compare {
+//        //comparables
+//
+//        static $eq(objVal:any, val:any):bool {
+//
+//            var objValIsArray:bool = Utils.isArray(objVal),
+//                index:number;
+//
+//            objVal = objValIsArray ? Utils.unique(objVal) : [objVal];
+//            index = objVal.length;
+//            while (index) {
+//                --index;
+//                if (((Utils.isDate(val, this.graph.date) && Utils.isDate(objVal[index], this.graph.date))
+//                    || (Utils.isMoney(val, this.graph.currency) && Utils.isMoney(objVal[index], this.graph.currency))
+//                    || (!(Utils.isDate(objVal[index], this.graph.date) || Utils.isMoney(objVal[index], this.graph.currency))))
+//                    && (Utils.parseNumber(objVal[index], this.graph.config) === Utils.parseNumber(val, this.graph.config))) {
+//
+//                    return true;
+//                }
+//            }
+//            return false;
+//        }
+//
+//        static $neq(objVal:any, val:any):bool {
+//            return !Compare.$eq(objVal, val);
+//        }
+//
+//        static $lt(objVal:any, val:any):bool {
+//            var objValIsArray:bool = Utils.isArray(objVal),
+//                index:number;
+//
+//            objVal = objValIsArray ? Utils.unique(objVal) : [objVal];
+//            index = objVal.length;
+//            while (index) {
+//                --index;
+//                if (((Utils.isDate(val, this.graph.date) && Utils.isDate(objVal[index], this.graph.date))
+//                    || (Utils.isMoney(val, this.graph.currency) && Utils.isMoney(objVal[index], this.graph.currency))
+//                    || (!(Utils.isDate(objVal[index], this.graph.date) || Utils.isMoney(objVal[index], this.graph.currency))))
+//                    && (Utils.parseNumber(objVal[index], this.graph.config) < Utils.parseNumber(val, this.graph.config))) {
+//
+//                    return true;
+//                }
+//            }
+//            return false;
+//        }
+//
+//        static $lte(objVal:any, val:any):bool {
+//            var objValIsArray:bool = Utils.isArray(objVal),
+//                index:number;
+//
+//            objVal = objValIsArray ? Utils.unique(objVal) : [objVal];
+//            index = objVal.length;
+//            while (index) {
+//                --index;
+//                if (((Utils.isDate(val, this.graph.date) && Utils.isDate(objVal[index], this.graph.date))
+//                    || (Utils.isMoney(val, this.graph.currency) && Utils.isMoney(objVal[index], this.graph.currency))
+//                    || (!(Utils.isDate(objVal[index], this.graph.date) || Utils.isMoney(objVal[index], this.graph.currency))))
+//                    && (Utils.parseNumber(objVal[index], this.graph.config) <= Utils.parseNumber(val, this.graph.config))) {
+//
+//                    return true;
+//                }
+//            }
+//            return false;
+//        }
+//
+//        static $gt(objVal:any, val:any):bool {
+//            return !Compare.$lte(objVal, val);
+//        }
+//
+//        static $gte(objVal:any, val:any):bool {
+//            return !Compare.$lt(objVal, val);
+//        }
+//
+//        static $typeOf(objVal:any, val:string[]):bool {
+//
+//            var objValIsArray:bool = Utils.isArray(objVal),
+//                index:number,
+//                i:number = 0,
+//                valLen:number = val.length,
+//                comp:string;
+//
+//            index = val.length;
+//            while (index) {
+//                --index;
+//                comp = val[index].toLowerCase()
+//                if (comp == 'number' && !Utils.isDate(objVal, this.graph.date) && !Utils.isMoney(objVal, this.graph.currency) && Utils.isNumber(Utils.parseNumber(objVal, this.graph.config))) {
+//                    return true;
+//                } else if (comp == 'money' && Utils.isMoney(objVal, this.graph.currency)) {
+//                    return true;
+//                } else if (comp == 'string' && !Utils.isDate(objVal, this.graph.date) && !Utils.isMoney(objVal, this.graph.currency) && Utils.isString(Utils.parseNumber(objVal, this.graph.config))) {
+//                    return true;
+//                } else if (comp == 'array' && Utils.isArray(objVal)) {
+//                    return true;
+//                } else if (comp == 'date' && Utils.isDate(objVal, this.graph.date)) {
+//                    return true;
+//                }
+//            }
+//            return false;
+//        }
+//
+//        static $notTypeOf(objVal:any, val:string[]):bool {
+//            return !Compare.$typeOf(objVal, val);
+//        }
+//
+//        static $in(objVal:any, val:any[]):bool {
+//
+//            var objValIsArray:bool = Utils.isArray(objVal),
+//                index:number,
+//                i:number = 0,
+//                valLen:number = val.length;
+//
+//            objVal = objValIsArray ? Utils.unique(objVal) : [objVal];
+//            index = objVal.length;
+//            while (index) {
+//                --index;
+//                i = valLen;
+//                while (!!i) {
+//                    --i;
+//                    if (((Utils.isDate(val[i], this.graph.date) && Utils.isDate(objVal[index], this.graph.date))
+//                        || (Utils.isMoney(val[i], this.graph.currency) && Utils.isMoney(objVal[index], this.graph.currency))
+//                        || (!(Utils.isDate(objVal[index], this.graph.date) || Utils.isMoney(objVal[index], this.graph.currency))))
+//                        && (Utils.parseNumber(objVal[index], this.graph.config) === Utils.parseNumber(val[i], this.graph.config))) {
+//
+//                        return true;
+//                    }
+//                }
+//            }
+//            return false;
+//        }
+//
+//        static $nin(objVal:any, val:any[]):bool {
+//            return !Compare.$in(objVal, val);
+//        }
+//
+//        static $match(objVal:any, val:string[]):bool {
+//            var objValIsArray:bool = Utils.isArray(objVal),
+//                index:number,
+//                i:number = 0,
+//                valLen:number = val.length;
+//
+//            objVal = objValIsArray ? Utils.unique(objVal) : [objVal];
+//            index = objVal.length;
+//            while (index) {
+//                --index;
+//                i = valLen;
+//                while (!!i) {
+//                    --i;
+//                    if (Utils.isString(objVal[index]) && !(objVal[index].search(val[i]) === false)) {
+//                        return true;
+//                    }
+//                }
+//            }
+//            return false;
+//        }
+//
+//        //Array comparator
+//        static $all(objVal:any[], val:any[]):bool {
+//
+//            var matches:number = 0,
+//                index:number = 0,
+//                i:number = 0,
+//                valLen:number = 0;
+//
+//            val = Utils.unique(val);
+//            objVal = Utils.unique(objVal);
+//
+//            valLen = val.length;
+//            index = objVal.length;
+//            if (valLen <= index) {
+//                while (index) {
+//                    --index;
+//                    i = valLen;
+//                    while (!!i) {
+//                        --i;
+//                        if (((Utils.isDate(val[i], this.graph.date) && Utils.isDate(objVal[index], this.graph.date))
+//                            || (Utils.isMoney(val[i], this.graph.currency) && Utils.isMoney(objVal[index], this.graph.currency))
+//                            || (!(Utils.isDate(objVal[index], this.graph.date) || Utils.isMoney(objVal[index], this.graph.currency))))
+//                            && (Utils.parseNumber(objVal[index], this.graph.config) === Utils.parseNumber(val[i], this.graph.config))) {
+//
+//                            matches++;
+//                        }
+//                    }
+//                }
+//            }
+//            return matches == valLen;
+//        }
+//
+//        //Array comparator
+//        static $none(objVal:any[], val:any[]):bool {
+//            return !Compare.$all(objVal, val);
+//        }
+//
+//        //Array comparator
+//        static $exact(objVal:any[], val:any[]):bool {
+//
+//            var matches:number = 0,
+//                index:number = 0,
+//                i:number = 0,
+//                valLen:number = 0;
+//
+//            val = Utils.unique(val);
+//            objVal = Utils.unique(objVal);
+//
+//            valLen = val.length;
+//            index = objVal.length;
+//            if (valLen == index) {
+//                while (index) {
+//                    --index;
+//                    i = valLen;
+//                    while (!!i) {
+//                        --i;
+//                        if (((Utils.isDate(val[i], this.graph.date) && Utils.isDate(objVal[index], this.graph.date))
+//                            || (Utils.isMoney(val[i], this.graph.currency) && Utils.isMoney(objVal[index], this.graph.currency))
+//                            || (!(Utils.isDate(objVal[index], this.graph.date) || Utils.isMoney(objVal[index], this.graph.currency))))
+//                            && (Utils.parseNumber(objVal[index], this.graph.config) === Utils.parseNumber(val[i], this.graph.config))) {
+//
+//                            matches++;
+//                        }
+//                    }
+//                }
+//            }
+//            return matches == valLen;
+//        }
+//
+//        /*
+//         $startsWith
+//         $endsWith
+//         $contains
+//         $notContains
+//         */
+//
+//        static $hasAny(obj:{}, val:string[]):bool {
+//            var i:number = val.length,
+//                tempObj:{},
+//                tempProp:string;
+//
+//            while (!!i) {
+//                --i;
+//                tempObj = obj;
+//                tempProp = val[i];
+//                if (tempProp.indexOf(".") > -1) {
+//                    tempObj = Utils.embeddedObject(tempObj, tempProp);
+//                    tempProp = tempProp.split(".").slice(-1)[0];
+//                }
+//                if (tempObj.hasOwnProperty(tempProp)) {
+//                    return true;
+//                }
+//            }
+//            return false;
+//        }
+//
+//        static $hasAll(obj:{}, val:string[]):bool {
+//            var i:number = val.length,
+//                matches:number,
+//                tempObj:{},
+//                tempProp:string;
+//
+//            while (!!i) {
+//                --i;
+//                tempObj = obj;
+//                tempProp = val[i];
+//                if (tempProp.indexOf(".") > -1) {
+//                    tempObj = Utils.embeddedObject(tempObj, tempProp);
+//                    tempProp = tempProp.split(".").slice(-1)[0];
+//                }
+//                if (tempObj.hasOwnProperty(tempProp)) {
+//                    matches++;
+//                }
+//            }
+//            return matches == val.length;
+//        }
+//
+//        static $notAny(obj:{}, val:string[]):bool {
+//            return !Compare.$hasAny(obj, val);
+//        }
+//
+//        static $notAll(obj:{}, val:string[]):bool {
+//            return !Compare.$hasAll(obj, val);
+//        }
+//
+//    }
+}
+
+var somedata = {
+    "vertices":[
+        {"name":"marko","age":29,"_id":1,"_type":"vertex"},
+        {"name":"vadas","age":27,"_id":2,"_type":"vertex"},
+        {"name":"lop","lang":"java","_id":3,"_type":"vertex"},
+        {"name":"josh","age":32,"_id":4,"_type":"vertex"},
+        {"name":"ripple","lang":"java","_id":5,"_type":"vertex"},
+        {"name":"peter","age":35,"_id":6,"_type":"vertex"}
+    ],
+    "edges":[
+        {"weight":0.5,"_id":7,"_type":"edge","_outV":1,"_inV":2,"_label":"knows"},
+        {"weight":1.0,"_id":8,"_type":"edge","_outV":1,"_inV":4,"_label":"knows"},
+        {"weight":0.4,"_id":9,"_type":"edge","_outV":1,"_inV":3,"_label":"created"},
+        {"weight":1.0,"_id":10,"_type":"edge","_outV":4,"_inV":5,"_label":"created"},
+        {"weight":0.4,"_id":11,"_type":"edge","_outV":4,"_inV":3,"_label":"created"},
+        {"weight":0.2,"_id":12,"_type":"edge","_outV":6,"_inV":3,"_label":"created"}
+    ]
+};
+
+
+// var g = new Helios.Graph();
+// g.loadGraphSON(somedata);
+//     var t = g.v().emit();
+//var g = new Helios.Graph();
+//g.loadGraphSON(somedata);
+// var t = g.v().emit();
+
+self.onmessage = function(e) {
+    //self.process();
+//    if
+
+
+// g.loadGraphSON(self.somedata);
+// g.v().in().out('knows');
+
+
+
+
+    var g = new Helios.Graph();
+    g.loadGraphSON(somedata);
+    g.v().out('knows').in().dedup().emit();
+
+// Call the function
+//adder(2, 6);
+
+    //eval('var test = ' + e.data)
+//    if(e.data){
+    //self.postMessage(self.t/*self['adder'].call([2, 6], 2, 6)*/);
+//    }
+};
+
+
+
