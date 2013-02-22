@@ -1,3 +1,4 @@
+"use strict";
 var __extends = this.__extends || function (d, b) {
     function __() { this.constructor = d; }
     __.prototype = b.prototype;
@@ -5,6 +6,7 @@ var __extends = this.__extends || function (d, b) {
 };
 var Helios;
 (function (Helios) {
+    importScripts('tinyxmlsax.js');
     var toString = Object.prototype.toString, ArrayProto = Array.prototype, push = ArrayProto.push, slice = ArrayProto.slice, indexOf = ArrayProto.indexOf;
     var Element = (function () {
         function Element(obj, graph) {
@@ -237,12 +239,11 @@ var Helios;
                 xmlhttp.open("GET", jsonData, false);
                 xmlhttp.send(null);
             }
-            if(Utils.isString(jsonData)) {
-            }
             return this;
         };
         Graph.prototype.loadGraphML = function (xmlData) {
-            var i, j, l, propLen, xmlV = [], xmlE = [], vertex, edge, fileExt, xmlhttp, parser, xmlDoc, properties, tempObj = {
+            var i, j, l, propLen, xmlV = [], xmlE = [], vertex, edge, fileExt, xmlhttp, parser = new SAXDriver();
+            xmlDoc , properties , tempObj = {
             };
             var hasVIndex = !Utils.isEmpty(this.v_idx);
             var hasEIndex = !Utils.isEmpty(this.e_idx);
@@ -255,13 +256,12 @@ var Helios;
                     xmlhttp = new XMLHttpRequest();
                     xmlhttp.onreadystatechange = function () {
                         if(xmlhttp.readyState === 4) {
-                            xmlDoc = xmlhttp.responseXML;
+                            xmlDoc = parser.parseFromString(xmlhttp.responseText, "text/xml");
                         }
                     };
                     xmlhttp.open("GET", xmlData, false);
                     xmlhttp.send(null);
                 } else {
-                    parser = new DOMParser();
                     xmlDoc = parser.parseFromString(xmlData, "text/xml");
                 }
             }
@@ -2360,99 +2360,19 @@ var Helios;
         return Utils;
     })();    
 })(Helios || (Helios = {}));
-var somedata = {
-    "vertices": [
-        {
-            "name": "marko",
-            "age": 29,
-            "_id": 1,
-            "_type": "vertex"
-        }, 
-        {
-            "name": "vadas",
-            "age": 27,
-            "_id": 2,
-            "_type": "vertex"
-        }, 
-        {
-            "name": "lop",
-            "lang": "java",
-            "_id": 3,
-            "_type": "vertex"
-        }, 
-        {
-            "name": "josh",
-            "age": 32,
-            "_id": 4,
-            "_type": "vertex"
-        }, 
-        {
-            "name": "ripple",
-            "lang": "java",
-            "_id": 5,
-            "_type": "vertex"
-        }, 
-        {
-            "name": "peter",
-            "age": 35,
-            "_id": 6,
-            "_type": "vertex"
-        }
-    ],
-    "edges": [
-        {
-            "weight": 0.5,
-            "_id": 7,
-            "_type": "edge",
-            "_outV": 1,
-            "_inV": 2,
-            "_label": "knows"
-        }, 
-        {
-            "weight": 1.0,
-            "_id": 8,
-            "_type": "edge",
-            "_outV": 1,
-            "_inV": 4,
-            "_label": "knows"
-        }, 
-        {
-            "weight": 0.4,
-            "_id": 9,
-            "_type": "edge",
-            "_outV": 1,
-            "_inV": 3,
-            "_label": "created"
-        }, 
-        {
-            "weight": 1.0,
-            "_id": 10,
-            "_type": "edge",
-            "_outV": 4,
-            "_inV": 5,
-            "_label": "created"
-        }, 
-        {
-            "weight": 0.4,
-            "_id": 11,
-            "_type": "edge",
-            "_outV": 4,
-            "_inV": 3,
-            "_label": "created"
-        }, 
-        {
-            "weight": 0.2,
-            "_id": 12,
-            "_type": "edge",
-            "_outV": 6,
-            "_inV": 3,
-            "_label": "created"
-        }
-    ]
-};
+var g;
 self.onmessage = function (e) {
-    var g = new Helios.Graph();
-    g.loadGraphSON(somedata);
-    g.v().out('knows').in().dedup().emit();
+    switch(e.data.method) {
+        case 'init':
+            g = new Helios.Graph();
+            self.postMessage('done');
+            break;
+        default:
+            var t = g;
+            for(var i = 0, l = e.data.length; i < l; i++) {
+                t = t[e.data[i].method].apply(t, e.data[i].parameters);
+            }
+            self.postMessage(t);
+    }
 };
 //@ sourceMappingURL=heliosWorker.js.map

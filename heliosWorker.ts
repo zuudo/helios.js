@@ -1,13 +1,7 @@
-/**
- * Created with JetBrains WebStorm.
- * User: frank
- * Date: 9/02/13
- * Time: 1:32 PM
- * To change this template use File | Settings | File Templates.
- */
-
+"use strict"
 /// <reference path="moment.d.ts" />
-
+/// <reference path="webworker.d.ts" />
+importScripts('tinyxmlsax.js');
 module Helios {
     interface IBase {
         Type:string;
@@ -50,6 +44,9 @@ module Helios {
 
 
     declare var moment;
+
+
+
 
     var toString = Object.prototype.toString,
         ArrayProto = Array.prototype,
@@ -414,18 +411,18 @@ module Helios {
                 xmlhttp.send(null);
             }
 
-            if(Utils.isString(jsonData)){
-                //get the file
-            }
+            // if(Utils.isString(jsonData)){
+            //     //get the file
+            // }
 
-//            if (!!jsonData.vertices.length) {
-//                this.loadVertices(jsonData.vertices);
-//            }
-//
-//            //process edges
-//            if (jsonData.edges) {
-//                this.loadEdges(jsonData.edges);
-//            }
+           // if (!!jsonData.vertices.length) {
+           //     this.loadVertices(jsonData.vertices);
+           // }
+
+           // //process edges
+           // if (jsonData.edges) {
+           //     this.loadEdges(jsonData.edges);
+           // }
             return this;
         }
 
@@ -436,7 +433,7 @@ module Helios {
                 xmlV = [], xmlE = [], vertex:Vertex, edge:Edge,
                 fileExt,
                 xmlhttp,
-                parser,
+                parser = new DOMParser(),
                 xmlDoc,
                 properties,
                 tempObj = {};
@@ -456,7 +453,7 @@ module Helios {
                     xmlhttp = new XMLHttpRequest();
                     xmlhttp.onreadystatechange = function () {
                         if (xmlhttp.readyState === 4) {
-                            xmlDoc = xmlhttp.responseXML;
+                            xmlDoc = parser.parseFromString(xmlhttp.responseText, "text/xml");
                         }
                     };
                     xmlhttp.open("GET", xmlData, false);
@@ -793,8 +790,79 @@ module Helios {
             return this.endPipe;
         }
         export interface IPipeline {
+            /*** Transform ***/
             out:(...labels:string[])=>Pipeline;
             in:(...labels:string[])=>Pipeline;
+
+
+            // both:(...labels:string[])=>Pipeline;
+            // bothE(...labels:string[])=>Pipeline;
+            // bothV(...labels:string[])=>Pipeline;
+            // cap(...labels:string[])=>Pipeline;
+            // gather(...labels:string[])=>Pipeline;
+            // id(...labels:string[])=>Pipeline;
+            
+            // inE(...labels:string[])=>Pipeline;
+            // inV(...labels:string[])=>Pipeline;
+            // property(...labels:string[])=>Pipeline;
+            // label(...labels:string[])=>Pipeline;
+            // map(...labels:string[])=>Pipeline;
+            // memoize(...labels:string[])=>Pipeline;
+            // order(...labels:string[])=>Pipeline;
+            
+            // outE(...labels:string[])=>Pipeline;
+            // outV(...labels:string[])=>Pipeline;
+            // path(...labels:string[])=>Pipeline;
+            // scatter(...labels:string[])=>Pipeline;
+            // select(...labels:string[])=>Pipeline;
+            // transform(...labels:string[])=>Pipeline;
+            
+            // /*** Filter ***/
+            // inde(...labels:string[])=>Pipeline; //index(i)
+            // range(...labels:string[])=>Pipeline; //range('[i..j]')
+            // and(...labels:string[])=>Pipeline;
+            // back(...labels:string[])=>Pipeline;
+            // dedup(...labels:string[])=>Pipeline;
+            // except(...labels:string[])=>Pipeline;
+            // filter(...labels:string[])=>Pipeline;
+            // has(...labels:string[])=>Pipeline;
+            // hasNot(...labels:string[])=>Pipeline;
+            // interval(...labels:string[])=>Pipeline;
+            // or(...labels:string[])=>Pipeline;
+            // random(...labels:string[])=>Pipeline;
+            // retain(...labels:string[])=>Pipeline;
+            // simplePath(...labels:string[])=>Pipeline;
+            
+            // /*** Side Effect ***/ 
+            // // aggregate //Not implemented
+            // as(...labels:string[])=>Pipeline;
+            // groupBy(...labels:string[])=>Pipeline;
+            // groupCount(...labels:string[])=>Pipeline;
+            // optional(...labels:string[])=>Pipeline;
+            // sideEffect(...labels:string[])=>Pipeline;
+            // // store //Not implemented
+            // // table //Not implemented
+            // // tree //Not implemented
+
+            // /*** Branch ***/
+            // copySplit(...labels:string[])=>Pipeline;
+            // exhaustMerge(...labels:string[])=>Pipeline;
+            // fairMerge(...labels:string[])=>Pipeline;
+            // ifThenElse(...labels:string[])=>Pipeline; //g.v(1).out().ifThenElse('{it.name=='josh'}','{it.age}','{it.name}')
+            // loop(...labels:string[])=>Pipeline;
+
+            // /*** Methods ***/
+            // //fill //Not implemented
+            // count(...labels:string[])=>Pipeline;
+            // iterate(...labels:string[])=>Pipeline;
+            // next(...labels:string[])=>Pipeline;
+            // toList(...labels:string[])=>Pipeline;
+            // createIndex(...labels:string[])=>Pipeline;
+            // put(...labels:string[])=>Pipeline;
+
+            // getPropertyKeys(...labels:string[])=>Pipeline;
+            // setProperty(...labels:string[])=>Pipeline;
+            // getProperty(...labels:string[])=>Pipeline;
 
         }
         export class Pipeline implements IPipeline{
@@ -916,7 +984,7 @@ module Helios {
              var result = g.e(70).label(); >> ["knows"]
 
              ***************************************************************************************************/
-                label():any[] {
+            label():any[] {
                 return this.property(this.graph.meta.label);
             }
 
@@ -932,8 +1000,6 @@ module Helios {
                     isTracingPath:bool = !!this.tracingPath,
                     pipes:any[],
                     pipe:IElement[];
-
-                //var deferred = Q.defer();
 
                 if (!!this.endPipe.length && this.endPipe[0].Type !== 'Vertex') {
                     throw new TypeError('Only accepts incoming ' + this.endPipe[0].Type + 's');
@@ -1004,14 +1070,6 @@ module Helios {
                 }
                 this.endPipe = endPipeArray;
 
-//                //return this.endPipe;
-//                setTimeout(function(){
-//                    console.log('delay');
-//
-//                    //this.endPipe = endPipeArray;
-//                    //return deferred.resolve();
-//                }, 5000);
-//                //return deferred.promise;
                 return this;
 
             }
@@ -1698,9 +1756,7 @@ module Helios {
 
             //Needs to be optimized
             sort(order?:number):Pipeline;
-
             sort(func?:() => bool):Pipeline;
-
             sort(order?:any):Pipeline {
                 //order => if -1 the desc else asc
                 var endPipeArray:any[] = [],
@@ -2425,6 +2481,8 @@ module Helios {
                         return {results: iter};
                     }
                     //if (!props.length) {
+                       // var t = Utils.toObjArray(iter);
+                    
                         return {results: Utils.toObjArray(iter)};
                     //}
                     /*Utils.each(Utils.toObjArray(iter), function (element) {
@@ -3564,24 +3622,24 @@ module Helios {
 //    }
 }
 
-var somedata = {
-    "vertices":[
-        {"name":"marko","age":29,"_id":1,"_type":"vertex"},
-        {"name":"vadas","age":27,"_id":2,"_type":"vertex"},
-        {"name":"lop","lang":"java","_id":3,"_type":"vertex"},
-        {"name":"josh","age":32,"_id":4,"_type":"vertex"},
-        {"name":"ripple","lang":"java","_id":5,"_type":"vertex"},
-        {"name":"peter","age":35,"_id":6,"_type":"vertex"}
-    ],
-    "edges":[
-        {"weight":0.5,"_id":7,"_type":"edge","_outV":1,"_inV":2,"_label":"knows"},
-        {"weight":1.0,"_id":8,"_type":"edge","_outV":1,"_inV":4,"_label":"knows"},
-        {"weight":0.4,"_id":9,"_type":"edge","_outV":1,"_inV":3,"_label":"created"},
-        {"weight":1.0,"_id":10,"_type":"edge","_outV":4,"_inV":5,"_label":"created"},
-        {"weight":0.4,"_id":11,"_type":"edge","_outV":4,"_inV":3,"_label":"created"},
-        {"weight":0.2,"_id":12,"_type":"edge","_outV":6,"_inV":3,"_label":"created"}
-    ]
-};
+// var somedata = {
+//     "vertices":[
+//         {"name":"marko","age":29,"_id":1,"_type":"vertex"},
+//         {"name":"vadas","age":27,"_id":2,"_type":"vertex"},
+//         {"name":"lop","lang":"java","_id":3,"_type":"vertex"},
+//         {"name":"josh","age":32,"_id":4,"_type":"vertex"},
+//         {"name":"ripple","lang":"java","_id":5,"_type":"vertex"},
+//         {"name":"peter","age":35,"_id":6,"_type":"vertex"}
+//     ],
+//     "edges":[
+//         {"weight":0.5,"_id":7,"_type":"edge","_outV":1,"_inV":2,"_label":"knows"},
+//         {"weight":1.0,"_id":8,"_type":"edge","_outV":1,"_inV":4,"_label":"knows"},
+//         {"weight":0.4,"_id":9,"_type":"edge","_outV":1,"_inV":3,"_label":"created"},
+//         {"weight":1.0,"_id":10,"_type":"edge","_outV":4,"_inV":5,"_label":"created"},
+//         {"weight":0.4,"_id":11,"_type":"edge","_outV":4,"_inV":3,"_label":"created"},
+//         {"weight":0.2,"_id":12,"_type":"edge","_outV":6,"_inV":3,"_label":"created"}
+//     ]
+// };
 
 
 // var g = new Helios.Graph();
@@ -3591,6 +3649,28 @@ var somedata = {
 //g.loadGraphSON(somedata);
 // var t = g.v().emit();
 
+// var message = [{
+//     method:'v',
+//     parameters:[]
+
+// },{
+//     method:'out',
+//     parameters:['knows', 'created']
+//     //,hasFunc: [3] //have an optional property to signify that a function has been passed in
+//                  //this property should be an array of indexes specifying where the function is
+//                  //this will allow for conversion of function i.e. eval
+
+// },{
+//     method:'in',
+//     parameters:[]
+
+// },{
+//     method:'emit',
+//     parameters:[]
+
+// }];
+
+var g;
 self.onmessage = function(e) {
     //self.process();
 //    if
@@ -3599,13 +3679,34 @@ self.onmessage = function(e) {
 // g.loadGraphSON(self.somedata);
 // g.v().in().out('knows');
 
+    switch(e.data.method)
+    {
+    case 'init':
+        g = new Helios.Graph();
+        //g.loadGraphSON('tests/data/graph-example-1.json');
+        self.postMessage('done');
+      break;
+    // case 2:
+    //   execute code block 2
+      // break;
+    default:
+    //  code to be executed if n is different from case 1 and 2
 
 
 
-    var g = new Helios.Graph();
-    g.loadGraphSON(somedata);
-    g.v().out('knows').in().dedup().emit();
 
+        // var g = new Helios.Graph();
+        // g.loadGraphSON('tests/data/graph-example-1.json');
+        //g.loadGraphML('tests/data/graph-example-2.xml');
+        var t = g;
+        for(var i=0,l=e.data.length;i<l;i++){
+            t = t[e.data[i].method].apply(t, e.data[i].parameters);
+        }
+
+
+        //g.v().out('knows').in().dedup().emit();
+        self.postMessage(t);
+    }
 // Call the function
 //adder(2, 6);
 
