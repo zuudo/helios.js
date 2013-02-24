@@ -9,6 +9,66 @@ var Helios;
                 console.log(val);
             });
         }
+        Graph.prototype.setConfiguration = function (options) {
+            this.worker.postMessage([
+                {
+                    method: 'setConfiguration',
+                    parameters: [
+                        options
+                    ]
+                }
+            ]).then(function (val) {
+                console.log(val);
+            });
+        };
+        Graph.prototype.createVIndex = function (idxName) {
+            this.worker.postMessage([
+                {
+                    method: 'createVIndex',
+                    parameters: [
+                        idxName
+                    ]
+                }
+            ]).then(function (val) {
+                console.log(val);
+            });
+        };
+        Graph.prototype.createEIndex = function (idxName) {
+            this.worker.postMessage([
+                {
+                    method: 'createEIndex',
+                    parameters: [
+                        idxName
+                    ]
+                }
+            ]).then(function (val) {
+                console.log(val);
+            });
+        };
+        Graph.prototype.deleteVIndex = function (idxName) {
+            this.worker.postMessage([
+                {
+                    method: 'deleteVIndex',
+                    parameters: [
+                        idxName
+                    ]
+                }
+            ]).then(function (val) {
+                console.log(val);
+            });
+        };
+        Graph.prototype.deleteEIndex = function (idxName) {
+            this.worker.postMessage([
+                {
+                    method: 'deleteEIndex',
+                    parameters: [
+                        idxName
+                    ]
+                }
+            ]).then(function (val) {
+                console.log(val);
+            });
+        };
         Graph.prototype.loadGraphSON = function (jsonData) {
             this.worker.postMessage([
                 {

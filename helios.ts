@@ -15,6 +15,45 @@ module Helios {
     			.then(function(val){console.log(val)});
 		}
 
+		setConfiguration(options:{}):void{
+			this.worker.postMessage([{method:'setConfiguration', parameters:[options]}])
+			.then(function(val){console.log(val)});
+			//return this;
+		}
+
+//        setPathEnabled(turnOn:bool):bool {
+//        	this.worker.postMessage([{method:'setPathEnabled', parameters:[turnOn]}])
+// 				.then(function(val){console.log(val)});
+//           return this.pathEnabled = turnOn;
+//        }
+
+// //need to look at this
+//        getPathEnabled():bool {
+//            return this.pathEnabled;
+//        }
+
+		createVIndex(idxName:string):void {
+            this.worker.postMessage([{method:'createVIndex', parameters:[idxName]}])
+				.then(function(val){console.log(val)});
+			//return this;
+        }
+
+        createEIndex(idxName:string):void {
+            this.worker.postMessage([{method:'createEIndex', parameters:[idxName]}])
+				.then(function(val){console.log(val)});
+			//return this;
+        }
+
+        deleteVIndex(idxName:string):void {
+            this.worker.postMessage([{method:'deleteVIndex', parameters:[idxName]}])
+				.then(function(val){console.log(val)});
+        }
+
+        deleteEIndex(idxName:string):void {
+            this.worker.postMessage([{method:'deleteEIndex', parameters:[idxName]}])
+				.then(function(val){console.log(val)});
+        }
+
 		loadGraphSON(jsonData:string):Graph{
 			this.worker.postMessage([{method:'loadGraphSON', parameters:[jsonData]}])
 				.then(function(val){console.log(val)});
@@ -109,9 +148,9 @@ module Helios {
 		}
 		add(func:string):()=>Pipeline{
 			return function(...args:string[]):Pipeline{
-                    this.messages.push({method:func, parameters:args});
-                    return this;
-                }
+                this.messages.push({method:func, parameters:args});
+                return this;
+            }
 		}
 		emit():any{
 			this.messages.push({method:'emit', paramaters:[]});
