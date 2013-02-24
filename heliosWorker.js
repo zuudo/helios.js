@@ -4,9 +4,9 @@ var __extends = this.__extends || function (d, b) {
     __.prototype = b.prototype;
     d.prototype = new __();
 };
+importScripts('sax.js');
 var Helios;
 (function (Helios) {
-    importScripts('tinyxmlsax.js');
     var toString = Object.prototype.toString, ArrayProto = Array.prototype, push = ArrayProto.push, slice = ArrayProto.slice, indexOf = ArrayProto.indexOf;
     var Element = (function () {
         function Element(obj, graph) {
@@ -148,6 +148,12 @@ var Helios;
             }
             this._ = new Mogwai.Pipeline(this);
         }
+        Graph.prototype.setPathEnabled = function (turnOn) {
+            return this.pathEnabled = turnOn;
+        };
+        Graph.prototype.getPathEnabled = function () {
+            return this.pathEnabled;
+        };
         Graph.prototype.setConfiguration = function (options) {
             for(var k in options) {
                 if(options.hasOwnProperty(k)) {
@@ -215,7 +221,8 @@ var Helios;
             delete this.e_idx[idxName];
         };
         Graph.prototype.tracePath = function (enabled) {
-            return false;
+            this.pathEnabled = enabled;
+            return this.pathEnabled;
         };
         Graph.prototype.loadGraphSON = function (jsonData) {
             var xmlhttp;
@@ -242,11 +249,86 @@ var Helios;
             return this;
         };
         Graph.prototype.loadGraphML = function (xmlData) {
-            var i, j, l, propLen, xmlV = [], xmlE = [], vertex, edge, fileExt, xmlhttp, parser = new SAXDriver();
-            xmlDoc , properties , tempObj = {
-            };
+            var _this = this;
+            var i, j, l, propLen, xmlV = [], xmlE = [], vertex, edge, attr, vertex, edge, fileExt, xmlhttp, currProp, xmlDoc, properties, tempObj = {
+            }, parser = sax.parser(true, {
+                lowercase: true
+            });
             var hasVIndex = !Utils.isEmpty(this.v_idx);
             var hasEIndex = !Utils.isEmpty(this.e_idx);
+            parser.onerror = function (e) {
+            };
+            parser.ontext = function (t) {
+                if(!!tempObj && (currProp in tempObj)) {
+                    tempObj[currProp] = t;
+                    currProp = undefined;
+                }
+            };
+            parser.onopentag = function (node) {
+                switch(node.name) {
+                    case 'node':
+                        attr = node.attributes;
+                        for(var k in attr) {
+                            if(attr.hasOwnProperty(k)) {
+                                switch(k) {
+                                    case 'id':
+                                        tempObj[_this.meta.id] = attr[k];
+                                        break;
+                                    default:
+                                }
+                            }
+                        }
+                        break;
+                    case 'edge':
+                        attr = node.attributes;
+                        for(var k in attr) {
+                            if(attr.hasOwnProperty(k)) {
+                                switch(k) {
+                                    case 'id':
+                                        tempObj[_this.meta.id] = attr[k];
+                                        break;
+                                    case 'label':
+                                        tempObj[_this.meta.label] = attr[k];
+                                        break;
+                                    case 'source':
+                                        tempObj[_this.meta.outVid] = attr[k];
+                                        break;
+                                    case 'target':
+                                        tempObj[_this.meta.inVid] = attr[k];
+                                        break;
+                                    default:
+                                }
+                            }
+                        }
+                        break;
+                    case 'data':
+                        tempObj[node.attributes.key] = undefined;
+                        currProp = node.attributes.key;
+                        break;
+                    default:
+                }
+                _this;
+            };
+            parser.onclosetag = function (node) {
+                switch(node) {
+                    case 'node':
+                        vertex = new Vertex(tempObj, _this);
+                        _this.vertices[tempObj[_this.meta.id]] = vertex;
+                        tempObj = {
+                        };
+                        break;
+                    case 'edge':
+                        edge = new Edge(tempObj, _this);
+                        _this.edges[tempObj[_this.meta.id]] = edge;
+                        edge.associateVertices();
+                        tempObj = {
+                        };
+                        break;
+                    default:
+                }
+            };
+            parser.onend = function () {
+            };
             if(Utils.isUndefined(xmlData)) {
                 return null;
             }
@@ -256,55 +338,12 @@ var Helios;
                     xmlhttp = new XMLHttpRequest();
                     xmlhttp.onreadystatechange = function () {
                         if(xmlhttp.readyState === 4) {
-                            xmlDoc = parser.parseFromString(xmlhttp.responseText, "text/xml");
+                            parser.write(xmlhttp.responseText).close();
                         }
                     };
                     xmlhttp.open("GET", xmlData, false);
                     xmlhttp.send(null);
                 } else {
-                    xmlDoc = parser.parseFromString(xmlData, "text/xml");
-                }
-            }
-            xmlV = xmlDoc.getElementsByTagName("node");
-            xmlE = xmlDoc.getElementsByTagName("edge");
-            if(!!xmlV.length) {
-                l = xmlV.length;
-                for(i = 0; i < l; i += 1) {
-                    properties = xmlV[i].getElementsByTagName("data");
-                    tempObj = {
-                    };
-                    propLen = properties.length;
-                    for(j = 0; j < propLen; j += 1) {
-                        tempObj[properties[j].getAttribute("key")] = properties[j].firstChild.nodeValue;
-                    }
-                    tempObj[this.meta.id] = xmlV[i].getAttribute("id");
-                    vertex = new Vertex(tempObj, this);
-                    this.vertices[tempObj[this.meta.id]] = vertex;
-                    if(hasVIndex) {
-                        vertex.addToIndex(this.v_idx);
-                    }
-                }
-            }
-            if(!!xmlE.length) {
-                l = xmlE.length;
-                for(i = 0; i < l; i += 1) {
-                    properties = xmlE[i].getElementsByTagName("data");
-                    tempObj = {
-                    };
-                    propLen = properties.length;
-                    for(j = 0; j < propLen; j += 1) {
-                        tempObj[properties[j].getAttribute("key")] = properties[j].firstChild.nodeValue;
-                    }
-                    tempObj[this.meta.id] = xmlE[i].getAttribute("id");
-                    tempObj[this.meta.label] = xmlE[i].getAttribute("label");
-                    tempObj[this.meta.outVid] = xmlE[i].getAttribute("source");
-                    tempObj[this.meta.inVid] = xmlE[i].getAttribute("target");
-                    edge = new Edge(tempObj, this);
-                    this.edges[tempObj[this.meta.id]] = edge;
-                    edge.associateVertices();
-                    if(hasEIndex) {
-                        edge.addToIndex(this.e_idx);
-                    }
                 }
             }
             return this;
