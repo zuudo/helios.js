@@ -455,7 +455,11 @@ parser.onopentag = (node) => {
             if(attr.hasOwnProperty(k)){
                 switch(k){
                     case 'id':
-                        tempObj[this.meta.id] = attr[k];
+                        if(!!this.vertices[attr[k]]){
+                            tempObj = this.vertices[attr[k]].obj;
+                        } else {
+                            tempObj[this.meta.id] = attr[k];
+                        }
                         break;
                     default:
                         //do nothing
