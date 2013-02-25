@@ -503,13 +503,6 @@ parser.onopentag = (node) => {
 };
 
 
-// parser.onattribute = (attr) => {
-//   // an attribute.  attr has "name" and "value"
-//     if(!!tempObj){
-//         tempObj[name] = attr.value;
-//     }
-// };
-
 parser.onclosetag = (node) => {
   // opened a tag.  
   switch(node){
@@ -540,6 +533,8 @@ parser.onclosetag = (node) => {
 
 parser.onend = () => {
   // parser stream is done, and ready to have more stuff written to it.
+  tempObj = {};
+  currProp = undefined;
 };
 
 

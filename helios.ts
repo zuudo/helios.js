@@ -90,6 +90,9 @@ module Helios {
 			var deferred = Q.defer();
 			this.worker.postMessage(message);
 			this.worker.onmessage = function(e) {
+				//check for large data Token. If received don't resolve until
+				//End Token received. Data will get appended in tempObj
+
 				deferred.resolve(e.data);
 		    };
 		    this.worker.onerror = function(e) {
