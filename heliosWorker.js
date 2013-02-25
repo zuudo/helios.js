@@ -272,7 +272,11 @@ var Helios;
                             if(attr.hasOwnProperty(k)) {
                                 switch(k) {
                                     case 'id':
-                                        tempObj[_this.meta.id] = attr[k];
+                                        if(_this.vertices[attr[k]]){
+                                            tempObj = _this.vertices[attr[k]].obj;
+                                        } else {
+                                            tempObj[_this.meta.id] = attr[k];
+                                        }
                                         break;
                                     default:
                                 }
