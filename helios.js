@@ -2,96 +2,85 @@ var Helios;
 (function (Helios) {
     var Graph = (function () {
         function Graph() {
-            this.worker = new MessagePromise();
-            this.worker.postMessage({
+            this.worker = new SharedWorker('heliosWorker.js');
+            this.worker.port.onmessage = function (e) {
+                alert(e.data);
+            };
+            this.worker.port.postMessage({
                 method: 'init'
-            }).then(function (val) {
-                console.log(val);
             });
         }
         Graph.prototype.setConfiguration = function (options) {
-            this.worker.postMessage([
+            this.worker.port.postMessage([
                 {
                     method: 'setConfiguration',
                     parameters: [
                         options
                     ]
                 }
-            ]).then(function (val) {
-                console.log(val);
-            });
+            ]);
         };
         Graph.prototype.createVIndex = function (idxName) {
-            this.worker.postMessage([
+            this.worker.port.postMessage([
                 {
                     method: 'createVIndex',
                     parameters: [
                         idxName
                     ]
                 }
-            ]).then(function (val) {
-                console.log(val);
-            });
+            ]);
         };
         Graph.prototype.createEIndex = function (idxName) {
-            this.worker.postMessage([
+            this.worker.port.postMessage([
                 {
                     method: 'createEIndex',
                     parameters: [
                         idxName
                     ]
                 }
-            ]).then(function (val) {
-                console.log(val);
-            });
+            ]);
         };
         Graph.prototype.deleteVIndex = function (idxName) {
-            this.worker.postMessage([
+            this.worker.port.postMessage([
                 {
                     method: 'deleteVIndex',
                     parameters: [
                         idxName
                     ]
                 }
-            ]).then(function (val) {
-                console.log(val);
-            });
+            ]);
         };
         Graph.prototype.deleteEIndex = function (idxName) {
-            this.worker.postMessage([
+            this.worker.port.postMessage([
                 {
                     method: 'deleteEIndex',
                     parameters: [
                         idxName
                     ]
                 }
-            ]).then(function (val) {
-                console.log(val);
-            });
+            ]);
         };
         Graph.prototype.loadGraphSON = function (jsonData) {
-            this.worker.postMessage([
+            this.worker.port.postMessage([
                 {
                     method: 'loadGraphSON',
                     parameters: [
                         jsonData
                     ]
                 }
-            ]).then(function (val) {
-                console.log(val);
-            });
+            ]);
             return this;
         };
         Graph.prototype.loadGraphML = function (xmlData) {
-            this.worker.postMessage([
-                {
-                    method: 'loadGraphML',
-                    parameters: [
-                        xmlData
-                    ]
-                }
-            ]).then(function (val) {
-                console.log(val);
+            this.worker.port.postMessage({
+                message: [
+                    {
+                        method: 'loadGraphML',
+                        parameters: [
+                            xmlData
+                        ]
+                    }
+                ]
             });
             return this;
         };
@@ -112,15 +101,15 @@ var Helios;
         return Graph;
     })();
     Helios.Graph = Graph;    
-    var MessagePromise = (function () {
-        function MessagePromise() {
+    var MessageWorker = (function () {
+        function MessageWorker() {
             this.worker = new Worker('heliosWorker.js');
+            this.queue = [];
         }
-        MessagePromise.prototype.postMessage = function (message) {
+        MessageWorker.prototype.postMessage = function (message) {
             var deferred = Q.defer();
-            this.worker.postMessage(message);
             this.worker.onmessage = function (e) {
-                deferred.resolve(e.data);
+                deferred.resolve(e.data.result);
             };
             this.worker.onerror = function (e) {
                 deferred.reject([
@@ -132,9 +121,11 @@ var Helios;
                     e.message
                 ].join(''));
             };
+            message.id = UUID();
+            this.worker.postMessage(message);
             return deferred.promise;
         };
-        return MessagePromise;
+        return MessageWorker;
     })();    
     var Pipeline = (function () {
         function Pipeline(method, args, worker) {
@@ -145,6 +136,7 @@ var Helios;
                     parameters: args
                 }
             ];
+            this.deferreds = [];
             this.id = this.add('id');
             this.label = this.add('label');
             this.property = this.add('property');
@@ -172,11 +164,21 @@ var Helios;
             };
         };
         Pipeline.prototype.emit = function () {
+            var w = new SharedWorker('heliosWorker.js');
             this.messages.push({
                 method: 'emit',
                 paramaters: []
             });
-            return this.worker.postMessage(this.messages);
+            w.port.addEventListener('message', function (e) {
+                console.log(e.data);
+                w.port.close();
+            }, false);
+            w.port.start();
+            w.port.postMessage({
+                id: UUID(),
+                message: this.messages
+            });
+            return this;
         };
         return Pipeline;
     })();

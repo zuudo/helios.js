@@ -3770,49 +3770,41 @@ parser.onend = () => {
 // }];
     //declare var self;
 var g;
-self.onmessage = function(e) {
-    //self.process();
-//    if
+var msg;
+var connections = 0; // count active connections
+self.addEventListener("connect", function (e) {
+    var port = e.ports[0];
+    connections++;
+    port.addEventListener("message", function (e) {
+        port.postMessage("Hello " + e.data + " (port #" + connections + ")");
+        //connections--;
+        port.stop();
+    }, false);
+    port.start();
+}, false);
 
-// g.loadGraphSON(self.somedata);
-// g.v().in().out('knows');
+// self.addEventListener("disconnect", function (e) {
+// //need to get access to the port number in array    
+//     connections--;
+//     port.postMessage("Hello " + e.data + " (port #" + connections + ")");
+//     port.close();
+// }, false);
 
-    switch(e.data.method)
-    {
-    case 'init':
-        g = new Helios.Graph();
-        //g.loadGraphSON('tests/data/graph-example-1.json');
-        self.postMessage('done');
-      break;
-    // case 2:
-    //   execute code block 2
-      // break;
-    default:
-    //  code to be executed if n is different from case 1 and 2
-
-
-
-
-        // var g = new Helios.Graph();
-        // g.loadGraphSON('tests/data/graph-example-1.json');
-        //g.loadGraphML('tests/data/graph-example-2.xml');
-        var t = g;
-        for(var i=0,l=e.data.length;i<l;i++){
-            t = t[e.data[i].method].apply(t, e.data[i].parameters);
-        }
-
-
-        //g.v().out('knows').in().dedup().emit();
-        self.postMessage(t);
-    }
-// Call the function
-//adder(2, 6);
-
-    //eval('var test = ' + e.data)
-//    if(e.data){
-    //self.postMessage(self.t/*self['adder'].call([2, 6], 2, 6)*/);
-//    }
-};
+// self.onmessage = function(e) {
+//     switch(e.data.method)
+//     {
+//     case 'init':
+//         g = new Helios.Graph();
+//       break;
+//     default:
+//         msg = e.data.message;
+//         var t = g;
+//         for(var i=0,l=msg.length;i<l;i++){
+//             t = t[msg[i].method].apply(t, msg[i].parameters);
+//         }
+//         self.postMessage({id:e.data.id, result:t});
+//     }
+// };
 
 
 

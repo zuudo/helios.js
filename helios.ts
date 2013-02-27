@@ -6,18 +6,26 @@ module Helios {
     // worker.postMessage(func.toString()); // Start the worker.
 
     declare var Q;
+    declare var UUID;
+
 
     export class Graph {
     	worker;
     	constructor(){
-    		this.worker = new MessagePromise();//new Worker('heliosWorker.js');
-    		this.worker.postMessage({method:'init'})
-    			.then(function(val){console.log(val)});
+    		this.worker = new SharedWorker('heliosWorker.js');
+    		this.worker.port.onmessage = function(e) {
+				alert(e.data);
+			};
+			//this.worker.port.start();
+			// post a message to the shared web worker
+			this.worker.port.postMessage({method:'init'});
+    		// this.worker.port.postMessage({method:'init'})
+    		// 	.then(function(val){console.log(val)});
 		}
 
 		setConfiguration(options:{}):void{
-			this.worker.postMessage([{method:'setConfiguration', parameters:[options]}])
-			.then(function(val){console.log(val)});
+			this.worker.port.postMessage([{method:'setConfiguration', parameters:[options]}])
+				//.then(function(val){console.log(val)});
 			//return this;
 		}
 
@@ -33,36 +41,45 @@ module Helios {
 //        }
 
 		createVIndex(idxName:string):void {
-            this.worker.postMessage([{method:'createVIndex', parameters:[idxName]}])
-				.then(function(val){console.log(val)});
+            this.worker.port.postMessage([{method:'createVIndex', parameters:[idxName]}])
+				//.then(function(val){console.log(val)});
 			//return this;
         }
 
         createEIndex(idxName:string):void {
-            this.worker.postMessage([{method:'createEIndex', parameters:[idxName]}])
-				.then(function(val){console.log(val)});
+            this.worker.port.postMessage([{method:'createEIndex', parameters:[idxName]}])
+				//.then(function(val){console.log(val)});
 			//return this;
         }
 
         deleteVIndex(idxName:string):void {
-            this.worker.postMessage([{method:'deleteVIndex', parameters:[idxName]}])
-				.then(function(val){console.log(val)});
+            this.worker.port.postMessage([{method:'deleteVIndex', parameters:[idxName]}])
+				//.then(function(val){console.log(val)});
         }
 
         deleteEIndex(idxName:string):void {
-            this.worker.postMessage([{method:'deleteEIndex', parameters:[idxName]}])
-				.then(function(val){console.log(val)});
+            this.worker.port.postMessage([{method:'deleteEIndex', parameters:[idxName]}])
+				//.then(function(val){console.log(val)});
         }
 
 		loadGraphSON(jsonData:string):Graph{
-			this.worker.postMessage([{method:'loadGraphSON', parameters:[jsonData]}])
-				.then(function(val){console.log(val)});
+			this.worker.port.postMessage([{method:'loadGraphSON', parameters:[jsonData]}])
+				//.then(function(val){console.log(val)});
 			return this;
 		}
 
 		loadGraphML(xmlData:string):Graph{
-			this.worker.postMessage([{method:'loadGraphML', parameters:[xmlData]}])
-				.then(function(val){console.log(val)});
+			//var deferred = Q.defer();
+			this.worker.port.postMessage({message:[{method:'loadGraphML', parameters:[xmlData]}]})
+				//.then(function(val){console.log(val)});
+
+			// this.worker.onmessage = function(e) {
+			// 	deferred.resolve(e.data.result);
+		 //    };
+		 //    this.worker.onerror = function(e) {
+			// 	deferred.reject(['ERROR: Line ', e.lineno, ' in ', e.filename, ': ', e.message].join(''));
+		 //    };
+			// return deferred.promise;
 			return this;
 		}
 
@@ -81,23 +98,39 @@ module Helios {
 		}	
 	}
 
-	class MessagePromise {
+	class MessageWorker {
+		queue:any[];
 		worker;
+		//deferred;
 		constructor(){
 			this.worker = new Worker('heliosWorker.js');
+			this.queue = [];
 		}
 		postMessage(message:any){
-			var deferred = Q.defer();
-			this.worker.postMessage(message);
-			this.worker.onmessage = function(e) {
-				//check for large data Token. If received don't resolve until
-				//End Token received. Data will get appended in tempObj
 
-				deferred.resolve(e.data);
-		    };
-		    this.worker.onerror = function(e) {
-				deferred.reject(['ERROR: Line ', e.lineno, ' in ', e.filename, ': ', e.message].join(''));
-		    };
+
+			var deferred = Q.defer();
+
+			
+				//this.queue.push({deferred:this.deferred, message:message});
+				//var t = this.queue.shift();
+				this.worker.onmessage = (e) => {
+					//check for large data Token. If received don't resolve until
+					//End Token received. Data will get appended in tempObj
+
+					deferred.resolve(e.data.result);
+					// if(this.queue.length > 0){
+					// 	var i = this.queue.shift();
+					// 	this.deferred = i.deferred;
+					// 	this.worker.postMessage(i.message);
+					// }
+			    };
+			    this.worker.onerror = function(e) {
+					deferred.reject(['ERROR: Line ', e.lineno, ' in ', e.filename, ': ', e.message].join(''));
+			    };
+				message.id = UUID();
+				this.worker.postMessage(message);
+			
 		    return deferred.promise;
 		}
 	}
@@ -105,7 +138,7 @@ module Helios {
 	export class Pipeline {
 		
 		private messages:{}[];
-        
+        private deferreds:any[];
         id:()=>Pipeline;
         label:(...labels:string[])=>Pipeline;
         property:(prop:string)=>Pipeline;
@@ -131,7 +164,7 @@ module Helios {
         // transform(...labels:string[])=>Pipeline;
 		constructor(method:string, args:any[], public worker:any){
 			this.messages = [{method:method, parameters:args}];
-
+			this.deferreds =[];
 
 	        this.id = this.add('id');
 	        this.label = this.add('label');
@@ -156,8 +189,25 @@ module Helios {
             }
 		}
 		emit():any{
+			var w = new SharedWorker('heliosWorker.js');
+			
 			this.messages.push({method:'emit', paramaters:[]});
-			return this.worker.postMessage(this.messages);
+
+			w.port.addEventListener('message', (e) => {
+
+				console.log(e.data);
+				w.port.close();
+				}, false);
+			// w.port.onmessage = function(e) {
+			// 	alert(e.data);
+			// 	//w.port.stop();
+			// };
+			w.port.start();
+			// post a message to the shared web worker
+			w.port.postMessage({id:UUID(), message:this.messages});
+
+
+			return this;// this.worker.postMessage({id:UUID(), message:this.messages});
 		}
 	}
     
