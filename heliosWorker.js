@@ -272,7 +272,7 @@ var Helios;
                             if(attr.hasOwnProperty(k)) {
                                 switch(k) {
                                     case 'id':
-                                        if(_this.vertices[attr[k]]){
+                                        if(!!_this.vertices[attr[k]]) {
                                             tempObj = _this.vertices[attr[k]].obj;
                                         } else {
                                             tempObj[_this.meta.id] = attr[k];
@@ -332,6 +332,9 @@ var Helios;
                 }
             };
             parser.onend = function () {
+                tempObj = {
+                };
+                currProp = undefined;
             };
             if(Utils.isUndefined(xmlData)) {
                 return null;
@@ -2404,18 +2407,16 @@ var Helios;
     })();    
 })(Helios || (Helios = {}));
 var g;
-self.onmessage = function (e) {
-    switch(e.data.method) {
-        case 'init':
-            g = new Helios.Graph();
-            self.postMessage('done');
-            break;
-        default:
-            var t = g;
-            for(var i = 0, l = e.data.length; i < l; i++) {
-                t = t[e.data[i].method].apply(t, e.data[i].parameters);
-            }
-            self.postMessage(t);
-    }
-};
+var msg;
+var connections = 0;
+self.addEventListener("connect", function (e) {
+    var port = e.ports[0];
+    connections++;
+    port.addEventListener("message", function (e) {
+        port.postMessage("Hello " + e.data + " (port #" + connections + ")");
+        connections--;
+        port.stop();
+    }, false);
+    port.start();
+}, false);
 //@ sourceMappingURL=heliosWorker.js.map
