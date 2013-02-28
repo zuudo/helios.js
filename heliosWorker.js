@@ -2408,15 +2408,27 @@ var Helios;
 })(Helios || (Helios = {}));
 var g;
 var msg;
-var connections = 0;
 self.addEventListener("connect", function (e) {
     var port = e.ports[0];
-    connections++;
-    port.addEventListener("message", function (e) {
-        port.postMessage("Hello " + e.data + " (port #" + connections + ")");
-        connections--;
-        port.stop();
-    }, false);
+    function handler(e) {
+        switch(e.data.method) {
+            case 'init':
+                g = new Helios.Graph();
+                break;
+            default:
+                msg = e.data.message;
+                var t = g;
+                for(var i = 0, l = msg.length; i < l; i++) {
+                    t = t[msg[i].method].apply(t, msg[i].parameters);
+                }
+                port.postMessage({
+                    id: e.data.id,
+                    result: t
+                });
+        }
+        port.removeEventListner('message', handler, false);
+    }
+    port.addEventListener("message", handler, false);
     port.start();
 }, false);
 //@ sourceMappingURL=heliosWorker.js.map

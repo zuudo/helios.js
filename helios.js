@@ -4,7 +4,7 @@ var Helios;
         function Graph() {
             this.worker = new SharedWorker('heliosWorker.js');
             this.worker.port.onmessage = function (e) {
-                alert(e.data);
+                console.log(e.data);
             };
             this.worker.port.postMessage({
                 method: 'init'
@@ -164,21 +164,22 @@ var Helios;
             };
         };
         Pipeline.prototype.emit = function () {
-            var w = new SharedWorker('heliosWorker.js');
+            var db = new SharedWorker('heliosWorker.js'), deferred = Q.defer();
             this.messages.push({
                 method: 'emit',
                 paramaters: []
             });
-            w.port.addEventListener('message', function (e) {
-                console.log(e.data);
-                w.port.close();
-            }, false);
-            w.port.start();
-            w.port.postMessage({
+            function handler(event) {
+                deferred.resolve(event.data.result);
+                db.port.removeEventListener('message', handler, false);
+            }
+            db.port.addEventListener('message', handler, false);
+            db.port.start();
+            db.port.postMessage({
                 id: UUID(),
                 message: this.messages
             });
-            return this;
+            return deferred.promise;
         };
         return Pipeline;
     })();

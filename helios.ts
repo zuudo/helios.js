@@ -13,8 +13,8 @@ module Helios {
     	worker;
     	constructor(){
     		this.worker = new SharedWorker('heliosWorker.js');
-    		this.worker.port.onmessage = function(e) {
-				alert(e.data);
+    		this.worker.port.onmessage = (e) => {
+				console.log(e.data);
 			};
 			//this.worker.port.start();
 			// post a message to the shared web worker
@@ -189,25 +189,23 @@ module Helios {
             }
 		}
 		emit():any{
-			var w = new SharedWorker('heliosWorker.js');
-			
+
+			var db = new SharedWorker('heliosWorker.js'),
+				deferred = Q.defer();
+
 			this.messages.push({method:'emit', paramaters:[]});
 
-			w.port.addEventListener('message', (e) => {
+			function handler(event) {
+				deferred.resolve(event.data.result);
+				// no longer need this listener
+				db.port.removeEventListener('message', handler, false);
+		   	}
+	   		db.port.addEventListener('message', handler, false);
 
-				console.log(e.data);
-				w.port.close();
-				}, false);
-			// w.port.onmessage = function(e) {
-			// 	alert(e.data);
-			// 	//w.port.stop();
-			// };
-			w.port.start();
 			// post a message to the shared web worker
-			w.port.postMessage({id:UUID(), message:this.messages});
-
-
-			return this;// this.worker.postMessage({id:UUID(), message:this.messages});
+			db.port.start();
+			db.port.postMessage({id:UUID(), message:this.messages});
+			return deferred.promise;
 		}
 	}
     

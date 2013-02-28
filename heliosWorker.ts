@@ -3721,90 +3721,27 @@ parser.onend = () => {
 //    }
 }
 
-// var somedata = {
-//     "vertices":[
-//         {"name":"marko","age":29,"_id":1,"_type":"vertex"},
-//         {"name":"vadas","age":27,"_id":2,"_type":"vertex"},
-//         {"name":"lop","lang":"java","_id":3,"_type":"vertex"},
-//         {"name":"josh","age":32,"_id":4,"_type":"vertex"},
-//         {"name":"ripple","lang":"java","_id":5,"_type":"vertex"},
-//         {"name":"peter","age":35,"_id":6,"_type":"vertex"}
-//     ],
-//     "edges":[
-//         {"weight":0.5,"_id":7,"_type":"edge","_outV":1,"_inV":2,"_label":"knows"},
-//         {"weight":1.0,"_id":8,"_type":"edge","_outV":1,"_inV":4,"_label":"knows"},
-//         {"weight":0.4,"_id":9,"_type":"edge","_outV":1,"_inV":3,"_label":"created"},
-//         {"weight":1.0,"_id":10,"_type":"edge","_outV":4,"_inV":5,"_label":"created"},
-//         {"weight":0.4,"_id":11,"_type":"edge","_outV":4,"_inV":3,"_label":"created"},
-//         {"weight":0.2,"_id":12,"_type":"edge","_outV":6,"_inV":3,"_label":"created"}
-//     ]
-// };
 
-
-// var g = new Helios.Graph();
-// g.loadGraphSON(somedata);
-//     var t = g.v().emit();
-//var g = new Helios.Graph();
-//g.loadGraphSON(somedata);
-// var t = g.v().emit();
-
-// var message = [{
-//     method:'v',
-//     parameters:[]
-
-// },{
-//     method:'out',
-//     parameters:['knows', 'created']
-//     //,hasFunc: [3] //have an optional property to signify that a function has been passed in
-//                  //this property should be an array of indexes specifying where the function is
-//                  //this will allow for conversion of function i.e. eval
-
-// },{
-//     method:'in',
-//     parameters:[]
-
-// },{
-//     method:'emit',
-//     parameters:[]
-
-// }];
-    //declare var self;
 var g;
 var msg;
-var connections = 0; // count active connections
 self.addEventListener("connect", function (e) {
     var port = e.ports[0];
-    connections++;
-    port.addEventListener("message", function (e) {
-        port.postMessage("Hello " + e.data + " (port #" + connections + ")");
-        //connections--;
-        port.stop();
-    }, false);
+    function handler(e){
+        switch(e.data.method) {
+            case 'init':
+                g = new Helios.Graph();
+                break;
+            default:
+                msg = e.data.message;
+                var t = g;
+                for(var i=0,l=msg.length;i<l;i++){
+                    t = t[msg[i].method].apply(t, msg[i].parameters);
+                }
+                port.postMessage({id:e.data.id, result:t});
+        }
+        port.removeEventListner('message', handler, false);
+    }
+    port.addEventListener("message", handler, false);
     port.start();
 }, false);
-
-// self.addEventListener("disconnect", function (e) {
-// //need to get access to the port number in array    
-//     connections--;
-//     port.postMessage("Hello " + e.data + " (port #" + connections + ")");
-//     port.close();
-// }, false);
-
-// self.onmessage = function(e) {
-//     switch(e.data.method)
-//     {
-//     case 'init':
-//         g = new Helios.Graph();
-//       break;
-//     default:
-//         msg = e.data.message;
-//         var t = g;
-//         for(var i=0,l=msg.length;i<l;i++){
-//             t = t[msg[i].method].apply(t, msg[i].parameters);
-//         }
-//         self.postMessage({id:e.data.id, result:t});
-//     }
-// };
-
-
 
