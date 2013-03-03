@@ -1,7 +1,7 @@
 "use strict"
 /// <reference path="moment.d.ts" />
 
-//importScripts('sax.js');
+importScripts('sax.js');
 module Helios {
     interface IBase {
         Type:string;
@@ -3731,28 +3731,29 @@ parser.onend = () => {
 //    }
 }
 
-
 var g;
-var msg;
-self.addEventListener("connect", function (e) {
+self.onmessage = (e) => {
     var port = e.ports[0];
+
     function handler(e){
-        switch(e.data.method) {
-            case 'init':
-                g = new Helios.GraphDatabase(e.data.parameters[0]);
-                port.postMessage(e.data.parameters[0]);
-                break;
-            default:
-                msg = e.data.message;
-                var t = g;
-                for(var i=0,l=msg.length;i<l;i++){
-                    t = t[msg[i].method].apply(t, msg[i].parameters);
-                }
-                port.postMessage({result:t});
+        var msg = e.data.message;
+        var t = g;
+        for(var i=0,l=msg.length;i<l;i++){
+            t = t[msg[i].method].apply(t, msg[i].parameters);
         }
-        port.removeEventListner('message', handler, false);
+        port.postMessage({result:t});
+        port.removeEventListener('message', handler, false);
+        port.close();
+    }
+
+    switch(e.data.method) {
+        case 'init':
+            g = new Helios.GraphDatabase(e.data.parameters[0]);
+            port.postMessage('done');
+            break;
+        default:
+            break;
     }
     port.addEventListener("message", handler, false);
     port.start();
-}, false);
-
+};
