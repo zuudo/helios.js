@@ -4,7 +4,6 @@ var __extends = this.__extends || function (d, b) {
     __.prototype = b.prototype;
     d.prototype = new __();
 };
-importScripts('sax.js');
 var Helios;
 (function (Helios) {
     var toString = Object.prototype.toString, ArrayProto = Array.prototype, push = ArrayProto.push, slice = ArrayProto.slice, indexOf = ArrayProto.indexOf;
@@ -99,8 +98,8 @@ var Helios;
         };
         return Edge;
     })(Element);    
-    var Graph = (function () {
-        function Graph(options) {
+    var GraphDatabase = (function () {
+        function GraphDatabase(args) {
             this.pathEnabled = false;
             this.date = {
                 format: "DD/MM/YYYY"
@@ -120,17 +119,24 @@ var Helios;
                 VOut: 'out',
                 VIn: 'in'
             };
-            this.http = {
+            this.db = {
                 'baseUri': 'localhost',
                 'port': 8182,
-                'graph': 'tinker',
+                'name': 'tinker',
                 'type': 'orientdb',
                 'ssl': false
             };
-            if(!!options && (options.hasOwnProperty('vertices') || options.hasOwnProperty('edges'))) {
-                for(var k in options) {
-                    if(options.hasOwnProperty(k)) {
-                        this[k] = options[k];
+            if(typeof args === 'string') {
+                args = {
+                    db: {
+                        name: args
+                    }
+                };
+            }
+            if(args.hasOwnProperty('vertices') || args.hasOwnProperty('edges')) {
+                for(var k in args) {
+                    if(args.hasOwnProperty(k)) {
+                        this[k] = args[k];
                     }
                 }
             } else {
@@ -142,19 +148,17 @@ var Helios;
                 };
                 this.e_idx = {
                 };
-                if(!!options) {
-                    this.setConfiguration(options);
-                }
+                this.setConfiguration(args);
             }
             this._ = new Mogwai.Pipeline(this);
         }
-        Graph.prototype.setPathEnabled = function (turnOn) {
+        GraphDatabase.prototype.setPathEnabled = function (turnOn) {
             return this.pathEnabled = turnOn;
         };
-        Graph.prototype.getPathEnabled = function () {
+        GraphDatabase.prototype.getPathEnabled = function () {
             return this.pathEnabled;
         };
-        Graph.prototype.setConfiguration = function (options) {
+        GraphDatabase.prototype.setConfiguration = function (options) {
             for(var k in options) {
                 if(options.hasOwnProperty(k)) {
                     if(Utils.isObject(options[k])) {
@@ -171,7 +175,7 @@ var Helios;
                 this.config[k] = this[k];
             }
         };
-        Graph.prototype.loadVertices = function (rows) {
+        GraphDatabase.prototype.loadVertices = function (rows) {
             var i, l = rows.length, hasVIndex = !Utils.isEmpty(this.v_idx), vertex;
             for(i = 0; i < l; i++) {
                 vertex = new Vertex(rows[i], this);
@@ -181,7 +185,7 @@ var Helios;
                 }
             }
         };
-        Graph.prototype.loadEdges = function (rows) {
+        GraphDatabase.prototype.loadEdges = function (rows) {
             var i, l, edge, hasEIndex = !Utils.isEmpty(this.e_idx);
             for(i = 0 , l = rows.length; i < l; i += 1) {
                 edge = new Edge(rows[i], this);
@@ -192,7 +196,7 @@ var Helios;
                 }
             }
         };
-        Graph.prototype.createVIndex = function (idxName) {
+        GraphDatabase.prototype.createVIndex = function (idxName) {
             if(!(this.v_idx.hasOwnProperty(idxName))) {
                 this.v_idx[idxName] = {
                 };
@@ -203,7 +207,7 @@ var Helios;
                 }
             }
         };
-        Graph.prototype.createEIndex = function (idxName) {
+        GraphDatabase.prototype.createEIndex = function (idxName) {
             if(!(this.e_idx.hasOwnProperty(idxName))) {
                 this.e_idx[idxName] = {
                 };
@@ -214,17 +218,17 @@ var Helios;
                 }
             }
         };
-        Graph.prototype.deleteVIndex = function (idxName) {
+        GraphDatabase.prototype.deleteVIndex = function (idxName) {
             delete this.v_idx[idxName];
         };
-        Graph.prototype.deleteEIndex = function (idxName) {
+        GraphDatabase.prototype.deleteEIndex = function (idxName) {
             delete this.e_idx[idxName];
         };
-        Graph.prototype.tracePath = function (enabled) {
+        GraphDatabase.prototype.tracePath = function (enabled) {
             this.pathEnabled = enabled;
             return this.pathEnabled;
         };
-        Graph.prototype.loadGraphSON = function (jsonData) {
+        GraphDatabase.prototype.loadGraphSON = function (jsonData) {
             var xmlhttp;
             var graph = this;
             if(Utils.isUndefined(jsonData)) {
@@ -248,7 +252,7 @@ var Helios;
             }
             return this;
         };
-        Graph.prototype.loadGraphML = function (xmlData) {
+        GraphDatabase.prototype.loadGraphML = function (xmlData) {
             var _this = this;
             var i, j, l, propLen, xmlV = [], xmlE = [], vertex, edge, attr, vertex, edge, fileExt, xmlhttp, currProp, xmlDoc, properties, tempObj = {
             }, parser = sax.parser(true, {
@@ -355,7 +359,7 @@ var Helios;
             }
             return this;
         };
-        Graph.prototype.v = function () {
+        GraphDatabase.prototype.v = function () {
             var args = [];
             for (var _i = 0; _i < (arguments.length - 0); _i++) {
                 args[_i] = arguments[_i + 0];
@@ -471,7 +475,7 @@ var Helios;
             }
             return this._.startPipe(pipe);
         };
-        Graph.prototype.e = function () {
+        GraphDatabase.prototype.e = function () {
             var args = [];
             for (var _i = 0; _i < (arguments.length - 0); _i++) {
                 args[_i] = arguments[_i + 0];
@@ -586,9 +590,9 @@ var Helios;
             }
             return this._.startPipe(pipe);
         };
-        return Graph;
+        return GraphDatabase;
     })();
-    Helios.Graph = Graph;    
+    Helios.GraphDatabase = GraphDatabase;    
     (function (Mogwai) {
         function getEndPipe() {
             return this.endPipe;
@@ -2413,7 +2417,8 @@ self.addEventListener("connect", function (e) {
     function handler(e) {
         switch(e.data.method) {
             case 'init':
-                g = new Helios.Graph();
+                g = new Helios.GraphDatabase(e.data.parameters[0]);
+                port.postMessage(e.data.parameters[0]);
                 break;
             default:
                 msg = e.data.message;
@@ -2422,7 +2427,6 @@ self.addEventListener("connect", function (e) {
                     t = t[msg[i].method].apply(t, msg[i].parameters);
                 }
                 port.postMessage({
-                    id: e.data.id,
                     result: t
                 });
         }
@@ -2431,4 +2435,4 @@ self.addEventListener("connect", function (e) {
     port.addEventListener("message", handler, false);
     port.start();
 }, false);
-//@ sourceMappingURL=heliosWorker.js.map
+//@ sourceMappingURL=heliosDB.js.map

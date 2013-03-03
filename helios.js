@@ -1,17 +1,30 @@
 var Helios;
 (function (Helios) {
-    var Graph = (function () {
-        function Graph() {
-            this.worker = new SharedWorker('heliosWorker.js');
-            this.worker.port.onmessage = function (e) {
+    var GraphDatabase = (function () {
+        function GraphDatabase(args) {
+            if(typeof args === 'string') {
+                this.dbName = args;
+                args = {
+                    db: {
+                        name: this.dbName
+                    }
+                };
+            } else {
+                this.dbName = args.db.name;
+            }
+            this.db = new SharedWorker('heliosDB.js', this.dbName);
+            this.db.port.onmessage = function (e) {
                 console.log(e.data);
             };
-            this.worker.port.postMessage({
-                method: 'init'
+            this.db.port.postMessage({
+                method: 'init',
+                parameters: [
+                    args
+                ]
             });
         }
-        Graph.prototype.setConfiguration = function (options) {
-            this.worker.port.postMessage([
+        GraphDatabase.prototype.setConfiguration = function (options) {
+            this.db.port.postMessage([
                 {
                     method: 'setConfiguration',
                     parameters: [
@@ -20,8 +33,8 @@ var Helios;
                 }
             ]);
         };
-        Graph.prototype.createVIndex = function (idxName) {
-            this.worker.port.postMessage([
+        GraphDatabase.prototype.createVIndex = function (idxName) {
+            this.db.port.postMessage([
                 {
                     method: 'createVIndex',
                     parameters: [
@@ -30,8 +43,8 @@ var Helios;
                 }
             ]);
         };
-        Graph.prototype.createEIndex = function (idxName) {
-            this.worker.port.postMessage([
+        GraphDatabase.prototype.createEIndex = function (idxName) {
+            this.db.port.postMessage([
                 {
                     method: 'createEIndex',
                     parameters: [
@@ -40,8 +53,8 @@ var Helios;
                 }
             ]);
         };
-        Graph.prototype.deleteVIndex = function (idxName) {
-            this.worker.port.postMessage([
+        GraphDatabase.prototype.deleteVIndex = function (idxName) {
+            this.db.port.postMessage([
                 {
                     method: 'deleteVIndex',
                     parameters: [
@@ -50,8 +63,8 @@ var Helios;
                 }
             ]);
         };
-        Graph.prototype.deleteEIndex = function (idxName) {
-            this.worker.port.postMessage([
+        GraphDatabase.prototype.deleteEIndex = function (idxName) {
+            this.db.port.postMessage([
                 {
                     method: 'deleteEIndex',
                     parameters: [
@@ -60,8 +73,8 @@ var Helios;
                 }
             ]);
         };
-        Graph.prototype.loadGraphSON = function (jsonData) {
-            this.worker.port.postMessage([
+        GraphDatabase.prototype.loadGraphSON = function (jsonData) {
+            this.db.port.postMessage([
                 {
                     method: 'loadGraphSON',
                     parameters: [
@@ -71,8 +84,8 @@ var Helios;
             ]);
             return this;
         };
-        Graph.prototype.loadGraphML = function (xmlData) {
-            this.worker.port.postMessage({
+        GraphDatabase.prototype.loadGraphML = function (xmlData) {
+            this.db.port.postMessage({
                 message: [
                     {
                         method: 'loadGraphML',
@@ -82,54 +95,27 @@ var Helios;
                     }
                 ]
             });
-            return this;
         };
-        Graph.prototype.v = function () {
+        GraphDatabase.prototype.v = function () {
             var args = [];
             for (var _i = 0; _i < (arguments.length - 0); _i++) {
                 args[_i] = arguments[_i + 0];
             }
-            return new Pipeline('v', args, this.worker);
+            return new Pipeline('v', args, this.dbName);
         };
-        Graph.prototype.e = function () {
+        GraphDatabase.prototype.e = function () {
             var args = [];
             for (var _i = 0; _i < (arguments.length - 0); _i++) {
                 args[_i] = arguments[_i + 0];
             }
-            return new Pipeline('e', args, this.worker);
+            return new Pipeline('e', args, this.dbName);
         };
-        return Graph;
+        return GraphDatabase;
     })();
-    Helios.Graph = Graph;    
-    var MessageWorker = (function () {
-        function MessageWorker() {
-            this.worker = new Worker('heliosWorker.js');
-            this.queue = [];
-        }
-        MessageWorker.prototype.postMessage = function (message) {
-            var deferred = Q.defer();
-            this.worker.onmessage = function (e) {
-                deferred.resolve(e.data.result);
-            };
-            this.worker.onerror = function (e) {
-                deferred.reject([
-                    'ERROR: Line ', 
-                    e.lineno, 
-                    ' in ', 
-                    e.filename, 
-                    ': ', 
-                    e.message
-                ].join(''));
-            };
-            message.id = UUID();
-            this.worker.postMessage(message);
-            return deferred.promise;
-        };
-        return MessageWorker;
-    })();    
+    Helios.GraphDatabase = GraphDatabase;    
     var Pipeline = (function () {
-        function Pipeline(method, args, worker) {
-            this.worker = worker;
+        function Pipeline(method, args, dbName) {
+            this.dbName = dbName;
             this.messages = [
                 {
                     method: method,
@@ -164,7 +150,7 @@ var Helios;
             };
         };
         Pipeline.prototype.emit = function () {
-            var db = new SharedWorker('heliosWorker.js'), deferred = Q.defer();
+            var db = new SharedWorker('heliosDB.js', this.dbName), deferred = Q.defer();
             this.messages.push({
                 method: 'emit',
                 paramaters: []
@@ -172,11 +158,11 @@ var Helios;
             function handler(event) {
                 deferred.resolve(event.data.result);
                 db.port.removeEventListener('message', handler, false);
+                db.port.close();
             }
             db.port.addEventListener('message', handler, false);
             db.port.start();
             db.port.postMessage({
-                id: UUID(),
                 message: this.messages
             });
             return deferred.promise;
