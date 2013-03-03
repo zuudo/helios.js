@@ -12,19 +12,22 @@ var Helios;
             } else {
                 this.dbName = args.db.name;
             }
-            this.db = new SharedWorker('heliosDB.js', this.dbName);
-            this.db.port.onmessage = function (e) {
-                console.log(e.data);
-            };
-            this.db.port.postMessage({
+            this.db = new Worker('heliosDB.js');
+            this.mc = new MessageChannel();
+            this.db.postMessage({
                 method: 'init',
                 parameters: [
                     args
                 ]
-            });
+            }, [
+                this.mc.port2
+            ]);
+            this.mc.port1.onmessage = function (e) {
+                console.log(e.data);
+            };
         }
         GraphDatabase.prototype.setConfiguration = function (options) {
-            this.db.port.postMessage([
+            this.mc.port1.postMessage([
                 {
                     method: 'setConfiguration',
                     parameters: [
@@ -34,7 +37,7 @@ var Helios;
             ]);
         };
         GraphDatabase.prototype.createVIndex = function (idxName) {
-            this.db.port.postMessage([
+            this.mc.port1.postMessage([
                 {
                     method: 'createVIndex',
                     parameters: [
@@ -44,7 +47,7 @@ var Helios;
             ]);
         };
         GraphDatabase.prototype.createEIndex = function (idxName) {
-            this.db.port.postMessage([
+            this.mc.port1.postMessage([
                 {
                     method: 'createEIndex',
                     parameters: [
@@ -54,7 +57,7 @@ var Helios;
             ]);
         };
         GraphDatabase.prototype.deleteVIndex = function (idxName) {
-            this.db.port.postMessage([
+            this.mc.port1.postMessage([
                 {
                     method: 'deleteVIndex',
                     parameters: [
@@ -64,7 +67,7 @@ var Helios;
             ]);
         };
         GraphDatabase.prototype.deleteEIndex = function (idxName) {
-            this.db.port.postMessage([
+            this.mc.port1.postMessage([
                 {
                     method: 'deleteEIndex',
                     parameters: [
@@ -74,7 +77,7 @@ var Helios;
             ]);
         };
         GraphDatabase.prototype.loadGraphSON = function (jsonData) {
-            this.db.port.postMessage([
+            this.mc.port1.postMessage([
                 {
                     method: 'loadGraphSON',
                     parameters: [
@@ -85,7 +88,7 @@ var Helios;
             return this;
         };
         GraphDatabase.prototype.loadGraphML = function (xmlData) {
-            this.db.port.postMessage({
+            this.mc.port1.postMessage({
                 message: [
                     {
                         method: 'loadGraphML',
@@ -101,21 +104,21 @@ var Helios;
             for (var _i = 0; _i < (arguments.length - 0); _i++) {
                 args[_i] = arguments[_i + 0];
             }
-            return new Pipeline('v', args, this.dbName);
+            return new Pipeline('v', args, this.db);
         };
         GraphDatabase.prototype.e = function () {
             var args = [];
             for (var _i = 0; _i < (arguments.length - 0); _i++) {
                 args[_i] = arguments[_i + 0];
             }
-            return new Pipeline('e', args, this.dbName);
+            return new Pipeline('e', args, this.db);
         };
         return GraphDatabase;
     })();
     Helios.GraphDatabase = GraphDatabase;    
     var Pipeline = (function () {
-        function Pipeline(method, args, dbName) {
-            this.dbName = dbName;
+        function Pipeline(method, args, dbWorker) {
+            this.dbWorker = dbWorker;
             this.messages = [
                 {
                     method: method,
@@ -150,19 +153,24 @@ var Helios;
             };
         };
         Pipeline.prototype.emit = function () {
-            var db = new SharedWorker('heliosDB.js', this.dbName), deferred = Q.defer();
+            var mc = new MessageChannel(), deferred = Q.defer();
+            this.dbWorker.postMessage({
+                method: 'new'
+            }, [
+                mc.port2
+            ]);
             this.messages.push({
                 method: 'emit',
                 paramaters: []
             });
             function handler(event) {
                 deferred.resolve(event.data.result);
-                db.port.removeEventListener('message', handler, false);
-                db.port.close();
+                mc.port1.removeEventListener('message', handler, false);
+                mc.port1.close();
             }
-            db.port.addEventListener('message', handler, false);
-            db.port.start();
-            db.port.postMessage({
+            mc.port1.addEventListener('message', handler, false);
+            mc.port1.start();
+            mc.port1.postMessage({
                 message: this.messages
             });
             return deferred.promise;
