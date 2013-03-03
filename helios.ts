@@ -1,30 +1,31 @@
 
 module Helios {
-    //var worker = new Worker('heliosWorker.js');
-    
-    // var func = function(){return this;};
-    // worker.postMessage(func.toString()); // Start the worker.
 
     declare var Q;
-    declare var UUID;
 
-
-    export class Graph {
-    	worker;
-    	constructor(){
-    		this.worker = new SharedWorker('heliosWorker.js');
-    		this.worker.port.onmessage = (e) => {
+    export class GraphDatabase {
+    	db;
+    	dbName;
+    	constructor(name:string);
+    	constructor(options:{ db:{name:string;}; });
+    	constructor(args:any){
+    		if(typeof args === 'string'){
+    			this.dbName = args;
+    			args = {db:{name:this.dbName}};
+    		} else {
+    			this.dbName = args.db.name;	
+    		}
+    		this.db = new SharedWorker('heliosDB.js', this.dbName);
+    		this.db.port.onmessage = (e) => {
 				console.log(e.data);
 			};
-			//this.worker.port.start();
 			// post a message to the shared web worker
-			this.worker.port.postMessage({method:'init'});
-    		// this.worker.port.postMessage({method:'init'})
-    		// 	.then(function(val){console.log(val)});
+			this.db.port.postMessage({method:'init', parameters:[args]});
+    		
 		}
 
 		setConfiguration(options:{}):void{
-			this.worker.port.postMessage([{method:'setConfiguration', parameters:[options]}])
+			this.db.port.postMessage([{method:'setConfiguration', parameters:[options]}])
 				//.then(function(val){console.log(val)});
 			//return this;
 		}
@@ -41,36 +42,36 @@ module Helios {
 //        }
 
 		createVIndex(idxName:string):void {
-            this.worker.port.postMessage([{method:'createVIndex', parameters:[idxName]}])
+            this.db.port.postMessage([{method:'createVIndex', parameters:[idxName]}])
 				//.then(function(val){console.log(val)});
 			//return this;
         }
 
         createEIndex(idxName:string):void {
-            this.worker.port.postMessage([{method:'createEIndex', parameters:[idxName]}])
+            this.db.port.postMessage([{method:'createEIndex', parameters:[idxName]}])
 				//.then(function(val){console.log(val)});
 			//return this;
         }
 
         deleteVIndex(idxName:string):void {
-            this.worker.port.postMessage([{method:'deleteVIndex', parameters:[idxName]}])
+            this.db.port.postMessage([{method:'deleteVIndex', parameters:[idxName]}])
 				//.then(function(val){console.log(val)});
         }
 
         deleteEIndex(idxName:string):void {
-            this.worker.port.postMessage([{method:'deleteEIndex', parameters:[idxName]}])
+            this.db.port.postMessage([{method:'deleteEIndex', parameters:[idxName]}])
 				//.then(function(val){console.log(val)});
         }
 
-		loadGraphSON(jsonData:string):Graph{
-			this.worker.port.postMessage([{method:'loadGraphSON', parameters:[jsonData]}])
+		loadGraphSON(jsonData:string):GraphDatabase{
+			this.db.port.postMessage([{method:'loadGraphSON', parameters:[jsonData]}])
 				//.then(function(val){console.log(val)});
 			return this;
 		}
 
-		loadGraphML(xmlData:string):Graph{
+		loadGraphML(xmlData:string):void{
 			//var deferred = Q.defer();
-			this.worker.port.postMessage({message:[{method:'loadGraphML', parameters:[xmlData]}]})
+			this.db.port.postMessage({message:[{method:'loadGraphML', parameters:[xmlData]}]})
 				//.then(function(val){console.log(val)});
 
 			// this.worker.onmessage = function(e) {
@@ -80,59 +81,22 @@ module Helios {
 			// 	deferred.reject(['ERROR: Line ', e.lineno, ' in ', e.filename, ': ', e.message].join(''));
 		 //    };
 			// return deferred.promise;
-			return this;
+			//return this;
 		}
 
 		v(...ids:string[]):Pipeline;  //g.v()
         v(...ids:number[]):Pipeline;  //g.v()
         v(...objs:{}[]):Pipeline;     //g.V
         v(...args:any[]):Pipeline {
-    		return new Pipeline('v', args, this.worker);
+    		return new Pipeline('v', args, this.dbName);
 		}
 
 		e(...ids:string[]):Pipeline;  //g.v()
         e(...ids:number[]):Pipeline;  //g.v()
         e(...objs:{}[]):Pipeline;     //g.V
         e(...args:any[]):Pipeline {
-    		return new Pipeline('e', args, this.worker);
+    		return new Pipeline('e', args, this.dbName);
 		}	
-	}
-
-	class MessageWorker {
-		queue:any[];
-		worker;
-		//deferred;
-		constructor(){
-			this.worker = new Worker('heliosWorker.js');
-			this.queue = [];
-		}
-		postMessage(message:any){
-
-
-			var deferred = Q.defer();
-
-			
-				//this.queue.push({deferred:this.deferred, message:message});
-				//var t = this.queue.shift();
-				this.worker.onmessage = (e) => {
-					//check for large data Token. If received don't resolve until
-					//End Token received. Data will get appended in tempObj
-
-					deferred.resolve(e.data.result);
-					// if(this.queue.length > 0){
-					// 	var i = this.queue.shift();
-					// 	this.deferred = i.deferred;
-					// 	this.worker.postMessage(i.message);
-					// }
-			    };
-			    this.worker.onerror = function(e) {
-					deferred.reject(['ERROR: Line ', e.lineno, ' in ', e.filename, ': ', e.message].join(''));
-			    };
-				message.id = UUID();
-				this.worker.postMessage(message);
-			
-		    return deferred.promise;
-		}
 	}
 
 	export class Pipeline {
@@ -162,7 +126,7 @@ module Helios {
         // scatter(...labels:string[])=>Pipeline;
         // select(...labels:string[])=>Pipeline;
         // transform(...labels:string[])=>Pipeline;
-		constructor(method:string, args:any[], public worker:any){
+		constructor(method:string, args:any[], public dbName:string){
 			this.messages = [{method:method, parameters:args}];
 			this.deferreds =[];
 
@@ -190,7 +154,7 @@ module Helios {
 		}
 		emit():any{
 
-			var db = new SharedWorker('heliosWorker.js'),
+			var db = new SharedWorker('heliosDB.js', this.dbName),
 				deferred = Q.defer();
 
 			this.messages.push({method:'emit', paramaters:[]});
@@ -199,12 +163,13 @@ module Helios {
 				deferred.resolve(event.data.result);
 				// no longer need this listener
 				db.port.removeEventListener('message', handler, false);
+				db.port.close();
 		   	}
 	   		db.port.addEventListener('message', handler, false);
 
 			// post a message to the shared web worker
 			db.port.start();
-			db.port.postMessage({id:UUID(), message:this.messages});
+			db.port.postMessage({message:this.messages});
 			return deferred.promise;
 		}
 	}

@@ -1,7 +1,7 @@
 "use strict"
 /// <reference path="moment.d.ts" />
 
-importScripts('sax.js');
+//importScripts('sax.js');
 module Helios {
     interface IBase {
         Type:string;
@@ -11,7 +11,7 @@ module Helios {
         obj:{};
         indexKeys:any;
         addToIndex:(idx:{}, idxName?:string) => void;
-        graph:Graph;
+        graph:GraphDatabase;
     }
 
     interface IVertex {
@@ -22,10 +22,10 @@ module Helios {
     interface IEdge {
         outV:IVertex;
         inV:IVertex;
-        associateVertices:(graph:Graph) => void;
+        associateVertices:(graph:GraphDatabase) => void;
     }
 
-    export interface IGraph {
+    export interface IGraphDatabase {
         vertices:{};
         edges:{};
         v_idx:{};
@@ -35,7 +35,6 @@ module Helios {
 
     declare var moment;
     declare var sax;
-    //declare var self;
 
     var toString = Object.prototype.toString,
         ArrayProto = Array.prototype,
@@ -47,7 +46,7 @@ module Helios {
 
         indexKeys:any;
         Type:string;
-        constructor(public obj:{}, public graph:Graph) {
+        constructor(public obj:{}, public graph:GraphDatabase) {
 
         }
 
@@ -89,7 +88,7 @@ module Helios {
         outE:{} = {};
         inE:{} = {};
 
-        constructor(obj:{}, graph:Graph) {
+        constructor(obj:{}, graph:GraphDatabase) {
             super(obj, graph);
             this.Type = 'Vertex';
             //check if there are indexes
@@ -101,7 +100,7 @@ module Helios {
         outV:Vertex;
         inV:Vertex;
 
-        constructor(obj:{}, graph:Graph) {
+        constructor(obj:{}, graph:GraphDatabase) {
             super(obj, graph);
             this.Type = 'Edge';
         }
@@ -163,16 +162,16 @@ module Helios {
             VIn:string;
         };
 
-        http:{
+        db:{
             baseUri:string;
             port:number;
-            graph:string;
+            name:string;
             type:string;
             ssl:bool;
         };
     }
 
-    export class Graph implements IGraph, IConfiguration {
+    export class GraphDatabase implements IGraphDatabase, IConfiguration {
 
         vertices:{};
         edges:{};
@@ -219,29 +218,36 @@ module Helios {
             VIn: 'in'
         };
 
-        http:{
+        db:{
             baseUri:string;
             port:number;
-            graph:string;
+            name:string;
             type:string;
             ssl:bool;
         } = {
             'baseUri': 'localhost',
             'port': 8182,
-            'graph': 'tinker',
+            'name': 'tinker',
             'type': 'orientdb',
             'ssl': false
         };
 
         config:IConfiguration;
 
-        constructor(graph?:Graph);
-        constructor(options?:any) {
-
-            if (!!options && (options.hasOwnProperty('vertices') || options.hasOwnProperty('edges'))) {
-                for (var k in options) {
-                    if (options.hasOwnProperty(k)) {
-                        this[k] = options[k];
+        // constructor(graph?:GraphDatabase);
+        // constructor(options?:any)
+        constructor(name:string);
+        constructor(options:{ db:{name:string;}; });
+        constructor(args:any){
+            
+            if(typeof args === 'string'){
+                args = {db:{name:args}};
+            } 
+            if (args.hasOwnProperty('vertices') || args.hasOwnProperty('edges')) {
+                //Then passing in starts
+                for (var k in args) {
+                    if (args.hasOwnProperty(k)) {
+                        this[k] = args[k];
                     }
                 }
                 //this.CONFIG = null;//new Configuration(this.CONFIG);
@@ -251,9 +257,9 @@ module Helios {
                 this.v_idx = {};
                 this.e_idx = {};
 
-                if (!!options) {
-                    this.setConfiguration(options);
-                }
+                //if (!!args) {
+                this.setConfiguration(args);
+                //}
             }
             this._ = new Mogwai.Pipeline(this);
         }
@@ -296,7 +302,7 @@ module Helios {
 
         }
 
-        /*Use this to load JSON formatted Vertices into Graph*/
+        /*Use this to load JSON formatted Vertices into GraphDatabase*/
         loadVertices(rows:{}[]):void {
 
             var i:number,
@@ -313,7 +319,7 @@ module Helios {
             }
         }
 
-        /*Use this to load JSON formatted Edges into Graph*/
+        /*Use this to load JSON formatted Edges into GraphDatabase*/
         loadEdges(rows:{}[]):void {
 
             var i:number,
@@ -366,14 +372,14 @@ module Helios {
             return this.pathEnabled;
         }
 
-        loadGraphSON(jsonData:string):Graph;
-        loadGraphSON(jsonData:{ vertices?:{}[]; edges?:{}[]; }):Graph;
-        loadGraphSON(jsonData:any):Graph {
+        loadGraphSON(jsonData:string):GraphDatabase;
+        loadGraphSON(jsonData:{ vertices?:{}[]; edges?:{}[]; }):GraphDatabase;
+        loadGraphSON(jsonData:any):GraphDatabase {
             //process vertices
 
             var xmlhttp;
 
-            var graph:Graph = this;
+            var graph:GraphDatabase = this;
 
             if (Utils.isUndefined(jsonData)) { return null; }
             if (Utils.isString(jsonData)) {
@@ -413,7 +419,7 @@ module Helios {
         }
 
 
-        loadGraphML(xmlData:string):Graph {
+        loadGraphML(xmlData:string):GraphDatabase {
 
             var i, j, l, propLen,
                 xmlV = [], xmlE = [], vertex:Vertex, edge:Edge,
@@ -981,9 +987,9 @@ parser.onend = () => {
             private asHash:{}; //requires Cleanup
             private endPipe:any[]; //requires Cleanup
 
-            constructor(graph:Graph, elements?:{}, clonedPipeline?:Pipeline, pinned?:bool);
-            constructor(graph:Graph, elements?:{}[], clonedPipeline?:Pipeline, pinned?:bool);
-            constructor(public graph:Graph, elements?:any, clonedPipeline?:Pipeline, public pinned?:bool) {
+            constructor(graph:GraphDatabase, elements?:{}, clonedPipeline?:Pipeline, pinned?:bool);
+            constructor(graph:GraphDatabase, elements?:{}[], clonedPipeline?:Pipeline, pinned?:bool);
+            constructor(public graph:GraphDatabase, elements?:any, clonedPipeline?:Pipeline, public pinned?:bool) {
 
                 if (!!clonedPipeline) {
                     this.traceObj = clonedPipeline.traceObj;
@@ -2656,7 +2662,7 @@ parser.onend = () => {
         export class Compare {
             //comparables
 
-            static $eq(objVal:any, val:any, graph:Graph):bool {
+            static $eq(objVal:any, val:any, graph:GraphDatabase):bool {
 
                 var objValIsArray:bool = Utils.isArray(objVal),
                     index:number;
@@ -2676,11 +2682,11 @@ parser.onend = () => {
                 return false;
             }
 
-            static $neq(objVal:any, val:any, graph:Graph):bool {
+            static $neq(objVal:any, val:any, graph:GraphDatabase):bool {
                 return !Compare.$eq(objVal, val, graph);
             }
 
-            static $lt(objVal:any, val:any, graph:Graph):bool {
+            static $lt(objVal:any, val:any, graph:GraphDatabase):bool {
                 var objValIsArray:bool = Utils.isArray(objVal),
                     index:number;
 
@@ -2699,7 +2705,7 @@ parser.onend = () => {
                 return false;
             }
 
-            static $lte(objVal:any, val:any, graph:Graph):bool {
+            static $lte(objVal:any, val:any, graph:GraphDatabase):bool {
                 var objValIsArray:bool = Utils.isArray(objVal),
                     index:number;
 
@@ -2718,15 +2724,15 @@ parser.onend = () => {
                 return false;
             }
 
-            static $gt(objVal:any, val:any, graph:Graph):bool {
+            static $gt(objVal:any, val:any, graph:GraphDatabase):bool {
                 return !Compare.$lte(objVal, val, graph);
             }
 
-            static $gte(objVal:any, val:any, graph:Graph):bool {
+            static $gte(objVal:any, val:any, graph:GraphDatabase):bool {
                 return !Compare.$lt(objVal, val, graph);
             }
 
-            static $typeOf(objVal:any, val:string[], graph:Graph):bool {
+            static $typeOf(objVal:any, val:string[], graph:GraphDatabase):bool {
 
                 var objValIsArray:bool = Utils.isArray(objVal),
                     index:number,
@@ -2753,11 +2759,11 @@ parser.onend = () => {
                 return false;
             }
 
-            static $notTypeOf(objVal:any, val:string[], graph:Graph):bool {
+            static $notTypeOf(objVal:any, val:string[], graph:GraphDatabase):bool {
                 return !Compare.$typeOf(objVal, val, graph);
             }
 
-            static $in(objVal:any, val:any[], graph:Graph):bool {
+            static $in(objVal:any, val:any[], graph:GraphDatabase):bool {
 
                 var objValIsArray:bool = Utils.isArray(objVal),
                     index:number,
@@ -2783,11 +2789,11 @@ parser.onend = () => {
                 return false;
             }
 
-            static $nin(objVal:any, val:any[], graph:Graph):bool {
+            static $nin(objVal:any, val:any[], graph:GraphDatabase):bool {
                 return !Compare.$in(objVal, val, graph);
             }
 
-            static $match(objVal:any, val:string[], graph:Graph):bool {
+            static $match(objVal:any, val:string[], graph:GraphDatabase):bool {
                 var objValIsArray:bool = Utils.isArray(objVal),
                     index:number,
                     i:number = 0,
@@ -2809,7 +2815,7 @@ parser.onend = () => {
             }
 
             //Array comparator
-            static $all(objVal:any[], val:any[], graph:Graph):bool {
+            static $all(objVal:any[], val:any[], graph:GraphDatabase):bool {
 
                 var matches:number = 0,
                     index:number = 0,
@@ -2841,12 +2847,12 @@ parser.onend = () => {
             }
 
             //Array comparator
-            static $none(objVal:any[], val:any[], graph:Graph):bool {
+            static $none(objVal:any[], val:any[], graph:GraphDatabase):bool {
                 return !Compare.$all(objVal, val, graph);
             }
 
             //Array comparator
-            static $exact(objVal:any[], val:any[], graph:Graph):bool {
+            static $exact(objVal:any[], val:any[], graph:GraphDatabase):bool {
 
                 var matches:number = 0,
                     index:number = 0,
@@ -2939,11 +2945,18 @@ parser.onend = () => {
 
     class Utils {
 
+        //app.zip = /^\w\w$/;
+ 
+        //app.validDate = /^(?:(?:31(\/|-|\.)(?:0?[13578]|1[02]))\1|(?:(?:29|30)(\/|-|\.)(?:0?[1,3-9]|1[0-2])\2))(?:(?:1[6-9]|[2-9]\d)?\d{2})$|^(?:29(\/|-|\.)0?2\3(?:(?:(?:1[6-9]|[2-9]\d)?(?:0[48]|[2468][048]|[13579][26])|(?:(?:16|[2468][048]|[3579][26])00))))$|^(?:0?[1-9]|1\d|2[0-8])(\/|-|\.)(?:(?:0?[1-9])|(?:1[0-2]))\4(?:(?:1[6-9]|[2-9]\d)?\d{2})$/;
+ 
+        //app.validCurrency = /^\$?\-?([1-9]{1}[0-9]{0,2}(\,\d{3})*(\.\d{0,2})?|[1-9]{1}\d{0,}(\.\d{0,2})?|0(\.\d{0,2})?|(\.\d{1,2}))$|^\-?\$?([1-9]{1}\d{0,2}(\,\d{3})*(\.\d{0,2})?|[1-9]{1}\d{0,}(\.\d{0,2})?|0(\.\d{0,2})?|(\.\d{1,2}))$|^\(\$?([1-9]{1}\d{0,2}(\,\d{3})*(\.\d{0,2})?|[1-9]{1}\d{0,}(\.\d{0,2})?|0(\.\d{0,2})?|(\.\d{1,2}))\)$/;
+
         static currencyRegex:{} = {
             '.': /[^0-9-.]+/g,
             ',': /[^0-9-,]+/g
         };
 
+        //This should be moved into Pipeline
         static setTrace(trace:{}, element:IElement, ...ids:any[]):void {
             var o:{};
             var newIds = flatten(ids),
@@ -2962,6 +2975,7 @@ parser.onend = () => {
             }
         }
 
+        //This should be moved into Pipeline
         static stopTrace(trace:{}, element:IElement):void {
             var o:{} = trace,
                 id:any = element.obj[element.graph.meta.id];
@@ -2983,6 +2997,7 @@ parser.onend = () => {
         }
 
 
+        //This should be moved into Pipeline
         static finalizeTrace(trace:{}):void {
 
             for (var k in trace) {
@@ -3264,8 +3279,8 @@ parser.onend = () => {
             return result;
         }
 
-        static materializeElementArray(array:{}[], db:Graph, type:string):IElement[];
-        static materializeElementArray(array:any[], db:Graph, type:string):IElement[] {
+        static materializeElementArray(array:{}[], db:GraphDatabase, type:string):IElement[];
+        static materializeElementArray(array:any[], db:GraphDatabase, type:string):IElement[] {
             var i, l = array.length,
                 result:IElement[] = [],
                 elements:{} = type == "Vertex" ? db.vertices : db.edges,
@@ -3426,11 +3441,6 @@ parser.onend = () => {
             }
             return val;
         }
-
-
-
-
-
 
     }
 
@@ -3729,7 +3739,8 @@ self.addEventListener("connect", function (e) {
     function handler(e){
         switch(e.data.method) {
             case 'init':
-                g = new Helios.Graph();
+                g = new Helios.GraphDatabase(e.data.parameters[0]);
+                port.postMessage(e.data.parameters[0]);
                 break;
             default:
                 msg = e.data.message;
@@ -3737,7 +3748,7 @@ self.addEventListener("connect", function (e) {
                 for(var i=0,l=msg.length;i<l;i++){
                     t = t[msg[i].method].apply(t, msg[i].parameters);
                 }
-                port.postMessage({id:e.data.id, result:t});
+                port.postMessage({result:t});
         }
         port.removeEventListner('message', handler, false);
     }
