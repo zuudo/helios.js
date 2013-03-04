@@ -1,25 +1,18 @@
 var Helios;
 (function (Helios) {
     var GraphDatabase = (function () {
-        function GraphDatabase(args) {
-            if(typeof args === 'string') {
-                this.dbName = args;
-                args = {
-                    db: {
-                        name: this.dbName
-                    }
-                };
-            } else {
-                this.dbName = args.db.name;
+        function GraphDatabase(options) {
+            var msg = {
+                method: 'init'
+            };
+            if(!!options) {
+                msg.parameters = [
+                    options
+                ];
             }
             this.db = new Worker('heliosDB.js');
             this.mc = new MessageChannel();
-            this.db.postMessage({
-                method: 'init',
-                parameters: [
-                    args
-                ]
-            }, [
+            this.db.postMessage(msg, [
                 this.mc.port2
             ]);
             this.mc.port1.onmessage = function (e) {
@@ -27,64 +20,76 @@ var Helios;
             };
         }
         GraphDatabase.prototype.setConfiguration = function (options) {
-            this.mc.port1.postMessage([
-                {
-                    method: 'setConfiguration',
-                    parameters: [
-                        options
-                    ]
-                }
-            ]);
+            this.mc.port1.postMessage({
+                message: [
+                    {
+                        method: 'setConfiguration',
+                        parameters: [
+                            options
+                        ]
+                    }
+                ]
+            });
         };
         GraphDatabase.prototype.createVIndex = function (idxName) {
-            this.mc.port1.postMessage([
-                {
-                    method: 'createVIndex',
-                    parameters: [
-                        idxName
-                    ]
-                }
-            ]);
+            this.mc.port1.postMessage({
+                message: [
+                    {
+                        method: 'createVIndex',
+                        parameters: [
+                            idxName
+                        ]
+                    }
+                ]
+            });
         };
         GraphDatabase.prototype.createEIndex = function (idxName) {
-            this.mc.port1.postMessage([
-                {
-                    method: 'createEIndex',
-                    parameters: [
-                        idxName
-                    ]
-                }
-            ]);
+            this.mc.port1.postMessage({
+                message: [
+                    {
+                        method: 'createEIndex',
+                        parameters: [
+                            idxName
+                        ]
+                    }
+                ]
+            });
         };
         GraphDatabase.prototype.deleteVIndex = function (idxName) {
-            this.mc.port1.postMessage([
-                {
-                    method: 'deleteVIndex',
-                    parameters: [
-                        idxName
-                    ]
-                }
-            ]);
+            this.mc.port1.postMessage({
+                message: [
+                    {
+                        method: 'deleteVIndex',
+                        parameters: [
+                            idxName
+                        ]
+                    }
+                ]
+            });
         };
         GraphDatabase.prototype.deleteEIndex = function (idxName) {
-            this.mc.port1.postMessage([
-                {
-                    method: 'deleteEIndex',
-                    parameters: [
-                        idxName
-                    ]
-                }
-            ]);
+            this.mc.port1.postMessage({
+                message: [
+                    {
+                        method: 'deleteEIndex',
+                        parameters: [
+                            idxName
+                        ]
+                    }
+                ]
+            });
         };
         GraphDatabase.prototype.loadGraphSON = function (jsonData) {
-            this.mc.port1.postMessage([
-                {
-                    method: 'loadGraphSON',
-                    parameters: [
-                        jsonData
-                    ]
-                }
-            ]);
+            this.mc.port1.postMessage({
+                message: [
+                    {
+                        method: 'loadGraphSON',
+                        parameters: [
+                            jsonData
+                        ]
+                    }
+                ]
+            });
             return this;
         };
         GraphDatabase.prototype.loadGraphML = function (xmlData) {
@@ -155,7 +160,6 @@ var Helios;
         Pipeline.prototype.emit = function () {
             var mc = new MessageChannel(), deferred = Q.defer();
             this.dbWorker.postMessage({
-                method: 'new'
             }, [
                 mc.port2
             ]);

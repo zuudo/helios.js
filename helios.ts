@@ -2,24 +2,21 @@
 module Helios {
 
     declare var Q;
-
     export class GraphDatabase {
+    	//Make arguments optional
     	db;
-    	dbName;
     	mc;
-    	constructor(name:string);
-    	constructor(options:{ db:{name:string;}; });
-    	constructor(args:any){
-    		if(typeof args === 'string'){
-    			this.dbName = args;
-    			args = {db:{name:this.dbName}};
-    		} else {
-    			this.dbName = args.db.name;	
+    	//constructor(graph?:Graph);
+        constructor(options?:any) {
+    		var msg:{method:string; parameters?:any;} = { method:'init'};
+    		if(!!options){
+    			msg.parameters = [options];
     		}
+
     		this.db = new Worker('heliosDB.js');
 
     		this.mc = new MessageChannel();
-    		this.db.postMessage({method:'init', parameters:[args]}, [this.mc.port2]);
+    		this.db.postMessage(msg, [this.mc.port2]);
 
     		this.mc.port1.onmessage = (e) => {
 				console.log(e.data);
@@ -28,7 +25,7 @@ module Helios {
 		}
 
 		setConfiguration(options:{}):void{
-			this.mc.port1.postMessage([{method:'setConfiguration', parameters:[options]}])
+			this.mc.port1.postMessage({message:[{method:'setConfiguration', parameters:[options]}]})
 				//.then(function(val){console.log(val)});
 			//return this;
 		}
@@ -45,29 +42,29 @@ module Helios {
 //        }
 
 		createVIndex(idxName:string):void {
-            this.mc.port1.postMessage([{method:'createVIndex', parameters:[idxName]}])
+            this.mc.port1.postMessage({message:[{method:'createVIndex', parameters:[idxName]}]})
 				//.then(function(val){console.log(val)});
 			//return this;
         }
 
         createEIndex(idxName:string):void {
-            this.mc.port1.postMessage([{method:'createEIndex', parameters:[idxName]}])
+            this.mc.port1.postMessage({message:[{method:'createEIndex', parameters:[idxName]}]})
 				//.then(function(val){console.log(val)});
 			//return this;
         }
 
         deleteVIndex(idxName:string):void {
-            this.mc.port1.postMessage([{method:'deleteVIndex', parameters:[idxName]}])
+            this.mc.port1.postMessage({message:[{method:'deleteVIndex', parameters:[idxName]}]})
 				//.then(function(val){console.log(val)});
         }
 
         deleteEIndex(idxName:string):void {
-            this.mc.port1.postMessage([{method:'deleteEIndex', parameters:[idxName]}])
+            this.mc.port1.postMessage({message:[{method:'deleteEIndex', parameters:[idxName]}]})
 				//.then(function(val){console.log(val)});
         }
 
 		loadGraphSON(jsonData:string):GraphDatabase{
-			this.mc.port1.postMessage([{method:'loadGraphSON', parameters:[jsonData]}])
+			this.mc.port1.postMessage({message:[{method:'loadGraphSON', parameters:[jsonData]}]})
 				//.then(function(val){console.log(val)});
 			return this;
 		}
@@ -159,8 +156,7 @@ module Helios {
 			var mc = new MessageChannel(),
 				deferred = Q.defer();
 
-			this.dbWorker.postMessage({method:'new'}, [mc.port2]);
-
+			this.dbWorker.postMessage({}, [mc.port2]);
 			this.messages.push({method:'emit', paramaters:[]});
 
 			function handler(event) {
