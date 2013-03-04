@@ -1,7 +1,8 @@
 "use strict"
 /// <reference path="moment.d.ts" />
 
-importScripts('sax.js');
+importScripts('sax.js', 'moment.min.js');
+
 module Helios {
     interface IBase {
         Type:string;
@@ -232,22 +233,16 @@ module Helios {
             'ssl': false
         };
 
-        config:IConfiguration;
+        //config:IConfiguration;
 
-        // constructor(graph?:GraphDatabase);
-        // constructor(options?:any)
-        constructor(name:string);
-        constructor(options:{ db:{name:string;}; });
-        constructor(args:any){
-            
-            if(typeof args === 'string'){
-                args = {db:{name:args}};
-            } 
-            if (args.hasOwnProperty('vertices') || args.hasOwnProperty('edges')) {
+        constructor(graph?:GraphDatabase);
+        constructor(options?:any) {
+
+            if (!!options && (options.hasOwnProperty('vertices') || options.hasOwnProperty('edges'))) {
                 //Then passing in starts
-                for (var k in args) {
-                    if (args.hasOwnProperty(k)) {
-                        this[k] = args[k];
+                for (var k in options) {
+                    if (options.hasOwnProperty(k)) {
+                        this[k] = options[k];
                     }
                 }
                 //this.CONFIG = null;//new Configuration(this.CONFIG);
@@ -257,9 +252,9 @@ module Helios {
                 this.v_idx = {};
                 this.e_idx = {};
 
-                //if (!!args) {
-                this.setConfiguration(args);
-                //}
+                if (!!options) {
+                    this.setConfiguration(options);
+                }
             }
             this._ = new Mogwai.Pipeline(this);
         }
@@ -297,7 +292,7 @@ module Helios {
                     }
                     this[k] = options[k];
                 }
-                this.config[k] = this[k];
+                //this.config[k] = this[k];
             }
 
         }
@@ -641,7 +636,7 @@ parser.onend = () => {
                 subset:{} = {},
                 tempObjArray:any = {},//{ obj?:{}; }[] = [],
                 preProcObj:{} = {},
-                postProcObj:{}[] = [],
+                postProcObj:{} = {},
                 tempObjArrLen:number = 0;
 
             if (!args.length) {
@@ -657,7 +652,7 @@ parser.onend = () => {
 
                     //iterate through the compObj and determine whether has idx
                     preProcObj = {};
-                    postProcObj = [];
+                    postProcObj = {};
                     for (var k in compObj) {
                         if (compObj.hasOwnProperty(k)) {
                             if (this.v_idx.hasOwnProperty(k)) {
@@ -768,7 +763,7 @@ parser.onend = () => {
                 subset:{} = {},
                 tempObjArray:{ obj?:{}; }[] = [],
                 preProcObj:{} = {},
-                postProcObj:{}[] = [],
+                postProcObj:{} = {},
                 tempObjArrLen:number = 0;
 
             if (!args.length) {
@@ -784,7 +779,7 @@ parser.onend = () => {
 
                     //iterate through the compObj and determine whether has idx
                     preProcObj = {};
-                    postProcObj = [];
+                    postProcObj = {};
                     for (var k in compObj) {
                         if (compObj.hasOwnProperty(k)) {
                             if (this.e_idx.hasOwnProperty(k)) {
@@ -1962,7 +1957,7 @@ parser.onend = () => {
             }
 
             //has() and() or()
-            where(args:{}[]):Pipeline {
+            where(...args:{}[]):Pipeline {
 
                 var element:IElement,
                     iter:any[] = [],
@@ -2023,7 +2018,7 @@ parser.onend = () => {
                                     funcObj = compObj[prop];
                                     for (var func in funcObj) {
                                         if (funcObj.hasOwnProperty(func)) {
-                                            if (Compare[func].call(null, tempObj[tempProp], funcObj[func])) {
+                                            if (Compare[func].call(null, tempObj[tempProp], funcObj[func], this.graph)) {
                                                 if (!isIn) {
                                                     isIn = true;
                                                 }
@@ -2116,8 +2111,8 @@ parser.onend = () => {
                     tempObj = isEmbedded ? Utils.embeddedObject(element.obj, arg) : element.obj;
 
                     if (tempObj.hasOwnProperty(tempProp) && !Utils.isArray(tempObj[tempProp])) {
-                        if (!isNaN(Utils.parseNumber(tempObj[tempProp], this.graph.config))) {
-                            newComp = Utils.parseNumber(tempObj[tempProp], this.graph.config);
+                        if (!isNaN(Utils.parseNumber(tempObj[tempProp], this.graph))) {
+                            newComp = Utils.parseNumber(tempObj[tempProp], this.graph);
                         } else {
                             if (isTracing) {
                                 Utils.stopTrace(this.traceObj, element);
@@ -2190,8 +2185,8 @@ parser.onend = () => {
                     tempObj = isEmbedded ? Utils.embeddedObject(element.obj, arg) : element.obj;
 
                     if (tempObj.hasOwnProperty(tempProp) && !Utils.isArray(tempObj[tempProp])) {
-                        if (!isNaN(Utils.parseNumber(tempObj[tempProp], this.graph.config))) {
-                            newComp = Utils.parseNumber(tempObj[tempProp], this.graph.config);
+                        if (!isNaN(Utils.parseNumber(tempObj[tempProp], this.graph))) {
+                            newComp = Utils.parseNumber(tempObj[tempProp], this.graph);
                         } else {
                             if (isTracing) {
                                 Utils.stopTrace(this.traceObj, element);
@@ -2422,7 +2417,7 @@ parser.onend = () => {
                         if (!(Utils.isObject(tempObj[tempProp])) && tempObj.hasOwnProperty(tempProp)) {
                             props = Utils.isArray(tempObj[tempProp]) ? tempObj[tempProp] : [tempObj[tempProp]];
                             for (var j = 0, len = props.length; j < len; j++) {
-                                o[args[i]] = o[args[i]] + Utils.parseNumber([props[j]], this.graph.config);
+                                o[args[i]] = o[args[i]] + Utils.parseNumber([props[j]], this.graph);
                             }
                         }
                     });
@@ -2602,23 +2597,23 @@ parser.onend = () => {
                 return {results: array};
             }
 
-            /***************************************************************************************************
+            // **************************************************************************************************
 
-             Called to emit the stringified result from traversing the graph.
+            //  Called to emit the stringified result from traversing the graph.
 
-             stringify()             callable
-             @param      {String*|String Array}  Comma delimited string or string array of keys to be mapped to emit.
-             @returns    {String}                Returns a string.
+            //  stringify()             callable
+            //  @param      {String*|String Array}  Comma delimited string or string array of keys to be mapped to emit.
+            //  @returns    {String}                Returns a string.
 
-             @example
+            //  @example
 
-             var result = g.V().stringify();
-             var result = g.V().stringify('name','age');
+            //  var result = g.V().stringify();
+            //  var result = g.V().stringify('name','age');
 
-             ***************************************************************************************************/
-                stringify(...props:string[]):string {
-                return 'test'; //JSON.stringify(!!props.length ? this.emit.apply(this, props).results : this.emit().results);
-            }
+            //  **************************************************************************************************
+            //     stringify(...props:string[]):string {
+            //     return 'test'; //JSON.stringify(!!props.length ? this.emit.apply(this, props).results : this.emit().results);
+            // }
 
             hash():{} {
                 //reset steps
@@ -2642,20 +2637,20 @@ parser.onend = () => {
                 return outputArray;
             }
 
-            /***************************************************************************************************
-             Clone output objects
-             @       clone()                 callable
-             @returns    {Object Array}          emits an Object Array
-             @example
+            // **************************************************************************************************
+            //  Clone output objects
+            //  @       clone()                 callable
+            //  @returns    {Object Array}          emits an Object Array
+            //  @example
 
-             g.v(10).out().clone();
+            //  g.v(10).out().clone();
 
-             ****************************************************************************************************/
-                clone():{}[] {
-                //reset steps
-                this.steps = { currentStep: 0 };
-                return JSON.parse(this.stringify());
-            }
+            //  ***************************************************************************************************
+            //     clone():{}[] {
+            //     //reset steps
+            //     this.steps = { currentStep: 0 };
+            //     return JSON.parse(JSON.stringify(this.emit().results));
+            // }
 
         }
 
@@ -2674,7 +2669,7 @@ parser.onend = () => {
                     if (((Utils.isDate(val, graph.date) && Utils.isDate(objVal[index], graph.date))
                         || (Utils.isMoney(val, graph.currency) && Utils.isMoney(objVal[index], graph.currency))
                         || (!(Utils.isDate(objVal[index], graph.date) || Utils.isMoney(objVal[index], graph.currency))))
-                        && (Utils.parseNumber(objVal[index], graph.config) === Utils.parseNumber(val, graph.config))) {
+                        && (Utils.parseNumber(objVal[index], graph) === Utils.parseNumber(val, graph))) {
 
                         return true;
                     }
@@ -2697,7 +2692,7 @@ parser.onend = () => {
                     if (((Utils.isDate(val, graph.date) && Utils.isDate(objVal[index], graph.date))
                         || (Utils.isMoney(val, graph.currency) && Utils.isMoney(objVal[index], graph.currency))
                         || (!(Utils.isDate(objVal[index], graph.date) || Utils.isMoney(objVal[index], graph.currency))))
-                        && (Utils.parseNumber(objVal[index], graph.config) < Utils.parseNumber(val, graph.config))) {
+                        && (Utils.parseNumber(objVal[index], graph) < Utils.parseNumber(val, graph))) {
 
                         return true;
                     }
@@ -2716,7 +2711,7 @@ parser.onend = () => {
                     if (((Utils.isDate(val, graph.date) && Utils.isDate(objVal[index], graph.date))
                         || (Utils.isMoney(val, graph.currency) && Utils.isMoney(objVal[index], graph.currency))
                         || (!(Utils.isDate(objVal[index], graph.date) || Utils.isMoney(objVal[index], graph.currency))))
-                        && (Utils.parseNumber(objVal[index], graph.config) <= Utils.parseNumber(val, graph.config))) {
+                        && (Utils.parseNumber(objVal[index], graph) <= Utils.parseNumber(val, graph))) {
 
                         return true;
                     }
@@ -2744,11 +2739,11 @@ parser.onend = () => {
                 while (index) {
                     --index;
                     comp = val[index].toLowerCase()
-                    if (comp == 'number' && !Utils.isDate(objVal, graph.date) && !Utils.isMoney(objVal, graph.currency) && Utils.isNumber(Utils.parseNumber(objVal, graph.config))) {
+                    if (comp == 'number' && !Utils.isDate(objVal, graph.date) && !Utils.isMoney(objVal, graph.currency) && Utils.isNumber(Utils.parseNumber(objVal, graph))) {
                         return true;
                     } else if (comp == 'money' && Utils.isMoney(objVal, graph.currency)) {
                         return true;
-                    } else if (comp == 'string' && !Utils.isDate(objVal, graph.date) && !Utils.isMoney(objVal, graph.currency) && Utils.isString(Utils.parseNumber(objVal, graph.config))) {
+                    } else if (comp == 'string' && !Utils.isDate(objVal, graph.date) && !Utils.isMoney(objVal, graph.currency) && Utils.isString(Utils.parseNumber(objVal, graph))) {
                         return true;
                     } else if (comp == 'array' && Utils.isArray(objVal)) {
                         return true;
@@ -2780,7 +2775,7 @@ parser.onend = () => {
                         if (((Utils.isDate(val[i], graph.date) && Utils.isDate(objVal[index], graph.date))
                             || (Utils.isMoney(val[i], graph.currency) && Utils.isMoney(objVal[index], graph.currency))
                             || (!(Utils.isDate(objVal[index], graph.date) || Utils.isMoney(objVal[index], graph.currency))))
-                            && (Utils.parseNumber(objVal[index], graph.config) === Utils.parseNumber(val[i], graph.config))) {
+                            && (Utils.parseNumber(objVal[index], graph) === Utils.parseNumber(val[i], graph))) {
 
                             return true;
                         }
@@ -2836,7 +2831,7 @@ parser.onend = () => {
                             if (((Utils.isDate(val[i], graph.date) && Utils.isDate(objVal[index], graph.date))
                                 || (Utils.isMoney(val[i], graph.currency) && Utils.isMoney(objVal[index], graph.currency))
                                 || (!(Utils.isDate(objVal[index], graph.date) || Utils.isMoney(objVal[index], graph.currency))))
-                                && (Utils.parseNumber(objVal[index], graph.config) === Utils.parseNumber(val[i], graph.config))) {
+                                && (Utils.parseNumber(objVal[index], graph) === Utils.parseNumber(val[i], graph))) {
 
                                 matches++;
                             }
@@ -2873,7 +2868,7 @@ parser.onend = () => {
                             if (((Utils.isDate(val[i], graph.date) && Utils.isDate(objVal[index], graph.date))
                                 || (Utils.isMoney(val[i], graph.currency) && Utils.isMoney(objVal[index], graph.currency))
                                 || (!(Utils.isDate(objVal[index], graph.date) || Utils.isMoney(objVal[index], graph.currency))))
-                                && (Utils.parseNumber(objVal[index], graph.config) === Utils.parseNumber(val[i], graph.config))) {
+                                && (Utils.parseNumber(objVal[index], graph) === Utils.parseNumber(val[i], graph))) {
 
                                 matches++;
                             }
@@ -3429,15 +3424,15 @@ parser.onend = () => {
         }
 
         //convert string to number OR return string
-        static  parseNumber(val:any, config:IConfiguration):any {
-            if (isDate(val, config.date.format)) {
-                return moment(val, config.date.format).valueOf();
+        static  parseNumber(val:any, graph:GraphDatabase):any {
+            if (isDate(val, graph.date.format)) {
+                return moment(val, graph.date.format).valueOf();
             }
             if (isString(val)) {
-                if (isNaN(parseFloat(val.replace(currencyRegex[config.currency.decimal], '')))) {
+                if (isNaN(parseFloat(val.replace(currencyRegex[graph.currency.decimal], '')))) {
                     return val;
                 }
-                return parseFloat(val.replace(currencyRegex[config.currency.decimal], ''));
+                return parseFloat(val.replace(currencyRegex[graph.currency.decimal], ''));
             }
             return val;
         }
@@ -3463,7 +3458,7 @@ parser.onend = () => {
 //                if (((Utils.isDate(val, this.graph.date) && Utils.isDate(objVal[index], this.graph.date))
 //                    || (Utils.isMoney(val, this.graph.currency) && Utils.isMoney(objVal[index], this.graph.currency))
 //                    || (!(Utils.isDate(objVal[index], this.graph.date) || Utils.isMoney(objVal[index], this.graph.currency))))
-//                    && (Utils.parseNumber(objVal[index], this.graph.config) === Utils.parseNumber(val, this.graph.config))) {
+//                    && (Utils.parseNumber(objVal[index], this.graph) === Utils.parseNumber(val, this.graph))) {
 //
 //                    return true;
 //                }
@@ -3486,7 +3481,7 @@ parser.onend = () => {
 //                if (((Utils.isDate(val, this.graph.date) && Utils.isDate(objVal[index], this.graph.date))
 //                    || (Utils.isMoney(val, this.graph.currency) && Utils.isMoney(objVal[index], this.graph.currency))
 //                    || (!(Utils.isDate(objVal[index], this.graph.date) || Utils.isMoney(objVal[index], this.graph.currency))))
-//                    && (Utils.parseNumber(objVal[index], this.graph.config) < Utils.parseNumber(val, this.graph.config))) {
+//                    && (Utils.parseNumber(objVal[index], this.graph) < Utils.parseNumber(val, this.graph))) {
 //
 //                    return true;
 //                }
@@ -3505,7 +3500,7 @@ parser.onend = () => {
 //                if (((Utils.isDate(val, this.graph.date) && Utils.isDate(objVal[index], this.graph.date))
 //                    || (Utils.isMoney(val, this.graph.currency) && Utils.isMoney(objVal[index], this.graph.currency))
 //                    || (!(Utils.isDate(objVal[index], this.graph.date) || Utils.isMoney(objVal[index], this.graph.currency))))
-//                    && (Utils.parseNumber(objVal[index], this.graph.config) <= Utils.parseNumber(val, this.graph.config))) {
+//                    && (Utils.parseNumber(objVal[index], this.graph) <= Utils.parseNumber(val, this.graph))) {
 //
 //                    return true;
 //                }
@@ -3533,11 +3528,11 @@ parser.onend = () => {
 //            while (index) {
 //                --index;
 //                comp = val[index].toLowerCase()
-//                if (comp == 'number' && !Utils.isDate(objVal, this.graph.date) && !Utils.isMoney(objVal, this.graph.currency) && Utils.isNumber(Utils.parseNumber(objVal, this.graph.config))) {
+//                if (comp == 'number' && !Utils.isDate(objVal, this.graph.date) && !Utils.isMoney(objVal, this.graph.currency) && Utils.isNumber(Utils.parseNumber(objVal, this.graph))) {
 //                    return true;
 //                } else if (comp == 'money' && Utils.isMoney(objVal, this.graph.currency)) {
 //                    return true;
-//                } else if (comp == 'string' && !Utils.isDate(objVal, this.graph.date) && !Utils.isMoney(objVal, this.graph.currency) && Utils.isString(Utils.parseNumber(objVal, this.graph.config))) {
+//                } else if (comp == 'string' && !Utils.isDate(objVal, this.graph.date) && !Utils.isMoney(objVal, this.graph.currency) && Utils.isString(Utils.parseNumber(objVal, this.graph))) {
 //                    return true;
 //                } else if (comp == 'array' && Utils.isArray(objVal)) {
 //                    return true;
@@ -3569,7 +3564,7 @@ parser.onend = () => {
 //                    if (((Utils.isDate(val[i], this.graph.date) && Utils.isDate(objVal[index], this.graph.date))
 //                        || (Utils.isMoney(val[i], this.graph.currency) && Utils.isMoney(objVal[index], this.graph.currency))
 //                        || (!(Utils.isDate(objVal[index], this.graph.date) || Utils.isMoney(objVal[index], this.graph.currency))))
-//                        && (Utils.parseNumber(objVal[index], this.graph.config) === Utils.parseNumber(val[i], this.graph.config))) {
+//                        && (Utils.parseNumber(objVal[index], this.graph) === Utils.parseNumber(val[i], this.graph))) {
 //
 //                        return true;
 //                    }
@@ -3625,7 +3620,7 @@ parser.onend = () => {
 //                        if (((Utils.isDate(val[i], this.graph.date) && Utils.isDate(objVal[index], this.graph.date))
 //                            || (Utils.isMoney(val[i], this.graph.currency) && Utils.isMoney(objVal[index], this.graph.currency))
 //                            || (!(Utils.isDate(objVal[index], this.graph.date) || Utils.isMoney(objVal[index], this.graph.currency))))
-//                            && (Utils.parseNumber(objVal[index], this.graph.config) === Utils.parseNumber(val[i], this.graph.config))) {
+//                            && (Utils.parseNumber(objVal[index], this.graph) === Utils.parseNumber(val[i], this.graph))) {
 //
 //                            matches++;
 //                        }
@@ -3662,7 +3657,7 @@ parser.onend = () => {
 //                        if (((Utils.isDate(val[i], this.graph.date) && Utils.isDate(objVal[index], this.graph.date))
 //                            || (Utils.isMoney(val[i], this.graph.currency) && Utils.isMoney(objVal[index], this.graph.currency))
 //                            || (!(Utils.isDate(objVal[index], this.graph.date) || Utils.isMoney(objVal[index], this.graph.currency))))
-//                            && (Utils.parseNumber(objVal[index], this.graph.config) === Utils.parseNumber(val[i], this.graph.config))) {
+//                            && (Utils.parseNumber(objVal[index], this.graph) === Utils.parseNumber(val[i], this.graph))) {
 //
 //                            matches++;
 //                        }
@@ -3748,7 +3743,7 @@ self.onmessage = (e) => {
 
     switch(e.data.method) {
         case 'init':
-            g = new Helios.GraphDatabase(e.data.parameters[0]);
+            g = !!e.data.parameters ? new Helios.GraphDatabase(e.data.parameters[0]) : new Helios.GraphDatabase();
             port.postMessage('done');
             break;
         default:

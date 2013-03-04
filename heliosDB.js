@@ -4,7 +4,7 @@ var __extends = this.__extends || function (d, b) {
     __.prototype = b.prototype;
     d.prototype = new __();
 };
-importScripts('sax.js');
+importScripts('sax.js', 'moment.min.js');
 var Helios;
 (function (Helios) {
     var toString = Object.prototype.toString, ArrayProto = Array.prototype, push = ArrayProto.push, slice = ArrayProto.slice, indexOf = ArrayProto.indexOf;
@@ -100,7 +100,7 @@ var Helios;
         return Edge;
     })(Element);    
     var GraphDatabase = (function () {
-        function GraphDatabase(args) {
+        function GraphDatabase(options) {
             this.pathEnabled = false;
             this.date = {
                 format: "DD/MM/YYYY"
@@ -127,17 +127,10 @@ var Helios;
                 'type': 'orientdb',
                 'ssl': false
             };
-            if(typeof args === 'string') {
-                args = {
-                    db: {
-                        name: args
-                    }
-                };
-            }
-            if(args.hasOwnProperty('vertices') || args.hasOwnProperty('edges')) {
-                for(var k in args) {
-                    if(args.hasOwnProperty(k)) {
-                        this[k] = args[k];
+            if(!!options && (options.hasOwnProperty('vertices') || options.hasOwnProperty('edges'))) {
+                for(var k in options) {
+                    if(options.hasOwnProperty(k)) {
+                        this[k] = options[k];
                     }
                 }
             } else {
@@ -149,7 +142,9 @@ var Helios;
                 };
                 this.e_idx = {
                 };
-                this.setConfiguration(args);
+                if(!!options) {
+                    this.setConfiguration(options);
+                }
             }
             this._ = new Mogwai.Pipeline(this);
         }
@@ -173,7 +168,6 @@ var Helios;
                     }
                     this[k] = options[k];
                 }
-                this.config[k] = this[k];
             }
         };
         GraphDatabase.prototype.loadVertices = function (rows) {
@@ -371,7 +365,8 @@ var Helios;
             }, subset = {
             }, tempObjArray = {
             }, preProcObj = {
-            }, postProcObj = [], tempObjArrLen = 0;
+            }, postProcObj = {
+            }, tempObjArrLen = 0;
             if(!args.length) {
                 return this._.startPipe(this.vertices);
             }
@@ -382,7 +377,8 @@ var Helios;
                     compObj = args[i];
                     preProcObj = {
                     };
-                    postProcObj = [];
+                    postProcObj = {
+                    };
                     for(var k in compObj) {
                         if(compObj.hasOwnProperty(k)) {
                             if(this.v_idx.hasOwnProperty(k)) {
@@ -486,7 +482,8 @@ var Helios;
             }, outputObj = {
             }, subset = {
             }, tempObjArray = [], preProcObj = {
-            }, postProcObj = [], tempObjArrLen = 0;
+            }, postProcObj = {
+            }, tempObjArrLen = 0;
             if(!args.length) {
                 return this._.startPipe(this.edges);
             }
@@ -497,7 +494,8 @@ var Helios;
                     compObj = args[i];
                     preProcObj = {
                     };
-                    postProcObj = [];
+                    postProcObj = {
+                    };
                     for(var k in compObj) {
                         if(compObj.hasOwnProperty(k)) {
                             if(this.e_idx.hasOwnProperty(k)) {
@@ -1320,7 +1318,11 @@ var Helios;
                 this.endPipe = Utils.materializeElementArray(endPipeIds, this.graph, this.endPipe[0].Type);
                 return this;
             };
-            Pipeline.prototype.where = function (args) {
+            Pipeline.prototype.where = function () {
+                var args = [];
+                for (var _i = 0; _i < (arguments.length - 0); _i++) {
+                    args[_i] = arguments[_i + 0];
+                }
                 var element, iter = [], l, nextIter = [], comparables = [], endPipeArray = [], isTracing = !!this.tracing, traceArray = isTracing ? [] : undefined, isTracingPath = !!this.tracingPath, pipes = isTracingPath ? [] : undefined, funcObj, tempObj, compObj, tempProp, propVals = [], isIn;
                 iter = isTracingPath ? this.pipeline : this.endPipe;
                 comparables = Utils.flatten(args);
@@ -1360,7 +1362,7 @@ var Helios;
                                     funcObj = compObj[prop];
                                     for(var func in funcObj) {
                                         if(funcObj.hasOwnProperty(func)) {
-                                            if(Compare[func].call(null, tempObj[tempProp], funcObj[func])) {
+                                            if(Compare[func].call(null, tempObj[tempProp], funcObj[func], this.graph)) {
                                                 if(!isIn) {
                                                     isIn = true;
                                                 }
@@ -1426,8 +1428,8 @@ var Helios;
                     element = isTracingPath ? slice.call(next, -1)[0] : next;
                     tempObj = isEmbedded ? Utils.embeddedObject(element.obj, arg) : element.obj;
                     if(tempObj.hasOwnProperty(tempProp) && !Utils.isArray(tempObj[tempProp])) {
-                        if(!isNaN(Utils.parseNumber(tempObj[tempProp], this.graph.config))) {
-                            newComp = Utils.parseNumber(tempObj[tempProp], this.graph.config);
+                        if(!isNaN(Utils.parseNumber(tempObj[tempProp], this.graph))) {
+                            newComp = Utils.parseNumber(tempObj[tempProp], this.graph);
                         } else {
                             if(isTracing) {
                                 Utils.stopTrace(this.traceObj, element);
@@ -1481,8 +1483,8 @@ var Helios;
                     element = isTracingPath ? slice.call(next, -1)[0] : next;
                     tempObj = isEmbedded ? Utils.embeddedObject(element.obj, arg) : element.obj;
                     if(tempObj.hasOwnProperty(tempProp) && !Utils.isArray(tempObj[tempProp])) {
-                        if(!isNaN(Utils.parseNumber(tempObj[tempProp], this.graph.config))) {
-                            newComp = Utils.parseNumber(tempObj[tempProp], this.graph.config);
+                        if(!isNaN(Utils.parseNumber(tempObj[tempProp], this.graph))) {
+                            newComp = Utils.parseNumber(tempObj[tempProp], this.graph);
                         } else {
                             if(isTracing) {
                                 Utils.stopTrace(this.traceObj, element);
@@ -1664,7 +1666,7 @@ var Helios;
                             for(var j = 0, len = props.length; j < len; j++) {
                                 o[args[i]] = o[args[i]] + Utils.parseNumber([
                                     props[j]
-                                ], this.graph.config);
+                                ], this.graph);
                             }
                         }
                     });
@@ -1805,13 +1807,6 @@ var Helios;
                     results: array
                 };
             };
-            Pipeline.prototype.stringify = function () {
-                var props = [];
-                for (var _i = 0; _i < (arguments.length - 0); _i++) {
-                    props[_i] = arguments[_i + 0];
-                }
-                return 'test';
-            };
             Pipeline.prototype.hash = function () {
                 this.steps = {
                     currentStep: 0
@@ -1834,12 +1829,6 @@ var Helios;
                 this.pipeline.length = 0;
                 return outputArray;
             };
-            Pipeline.prototype.clone = function () {
-                this.steps = {
-                    currentStep: 0
-                };
-                return JSON.parse(this.stringify());
-            };
             return Pipeline;
         })();
         Mogwai.Pipeline = Pipeline;        
@@ -1853,7 +1842,7 @@ var Helios;
                 index = objVal.length;
                 while(index) {
                     --index;
-                    if(((Utils.isDate(val, graph.date) && Utils.isDate(objVal[index], graph.date)) || (Utils.isMoney(val, graph.currency) && Utils.isMoney(objVal[index], graph.currency)) || (!(Utils.isDate(objVal[index], graph.date) || Utils.isMoney(objVal[index], graph.currency)))) && (Utils.parseNumber(objVal[index], graph.config) === Utils.parseNumber(val, graph.config))) {
+                    if(((Utils.isDate(val, graph.date) && Utils.isDate(objVal[index], graph.date)) || (Utils.isMoney(val, graph.currency) && Utils.isMoney(objVal[index], graph.currency)) || (!(Utils.isDate(objVal[index], graph.date) || Utils.isMoney(objVal[index], graph.currency)))) && (Utils.parseNumber(objVal[index], graph) === Utils.parseNumber(val, graph))) {
                         return true;
                     }
                 }
@@ -1870,7 +1859,7 @@ var Helios;
                 index = objVal.length;
                 while(index) {
                     --index;
-                    if(((Utils.isDate(val, graph.date) && Utils.isDate(objVal[index], graph.date)) || (Utils.isMoney(val, graph.currency) && Utils.isMoney(objVal[index], graph.currency)) || (!(Utils.isDate(objVal[index], graph.date) || Utils.isMoney(objVal[index], graph.currency)))) && (Utils.parseNumber(objVal[index], graph.config) < Utils.parseNumber(val, graph.config))) {
+                    if(((Utils.isDate(val, graph.date) && Utils.isDate(objVal[index], graph.date)) || (Utils.isMoney(val, graph.currency) && Utils.isMoney(objVal[index], graph.currency)) || (!(Utils.isDate(objVal[index], graph.date) || Utils.isMoney(objVal[index], graph.currency)))) && (Utils.parseNumber(objVal[index], graph) < Utils.parseNumber(val, graph))) {
                         return true;
                     }
                 }
@@ -1884,7 +1873,7 @@ var Helios;
                 index = objVal.length;
                 while(index) {
                     --index;
-                    if(((Utils.isDate(val, graph.date) && Utils.isDate(objVal[index], graph.date)) || (Utils.isMoney(val, graph.currency) && Utils.isMoney(objVal[index], graph.currency)) || (!(Utils.isDate(objVal[index], graph.date) || Utils.isMoney(objVal[index], graph.currency)))) && (Utils.parseNumber(objVal[index], graph.config) <= Utils.parseNumber(val, graph.config))) {
+                    if(((Utils.isDate(val, graph.date) && Utils.isDate(objVal[index], graph.date)) || (Utils.isMoney(val, graph.currency) && Utils.isMoney(objVal[index], graph.currency)) || (!(Utils.isDate(objVal[index], graph.date) || Utils.isMoney(objVal[index], graph.currency)))) && (Utils.parseNumber(objVal[index], graph) <= Utils.parseNumber(val, graph))) {
                         return true;
                     }
                 }
@@ -1902,11 +1891,11 @@ var Helios;
                 while(index) {
                     --index;
                     comp = val[index].toLowerCase();
-                    if(comp == 'number' && !Utils.isDate(objVal, graph.date) && !Utils.isMoney(objVal, graph.currency) && Utils.isNumber(Utils.parseNumber(objVal, graph.config))) {
+                    if(comp == 'number' && !Utils.isDate(objVal, graph.date) && !Utils.isMoney(objVal, graph.currency) && Utils.isNumber(Utils.parseNumber(objVal, graph))) {
                         return true;
                     } else if(comp == 'money' && Utils.isMoney(objVal, graph.currency)) {
                         return true;
-                    } else if(comp == 'string' && !Utils.isDate(objVal, graph.date) && !Utils.isMoney(objVal, graph.currency) && Utils.isString(Utils.parseNumber(objVal, graph.config))) {
+                    } else if(comp == 'string' && !Utils.isDate(objVal, graph.date) && !Utils.isMoney(objVal, graph.currency) && Utils.isString(Utils.parseNumber(objVal, graph))) {
                         return true;
                     } else if(comp == 'array' && Utils.isArray(objVal)) {
                         return true;
@@ -1930,7 +1919,7 @@ var Helios;
                     i = valLen;
                     while(!!i) {
                         --i;
-                        if(((Utils.isDate(val[i], graph.date) && Utils.isDate(objVal[index], graph.date)) || (Utils.isMoney(val[i], graph.currency) && Utils.isMoney(objVal[index], graph.currency)) || (!(Utils.isDate(objVal[index], graph.date) || Utils.isMoney(objVal[index], graph.currency)))) && (Utils.parseNumber(objVal[index], graph.config) === Utils.parseNumber(val[i], graph.config))) {
+                        if(((Utils.isDate(val[i], graph.date) && Utils.isDate(objVal[index], graph.date)) || (Utils.isMoney(val[i], graph.currency) && Utils.isMoney(objVal[index], graph.currency)) || (!(Utils.isDate(objVal[index], graph.date) || Utils.isMoney(objVal[index], graph.currency)))) && (Utils.parseNumber(objVal[index], graph) === Utils.parseNumber(val[i], graph))) {
                             return true;
                         }
                     }
@@ -1970,7 +1959,7 @@ var Helios;
                         i = valLen;
                         while(!!i) {
                             --i;
-                            if(((Utils.isDate(val[i], graph.date) && Utils.isDate(objVal[index], graph.date)) || (Utils.isMoney(val[i], graph.currency) && Utils.isMoney(objVal[index], graph.currency)) || (!(Utils.isDate(objVal[index], graph.date) || Utils.isMoney(objVal[index], graph.currency)))) && (Utils.parseNumber(objVal[index], graph.config) === Utils.parseNumber(val[i], graph.config))) {
+                            if(((Utils.isDate(val[i], graph.date) && Utils.isDate(objVal[index], graph.date)) || (Utils.isMoney(val[i], graph.currency) && Utils.isMoney(objVal[index], graph.currency)) || (!(Utils.isDate(objVal[index], graph.date) || Utils.isMoney(objVal[index], graph.currency)))) && (Utils.parseNumber(objVal[index], graph) === Utils.parseNumber(val[i], graph))) {
                                 matches++;
                             }
                         }
@@ -1993,7 +1982,7 @@ var Helios;
                         i = valLen;
                         while(!!i) {
                             --i;
-                            if(((Utils.isDate(val[i], graph.date) && Utils.isDate(objVal[index], graph.date)) || (Utils.isMoney(val[i], graph.currency) && Utils.isMoney(objVal[index], graph.currency)) || (!(Utils.isDate(objVal[index], graph.date) || Utils.isMoney(objVal[index], graph.currency)))) && (Utils.parseNumber(objVal[index], graph.config) === Utils.parseNumber(val[i], graph.config))) {
+                            if(((Utils.isDate(val[i], graph.date) && Utils.isDate(objVal[index], graph.date)) || (Utils.isMoney(val[i], graph.currency) && Utils.isMoney(objVal[index], graph.currency)) || (!(Utils.isDate(objVal[index], graph.date) || Utils.isMoney(objVal[index], graph.currency)))) && (Utils.parseNumber(objVal[index], graph) === Utils.parseNumber(val[i], graph))) {
                                 matches++;
                             }
                         }
@@ -2396,15 +2385,15 @@ var Helios;
             }
             return false;
         };
-        Utils.parseNumber = function parseNumber(val, config) {
-            if(Utils.isDate(val, config.date.format)) {
-                return moment(val, config.date.format).valueOf();
+        Utils.parseNumber = function parseNumber(val, graph) {
+            if(Utils.isDate(val, graph.date.format)) {
+                return moment(val, graph.date.format).valueOf();
             }
             if(Utils.isString(val)) {
-                if(isNaN(parseFloat(val.replace(Utils.currencyRegex[config.currency.decimal], '')))) {
+                if(isNaN(parseFloat(val.replace(Utils.currencyRegex[graph.currency.decimal], '')))) {
                     return val;
                 }
-                return parseFloat(val.replace(Utils.currencyRegex[config.currency.decimal], ''));
+                return parseFloat(val.replace(Utils.currencyRegex[graph.currency.decimal], ''));
             }
             return val;
         };
@@ -2428,7 +2417,7 @@ self.onmessage = function (e) {
     }
     switch(e.data.method) {
         case 'init':
-            g = new Helios.GraphDatabase(e.data.parameters[0]);
+            g = !!e.data.parameters ? new Helios.GraphDatabase(e.data.parameters[0]) : new Helios.GraphDatabase();
             port.postMessage('done');
             break;
         default:
