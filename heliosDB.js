@@ -127,7 +127,7 @@ var Helios;
                 'type': 'orientdb',
                 'ssl': false
             };
-            if(!!options && (options.hasOwnProperty('vertices') || options.hasOwnProperty('edges'))) {
+            if(!!options) {
                 for(var k in options) {
                     if(options.hasOwnProperty(k)) {
                         this[k] = options[k];
@@ -598,32 +598,17 @@ var Helios;
         }
         Mogwai.getEndPipe = getEndPipe;
         var Pipeline = (function () {
-            function Pipeline(graph, elements, clonedPipeline, pinned) {
+            function Pipeline(graph, elements) {
                 this.graph = graph;
-                this.pinned = pinned;
                 this.snapshot = {
                 };
-                if(!!clonedPipeline) {
-                    this.traceObj = clonedPipeline.traceObj;
-                    this.tracing = clonedPipeline.tracing;
-                    this.traversed = clonedPipeline.traversed;
-                    this.asHash = clonedPipeline.asHash;
-                    this.tracingPath = clonedPipeline.tracingPath;
-                    this.steps = clonedPipeline.steps;
-                } else {
-                    this.tracingPath = graph.pathEnabled;
-                    this.tracing = false;
-                    this.steps = {
-                        currentStep: 1
-                    };
-                }
+                this.tracingPath = graph.pathEnabled;
+                this.tracing = false;
+                this.steps = {
+                    currentStep: 1
+                };
                 if(!!elements) {
                     this.startPipe(elements);
-                }
-                if(!!this.pinned) {
-                    for(var k in this) {
-                        this.snapshot[k] = this[k];
-                    }
                 }
             }
             Pipeline.prototype.startPipe = function (elements) {
@@ -638,14 +623,6 @@ var Helios;
                     }
                     this.endPipe.push(element);
                 }, this);
-                return this;
-            };
-            Pipeline.prototype.fork = function (o) {
-                o._ = new Pipeline(this.graph, this.endPipe, this);
-                return this;
-            };
-            Pipeline.prototype.pin = function (o) {
-                o._ = new Pipeline(this.graph, this.endPipe, this, true);
                 return this;
             };
             Pipeline.prototype.id = function () {
