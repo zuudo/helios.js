@@ -49,7 +49,8 @@ var Helios;
             }
         };
         return Element;
-    })();    
+    })();
+    Helios.Element = Element;    
     var Vertex = (function (_super) {
         __extends(Vertex, _super);
         function Vertex(obj, graph) {
@@ -61,44 +62,17 @@ var Helios;
             this.Type = 'Vertex';
         }
         return Vertex;
-    })(Element);    
+    })(Element);
+    Helios.Vertex = Vertex;    
     var Edge = (function (_super) {
         __extends(Edge, _super);
         function Edge(obj, graph) {
                 _super.call(this, obj, graph);
             this.Type = 'Edge';
         }
-        Edge.prototype.associateVertices = function () {
-            var vertex, outVobj = {
-            }, inVobj = {
-            };
-            if(!this.graph.vertices[this.obj[this.graph.meta.outVid]]) {
-                outVobj[this.graph.meta.id] = this.obj[this.graph.meta.outVid];
-                this.graph.vertices[this.obj[this.graph.meta.outVid]] = new Vertex(outVobj, this.graph);
-            }
-            vertex = this.graph.vertices[this.obj[this.graph.meta.outVid]];
-            if(!vertex.outE[this.obj[this.graph.meta.label]]) {
-                vertex.outE[this.obj[this.graph.meta.label]] = [];
-            }
-            this.outV = vertex;
-            this.obj[this.graph.meta.VOut] = this.outV.obj;
-            delete this.obj[this.graph.meta.outVid];
-            push.call(vertex.outE[this.obj[this.graph.meta.label]], this);
-            if(!this.graph.vertices[this.obj[this.graph.meta.inVid]]) {
-                inVobj[this.graph.meta.id] = this.obj[this.graph.meta.inVid];
-                this.graph.vertices[this.obj[this.graph.meta.inVid]] = new Vertex(inVobj, this.graph);
-            }
-            vertex = this.graph.vertices[this.obj[this.graph.meta.inVid]];
-            if(!vertex.inE[this.obj[this.graph.meta.label]]) {
-                vertex.inE[this.obj[this.graph.meta.label]] = [];
-            }
-            this.inV = vertex;
-            this.obj[this.graph.meta.VIn] = this.inV.obj;
-            delete this.obj[this.graph.meta.inVid];
-            push.call(vertex.inE[this.obj[this.graph.meta.label]], this);
-        };
         return Edge;
-    })(Element);    
+    })(Element);
+    Helios.Edge = Edge;    
     var GraphDatabase = (function () {
         function GraphDatabase(options) {
             this.pathEnabled = false;
@@ -185,7 +159,7 @@ var Helios;
             for(i = 0 , l = rows.length; i < l; i += 1) {
                 edge = new Edge(rows[i], this);
                 this.edges[edge.obj[this.meta.id]] = edge;
-                edge.associateVertices();
+                this.associateVertices(edge);
                 if(hasEIndex) {
                     edge.addToIndex(this.e_idx);
                 }
@@ -222,6 +196,35 @@ var Helios;
         GraphDatabase.prototype.tracePath = function (enabled) {
             this.pathEnabled = enabled;
             return this.pathEnabled;
+        };
+        GraphDatabase.prototype.associateVertices = function (edge) {
+            var vertex, outVobj = {
+            }, inVobj = {
+            };
+            if(!edge.graph.vertices[edge.obj[edge.graph.meta.outVid]]) {
+                outVobj[edge.graph.meta.id] = edge.obj[edge.graph.meta.outVid];
+                edge.graph.vertices[edge.obj[edge.graph.meta.outVid]] = new Vertex(outVobj, edge.graph);
+            }
+            vertex = edge.graph.vertices[edge.obj[edge.graph.meta.outVid]];
+            if(!vertex.outE[edge.obj[edge.graph.meta.label]]) {
+                vertex.outE[edge.obj[edge.graph.meta.label]] = [];
+            }
+            edge.outV = vertex;
+            edge.obj[edge.graph.meta.VOut] = edge.outV.obj;
+            delete edge.obj[edge.graph.meta.outVid];
+            push.call(vertex.outE[edge.obj[edge.graph.meta.label]], edge);
+            if(!edge.graph.vertices[edge.obj[edge.graph.meta.inVid]]) {
+                inVobj[edge.graph.meta.id] = edge.obj[edge.graph.meta.inVid];
+                edge.graph.vertices[edge.obj[edge.graph.meta.inVid]] = new Vertex(inVobj, edge.graph);
+            }
+            vertex = edge.graph.vertices[edge.obj[edge.graph.meta.inVid]];
+            if(!vertex.inE[edge.obj[edge.graph.meta.label]]) {
+                vertex.inE[edge.obj[edge.graph.meta.label]] = [];
+            }
+            edge.inV = vertex;
+            edge.obj[edge.graph.meta.VIn] = edge.inV.obj;
+            delete edge.obj[edge.graph.meta.inVid];
+            push.call(vertex.inE[edge.obj[edge.graph.meta.label]], edge);
         };
         GraphDatabase.prototype.loadGraphSON = function (jsonData) {
             var xmlhttp;
@@ -317,13 +320,19 @@ var Helios;
                     case 'node':
                         vertex = new Vertex(tempObj, _this);
                         _this.vertices[tempObj[_this.meta.id]] = vertex;
+                        if(hasVIndex) {
+                            vertex.addToIndex(_this.v_idx);
+                        }
                         tempObj = {
                         };
                         break;
                     case 'edge':
                         edge = new Edge(tempObj, _this);
                         _this.edges[tempObj[_this.meta.id]] = edge;
-                        edge.associateVertices();
+                        _this.associateVertices(edge);
+                        if(hasEIndex) {
+                            edge.addToIndex(_this.e_idx);
+                        }
                         tempObj = {
                         };
                         break;
