@@ -4,26 +4,26 @@
 importScripts('sax.js', 'moment.min.js');
 
 module Helios {
-    interface IBase {
+    export interface IBase {
         Type:string;
     }
 
-    interface IElement extends IBase{
+    export interface IElement extends IBase{
         obj:{};
         indexKeys:any;
         addToIndex:(idx:{}, idxName?:string) => void;
         graph:GraphDatabase;
     }
 
-    interface IVertex {
+    export interface IVertex {
         outE:{};
         inE:{};
     }
 
-    interface IEdge {
+    export interface IEdge {
         outV:IVertex;
         inV:IVertex;
-        associateVertices:(graph:GraphDatabase) => void;
+        //associateVertices:(graph:GraphDatabase) => void;
     }
 
     export interface IGraphDatabase {
@@ -43,7 +43,7 @@ module Helios {
         slice = ArrayProto.slice,
         indexOf = ArrayProto.indexOf;
 
-    class Element implements IElement {
+    export class Element implements IElement {
 
         indexKeys:any;
         Type:string;
@@ -84,7 +84,7 @@ module Helios {
         }
     }
 
-    class Vertex extends Element implements IVertex {
+   export class Vertex extends Element implements IVertex {
 
         outE:{} = {};
         inE:{} = {};
@@ -96,7 +96,7 @@ module Helios {
         }
     }
 
-    class Edge extends Element implements IEdge {
+    export class Edge extends Element implements IEdge {
 
         outV:Vertex;
         inV:Vertex;
@@ -106,37 +106,39 @@ module Helios {
             this.Type = 'Edge';
         }
 
-        associateVertices():void {
-            var vertex,
-                outVobj = {},
-                inVobj = {};
 
-            if (!this.graph.vertices[this.obj[this.graph.meta.outVid]]) {
-                outVobj[this.graph.meta.id] = this.obj[this.graph.meta.outVid];
-                this.graph.vertices[this.obj[this.graph.meta.outVid]] = new Vertex(outVobj, this.graph);
-            }
-            vertex = this.graph.vertices[this.obj[this.graph.meta.outVid]];
-            if (!vertex.outE[this.obj[this.graph.meta.label]]) {
-                vertex.outE[this.obj[this.graph.meta.label]] = [];
-            }
-            this.outV = vertex;
-            this.obj[this.graph.meta.VOut] = this.outV.obj;
-            delete this.obj[this.graph.meta.outVid];
-            push.call(vertex.outE[this.obj[this.graph.meta.label]], this);
+        //move this into Graph and call func with call(this);
+        // associateVertices():void {
+        //     var vertex,
+        //         outVobj = {},
+        //         inVobj = {};
 
-            if (!this.graph.vertices[this.obj[this.graph.meta.inVid]]) {
-                inVobj[this.graph.meta.id] = this.obj[this.graph.meta.inVid];
-                this.graph.vertices[this.obj[this.graph.meta.inVid]] = new Vertex(inVobj, this.graph);
-            }
-            vertex = this.graph.vertices[this.obj[this.graph.meta.inVid]];
-            if (!vertex.inE[this.obj[this.graph.meta.label]]) {
-                vertex.inE[this.obj[this.graph.meta.label]] = [];
-            }
-            this.inV = vertex;
-            this.obj[this.graph.meta.VIn] = this.inV.obj;
-            delete this.obj[this.graph.meta.inVid];
-            push.call(vertex.inE[this.obj[this.graph.meta.label]], this);
-        }
+        //     if (!this.graph.vertices[this.obj[this.graph.meta.outVid]]) {
+        //         outVobj[this.graph.meta.id] = this.obj[this.graph.meta.outVid];
+        //         this.graph.vertices[this.obj[this.graph.meta.outVid]] = new Vertex(outVobj, this.graph);
+        //     }
+        //     vertex = this.graph.vertices[this.obj[this.graph.meta.outVid]];
+        //     if (!vertex.outE[this.obj[this.graph.meta.label]]) {
+        //         vertex.outE[this.obj[this.graph.meta.label]] = [];
+        //     }
+        //     this.outV = vertex;
+        //     this.obj[this.graph.meta.VOut] = this.outV.obj;
+        //     delete this.obj[this.graph.meta.outVid];
+        //     push.call(vertex.outE[this.obj[this.graph.meta.label]], this);
+
+        //     if (!this.graph.vertices[this.obj[this.graph.meta.inVid]]) {
+        //         inVobj[this.graph.meta.id] = this.obj[this.graph.meta.inVid];
+        //         this.graph.vertices[this.obj[this.graph.meta.inVid]] = new Vertex(inVobj, this.graph);
+        //     }
+        //     vertex = this.graph.vertices[this.obj[this.graph.meta.inVid]];
+        //     if (!vertex.inE[this.obj[this.graph.meta.label]]) {
+        //         vertex.inE[this.obj[this.graph.meta.label]] = [];
+        //     }
+        //     this.inV = vertex;
+        //     this.obj[this.graph.meta.VIn] = this.inV.obj;
+        //     delete this.obj[this.graph.meta.inVid];
+        //     push.call(vertex.inE[this.obj[this.graph.meta.label]], this);
+        // }
     }
 
     export interface IConfiguration {
@@ -325,7 +327,8 @@ module Helios {
             for (i = 0, l = rows.length; i < l; i += 1) {
                 edge = new Edge(rows[i], this);
                 this.edges[edge.obj[this.meta.id]] = edge;
-                edge.associateVertices();
+                //edge.associateVertices();
+                this.associateVertices(edge);
                 if (hasEIndex) {
                     edge.addToIndex(this.e_idx);
                 }
@@ -366,6 +369,42 @@ module Helios {
             this.pathEnabled = enabled;
             return this.pathEnabled;
         }
+
+
+
+        associateVertices(edge:Edge):void {
+            var vertex,
+                outVobj = {},
+                inVobj = {};
+
+            if (!edge.graph.vertices[edge.obj[edge.graph.meta.outVid]]) {
+                outVobj[edge.graph.meta.id] = edge.obj[edge.graph.meta.outVid];
+                edge.graph.vertices[edge.obj[edge.graph.meta.outVid]] = new Vertex(outVobj, edge.graph);
+            }
+            vertex = edge.graph.vertices[edge.obj[edge.graph.meta.outVid]];
+            if (!vertex.outE[edge.obj[edge.graph.meta.label]]) {
+                vertex.outE[edge.obj[edge.graph.meta.label]] = [];
+            }
+            edge.outV = vertex;
+            edge.obj[edge.graph.meta.VOut] = edge.outV.obj;
+            delete edge.obj[edge.graph.meta.outVid];
+            push.call(vertex.outE[edge.obj[edge.graph.meta.label]], edge);
+
+            if (!edge.graph.vertices[edge.obj[edge.graph.meta.inVid]]) {
+                inVobj[edge.graph.meta.id] = edge.obj[edge.graph.meta.inVid];
+                edge.graph.vertices[edge.obj[edge.graph.meta.inVid]] = new Vertex(inVobj, edge.graph);
+            }
+            vertex = edge.graph.vertices[edge.obj[edge.graph.meta.inVid]];
+            if (!vertex.inE[edge.obj[edge.graph.meta.label]]) {
+                vertex.inE[edge.obj[edge.graph.meta.label]] = [];
+            }
+            edge.inV = vertex;
+            edge.obj[edge.graph.meta.VIn] = edge.inV.obj;
+            delete edge.obj[edge.graph.meta.inVid];
+            push.call(vertex.inE[edge.obj[edge.graph.meta.label]], edge);
+        }
+
+
 
         loadGraphSON(jsonData:string):GraphDatabase;
         loadGraphSON(jsonData:{ vertices?:{}[]; edges?:{}[]; }):GraphDatabase;
@@ -439,104 +478,104 @@ module Helios {
 
             };
 
-parser.ontext = (t) => {
-    if(!!tempObj && (currProp in tempObj)){
-        tempObj[currProp] = t;
-        currProp = undefined;
-    }
-  // got some text.  t is the string of text.
-};
+            parser.ontext = (t) => {
+                if(!!tempObj && (currProp in tempObj)){
+                    tempObj[currProp] = t;
+                    currProp = undefined;
+                }
+              // got some text.  t is the string of text.
+            };
 
-parser.onopentag = (node) => {
-  // opened a tag.  node has "name" and "attributes"
-  switch(node.name){
-    case 'node':
-        attr = node.attributes;
-        for(var k in attr){
-            if(attr.hasOwnProperty(k)){
-                switch(k){
-                    case 'id':
-                        if(!!this.vertices[attr[k]]){
-                            tempObj = this.vertices[attr[k]].obj;
-                        } else {
-                            tempObj[this.meta.id] = attr[k];
+            parser.onopentag = (node) => {
+              // opened a tag.  node has "name" and "attributes"
+              switch(node.name){
+                case 'node':
+                    attr = node.attributes;
+                    for(var k in attr){
+                        if(attr.hasOwnProperty(k)){
+                            switch(k){
+                                case 'id':
+                                    if(!!this.vertices[attr[k]]){
+                                        tempObj = this.vertices[attr[k]].obj;
+                                    } else {
+                                        tempObj[this.meta.id] = attr[k];
+                                    }
+                                    break;
+                                default:
+                                    //do nothing
+                            }
                         }
-                        break;
-                    default:
-                        //do nothing
-                }
-            }
-        }
-        
-        break;
-    case 'edge':
-        attr = node.attributes;
-        for(var k in attr){
-            if(attr.hasOwnProperty(k)){
-                switch(k){
-                    case 'id':
-                        tempObj[this.meta.id] = attr[k];
-                        break;
-                    case 'label':
-                        tempObj[this.meta.label] = attr[k];
-                        break;
-                    case 'source':
-                        tempObj[this.meta.outVid] = attr[k];
-                        break;
-                    case 'target':
-                        tempObj[this.meta.inVid] = attr[k];
-                        break;
-                    default:
-                        //do nothing
-                }
-            }
-        }
-        break;
-    case 'data':
-        tempObj[node.attributes.key] = undefined;
-        currProp = node.attributes.key;
-        break;
-    default:
-        //do nothing
-  }
-  this;
+                    }
+                    
+                    break;
+                case 'edge':
+                    attr = node.attributes;
+                    for(var k in attr){
+                        if(attr.hasOwnProperty(k)){
+                            switch(k){
+                                case 'id':
+                                    tempObj[this.meta.id] = attr[k];
+                                    break;
+                                case 'label':
+                                    tempObj[this.meta.label] = attr[k];
+                                    break;
+                                case 'source':
+                                    tempObj[this.meta.outVid] = attr[k];
+                                    break;
+                                case 'target':
+                                    tempObj[this.meta.inVid] = attr[k];
+                                    break;
+                                default:
+                                    //do nothing
+                            }
+                        }
+                    }
+                    break;
+                case 'data':
+                    tempObj[node.attributes.key] = undefined;
+                    currProp = node.attributes.key;
+                    break;
+                default:
+                    //do nothing
+              }
+              this;
 
-};
+            };
 
 
-parser.onclosetag = (node) => {
-  // opened a tag.  
-  switch(node){
-    case 'node':
-        vertex = new Vertex(tempObj, this);
-        this.vertices[tempObj[this.meta.id]] = vertex;
-            //         //Add to index
-            //         if (hasVIndex) {
-            //             vertex.addToIndex(this.v_idx);
-            //         }
-        tempObj = {};            
-        break;
-    case 'edge':
-        edge = new Edge(tempObj, this);
-        this.edges[tempObj[this.meta.id]] = edge;
-        edge.associateVertices();
-            //         //Add to index
-            //         if (hasEIndex) {
-            //             edge.addToIndex(this.e_idx);
-            //         }
-        tempObj = {};
-        break;
-    default:
-        //do nothing
-  }
+            parser.onclosetag = (node) => {
+              // opened a tag.  
+              switch(node){
+                case 'node':
+                    vertex = new Vertex(tempObj, this);
+                    this.vertices[tempObj[this.meta.id]] = vertex;
+                    //Add to index
+                    if (hasVIndex) {
+                        vertex.addToIndex(this.v_idx);
+                    }
+                    tempObj = {};            
+                    break;
+                case 'edge':
+                    edge = new Edge(tempObj, this);
+                    this.edges[tempObj[this.meta.id]] = edge;
+                    this.associateVertices(edge);
+                    //Add to index
+                    if (hasEIndex) {
+                        edge.addToIndex(this.e_idx);
+                    }
+                    tempObj = {};
+                    break;
+                default:
+                    //do nothing
+              }
 
-};
+            };
 
-parser.onend = () => {
-  // parser stream is done, and ready to have more stuff written to it.
-  tempObj = {};
-  currProp = undefined;
-};
+            parser.onend = () => {
+              // parser stream is done, and ready to have more stuff written to it.
+              tempObj = {};
+              currProp = undefined;
+            };
 
 
 
