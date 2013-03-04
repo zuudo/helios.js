@@ -235,10 +235,10 @@ module Helios {
 
         //config:IConfiguration;
 
-        constructor(graph?:GraphDatabase);
+        //constructor(graph?:GraphDatabase);
         constructor(options?:any) {
 
-            if (!!options && (options.hasOwnProperty('vertices') || options.hasOwnProperty('edges'))) {
+            if (!!options /*&& (options.hasOwnProperty('vertices') || options.hasOwnProperty('edges'))*/) {
                 //Then passing in starts
                 for (var k in options) {
                     if (options.hasOwnProperty(k)) {
@@ -982,35 +982,35 @@ parser.onend = () => {
             private asHash:{}; //requires Cleanup
             private endPipe:any[]; //requires Cleanup
 
-            constructor(graph:GraphDatabase, elements?:{}, clonedPipeline?:Pipeline, pinned?:bool);
-            constructor(graph:GraphDatabase, elements?:{}[], clonedPipeline?:Pipeline, pinned?:bool);
-            constructor(public graph:GraphDatabase, elements?:any, clonedPipeline?:Pipeline, public pinned?:bool) {
+            //constructor(graph:GraphDatabase, elements?:{}, clonedPipeline?:Pipeline, pinned?:bool);
+            //constructor(graph:GraphDatabase, elements?:{}[], clonedPipeline?:Pipeline, pinned?:bool);
+            constructor(public graph:GraphDatabase, elements?:any/*, clonedPipeline?:Pipeline, public pinned?:bool*/) {
 
-                if (!!clonedPipeline) {
-                    this.traceObj = clonedPipeline.traceObj;
-                    this.tracing = clonedPipeline.tracing;
-                    this.traversed = clonedPipeline.traversed;
-                    this.asHash = clonedPipeline.asHash;
-                    this.tracingPath = clonedPipeline.tracingPath;
-                    this.steps = clonedPipeline.steps;
-                } else {
+                // if (!!clonedPipeline) {
+                //     this.traceObj = clonedPipeline.traceObj;
+                //     this.tracing = clonedPipeline.tracing;
+                //     this.traversed = clonedPipeline.traversed;
+                //     this.asHash = clonedPipeline.asHash;
+                //     this.tracingPath = clonedPipeline.tracingPath;
+                //     this.steps = clonedPipeline.steps;
+                // } else {
                     this.tracingPath = graph.pathEnabled;
                     this.tracing = false;
                     this.steps = { currentStep: 1 };
-                }
+                // }
 
                 if (!!elements) {
                     this.startPipe(elements);
                 }
 
-                if (!!this.pinned) {
-                    for (var k in this) {
-                        /* TODO - check */
-                        //if (this.hasOwnProperty(k)) {
-                        this.snapshot[k] = this[k];
-                        //}
-                    }
-                }
+                // if (!!this.pinned) {
+                //     for (var k in this) {
+                //         /* TODO - check */
+                //         //if (this.hasOwnProperty(k)) {
+                //         this.snapshot[k] = this[k];
+                //         //}
+                //     }
+                // }
 
             }
 
@@ -1033,42 +1033,42 @@ parser.onend = () => {
                 return this;
             }
 
-            /***************************************************************************************************
+            // /***************************************************************************************************
 
-             Creates a new instance of Helios to continue traversing the graph.
+            //  Creates a new instance of Helios to continue traversing the graph.
 
-             fork()        callable/chainable
-             @returns    {Helios}      Returns Helios reference
+            //  fork()        callable/chainable
+            //  @returns    {Helios}      Returns Helios reference
 
-             @example
-             var x = {};
-             g.v(1).fork(x).in().emit();
-             x._.out().emit();
+            //  @example
+            //  var x = {};
+            //  g.v(1).fork(x).in().emit();
+            //  x._.out().emit();
 
-             nb. x._ retains last output
-             ***************************************************************************************************/
-                fork(o:{_?:Pipeline;}):Pipeline {
-                o._ = new Pipeline(this.graph, this.endPipe, this);
-                return this;
-            }
+            //  nb. x._ retains last output
+            //  ***************************************************************************************************/
+            //     fork(o:{_?:Pipeline;}):Pipeline {
+            //     o._ = new Pipeline(this.graph, this.endPipe, this);
+            //     return this;
+            // }
 
-            /***************************************************************************************************
+            // /***************************************************************************************************
 
-             Creates a new instance of Helios pinned to a point in the graph for traversal.
+            //  Creates a new instance of Helios pinned to a point in the graph for traversal.
 
-             pin()         callable/chainable
-             @returns    {Helios}      Returns Helios reference.
+            //  pin()         callable/chainable
+            //  @returns    {Helios}      Returns Helios reference.
 
-             @example
-             var x;
-             g.v(1).pin(x);
-             x.out().value();
+            //  @example
+            //  var x;
+            //  g.v(1).pin(x);
+            //  x.out().value();
 
-             ***************************************************************************************************/
-                pin(o:{_?:Pipeline;}):Pipeline {
-                o._ = new Pipeline(this.graph, this.endPipe, this, true);
-                return this;
-            }
+            //  ***************************************************************************************************/
+            //     pin(o:{_?:Pipeline;}):Pipeline {
+            //     o._ = new Pipeline(this.graph, this.endPipe, this, true);
+            //     return this;
+            // }
 
             id():any[] {
                 return this.property(this.graph.meta.id);
