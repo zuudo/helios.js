@@ -1751,25 +1751,11 @@ var Helios;
                 return this;
             };
             Pipeline.prototype.emit = function () {
-                var props = [];
-                for (var _i = 0; _i < (arguments.length - 0); _i++) {
-                    props[_i] = arguments[_i + 0];
-                }
                 var array = [], temp, iter;
                 iter = this.endPipe;
-                if(!!this.pinned) {
-                    this.traceObj = this.snapshot.traceObj;
-                    this.tracing = this.snapshot.tracing;
-                    this.traversed = this.snapshot.traversed;
-                    this.asHash = this.snapshot.asHash;
-                    this.tracingPath = this.snapshot.tracingPath;
-                    this.steps = this.snapshot.steps;
-                    this.endPipe = this.snapshot.endPipe;
-                } else {
-                    this.steps = {
-                        currentStep: 0
-                    };
-                }
+                this.steps = {
+                    currentStep: 0
+                };
                 if(!!iter.length) {
                     if(!iter[0] || !Utils.isElement(iter[0])) {
                         return {
