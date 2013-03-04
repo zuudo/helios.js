@@ -971,7 +971,7 @@ parser.onend = () => {
             private traceObj:{}; //requires Cleanup
             private tracing:bool;
             private tracingPath:bool;
-            private pinned:bool;
+            //private pinned:bool;
             private snapshot:any = {};
 
             private traversed:{};
@@ -2554,7 +2554,7 @@ parser.onend = () => {
 
 
             //Maybe I should allow for a function to be passed in to emit() ??????
-            emit(...props:string[]):{ results:any[]; } {
+            emit():{ results:any[]; } {
 
                 var array:any[] = [],
                     temp:any,
@@ -2562,19 +2562,19 @@ parser.onend = () => {
 
                 iter = this.endPipe;
 
-                if (!!this.pinned) {
-                    this.traceObj = this.snapshot.traceObj;   //????????????????????
-                    this.tracing = this.snapshot.tracing;
-                    this.traversed = this.snapshot.traversed;
-                    this.asHash = this.snapshot.asHash;
-                    this.tracingPath = this.snapshot.tracingPath;
-                    this.steps = this.snapshot.steps;
-                    this.endPipe = this.snapshot.endPipe;
+                // if (!!this.pinned) {
+                //     this.traceObj = this.snapshot.traceObj;   //????????????????????
+                //     this.tracing = this.snapshot.tracing;
+                //     this.traversed = this.snapshot.traversed;
+                //     this.asHash = this.snapshot.asHash;
+                //     this.tracingPath = this.snapshot.tracingPath;
+                //     this.steps = this.snapshot.steps;
+                //     this.endPipe = this.snapshot.endPipe;
 
-                } else {
+                // } else {
                     //reset steps
                     this.steps = { currentStep: 0 };
-                }
+                //}
 
                 if (!!iter.length) {
                     if (!iter[0] || !Utils.isElement(iter[0])) {
@@ -3438,292 +3438,6 @@ parser.onend = () => {
         }
 
     }
-
-
-
-
-
-//    class Compare {
-//        //comparables
-//
-//        static $eq(objVal:any, val:any):bool {
-//
-//            var objValIsArray:bool = Utils.isArray(objVal),
-//                index:number;
-//
-//            objVal = objValIsArray ? Utils.unique(objVal) : [objVal];
-//            index = objVal.length;
-//            while (index) {
-//                --index;
-//                if (((Utils.isDate(val, this.graph.date) && Utils.isDate(objVal[index], this.graph.date))
-//                    || (Utils.isMoney(val, this.graph.currency) && Utils.isMoney(objVal[index], this.graph.currency))
-//                    || (!(Utils.isDate(objVal[index], this.graph.date) || Utils.isMoney(objVal[index], this.graph.currency))))
-//                    && (Utils.parseNumber(objVal[index], this.graph) === Utils.parseNumber(val, this.graph))) {
-//
-//                    return true;
-//                }
-//            }
-//            return false;
-//        }
-//
-//        static $neq(objVal:any, val:any):bool {
-//            return !Compare.$eq(objVal, val);
-//        }
-//
-//        static $lt(objVal:any, val:any):bool {
-//            var objValIsArray:bool = Utils.isArray(objVal),
-//                index:number;
-//
-//            objVal = objValIsArray ? Utils.unique(objVal) : [objVal];
-//            index = objVal.length;
-//            while (index) {
-//                --index;
-//                if (((Utils.isDate(val, this.graph.date) && Utils.isDate(objVal[index], this.graph.date))
-//                    || (Utils.isMoney(val, this.graph.currency) && Utils.isMoney(objVal[index], this.graph.currency))
-//                    || (!(Utils.isDate(objVal[index], this.graph.date) || Utils.isMoney(objVal[index], this.graph.currency))))
-//                    && (Utils.parseNumber(objVal[index], this.graph) < Utils.parseNumber(val, this.graph))) {
-//
-//                    return true;
-//                }
-//            }
-//            return false;
-//        }
-//
-//        static $lte(objVal:any, val:any):bool {
-//            var objValIsArray:bool = Utils.isArray(objVal),
-//                index:number;
-//
-//            objVal = objValIsArray ? Utils.unique(objVal) : [objVal];
-//            index = objVal.length;
-//            while (index) {
-//                --index;
-//                if (((Utils.isDate(val, this.graph.date) && Utils.isDate(objVal[index], this.graph.date))
-//                    || (Utils.isMoney(val, this.graph.currency) && Utils.isMoney(objVal[index], this.graph.currency))
-//                    || (!(Utils.isDate(objVal[index], this.graph.date) || Utils.isMoney(objVal[index], this.graph.currency))))
-//                    && (Utils.parseNumber(objVal[index], this.graph) <= Utils.parseNumber(val, this.graph))) {
-//
-//                    return true;
-//                }
-//            }
-//            return false;
-//        }
-//
-//        static $gt(objVal:any, val:any):bool {
-//            return !Compare.$lte(objVal, val);
-//        }
-//
-//        static $gte(objVal:any, val:any):bool {
-//            return !Compare.$lt(objVal, val);
-//        }
-//
-//        static $typeOf(objVal:any, val:string[]):bool {
-//
-//            var objValIsArray:bool = Utils.isArray(objVal),
-//                index:number,
-//                i:number = 0,
-//                valLen:number = val.length,
-//                comp:string;
-//
-//            index = val.length;
-//            while (index) {
-//                --index;
-//                comp = val[index].toLowerCase()
-//                if (comp == 'number' && !Utils.isDate(objVal, this.graph.date) && !Utils.isMoney(objVal, this.graph.currency) && Utils.isNumber(Utils.parseNumber(objVal, this.graph))) {
-//                    return true;
-//                } else if (comp == 'money' && Utils.isMoney(objVal, this.graph.currency)) {
-//                    return true;
-//                } else if (comp == 'string' && !Utils.isDate(objVal, this.graph.date) && !Utils.isMoney(objVal, this.graph.currency) && Utils.isString(Utils.parseNumber(objVal, this.graph))) {
-//                    return true;
-//                } else if (comp == 'array' && Utils.isArray(objVal)) {
-//                    return true;
-//                } else if (comp == 'date' && Utils.isDate(objVal, this.graph.date)) {
-//                    return true;
-//                }
-//            }
-//            return false;
-//        }
-//
-//        static $notTypeOf(objVal:any, val:string[]):bool {
-//            return !Compare.$typeOf(objVal, val);
-//        }
-//
-//        static $in(objVal:any, val:any[]):bool {
-//
-//            var objValIsArray:bool = Utils.isArray(objVal),
-//                index:number,
-//                i:number = 0,
-//                valLen:number = val.length;
-//
-//            objVal = objValIsArray ? Utils.unique(objVal) : [objVal];
-//            index = objVal.length;
-//            while (index) {
-//                --index;
-//                i = valLen;
-//                while (!!i) {
-//                    --i;
-//                    if (((Utils.isDate(val[i], this.graph.date) && Utils.isDate(objVal[index], this.graph.date))
-//                        || (Utils.isMoney(val[i], this.graph.currency) && Utils.isMoney(objVal[index], this.graph.currency))
-//                        || (!(Utils.isDate(objVal[index], this.graph.date) || Utils.isMoney(objVal[index], this.graph.currency))))
-//                        && (Utils.parseNumber(objVal[index], this.graph) === Utils.parseNumber(val[i], this.graph))) {
-//
-//                        return true;
-//                    }
-//                }
-//            }
-//            return false;
-//        }
-//
-//        static $nin(objVal:any, val:any[]):bool {
-//            return !Compare.$in(objVal, val);
-//        }
-//
-//        static $match(objVal:any, val:string[]):bool {
-//            var objValIsArray:bool = Utils.isArray(objVal),
-//                index:number,
-//                i:number = 0,
-//                valLen:number = val.length;
-//
-//            objVal = objValIsArray ? Utils.unique(objVal) : [objVal];
-//            index = objVal.length;
-//            while (index) {
-//                --index;
-//                i = valLen;
-//                while (!!i) {
-//                    --i;
-//                    if (Utils.isString(objVal[index]) && !(objVal[index].search(val[i]) === false)) {
-//                        return true;
-//                    }
-//                }
-//            }
-//            return false;
-//        }
-//
-//        //Array comparator
-//        static $all(objVal:any[], val:any[]):bool {
-//
-//            var matches:number = 0,
-//                index:number = 0,
-//                i:number = 0,
-//                valLen:number = 0;
-//
-//            val = Utils.unique(val);
-//            objVal = Utils.unique(objVal);
-//
-//            valLen = val.length;
-//            index = objVal.length;
-//            if (valLen <= index) {
-//                while (index) {
-//                    --index;
-//                    i = valLen;
-//                    while (!!i) {
-//                        --i;
-//                        if (((Utils.isDate(val[i], this.graph.date) && Utils.isDate(objVal[index], this.graph.date))
-//                            || (Utils.isMoney(val[i], this.graph.currency) && Utils.isMoney(objVal[index], this.graph.currency))
-//                            || (!(Utils.isDate(objVal[index], this.graph.date) || Utils.isMoney(objVal[index], this.graph.currency))))
-//                            && (Utils.parseNumber(objVal[index], this.graph) === Utils.parseNumber(val[i], this.graph))) {
-//
-//                            matches++;
-//                        }
-//                    }
-//                }
-//            }
-//            return matches == valLen;
-//        }
-//
-//        //Array comparator
-//        static $none(objVal:any[], val:any[]):bool {
-//            return !Compare.$all(objVal, val);
-//        }
-//
-//        //Array comparator
-//        static $exact(objVal:any[], val:any[]):bool {
-//
-//            var matches:number = 0,
-//                index:number = 0,
-//                i:number = 0,
-//                valLen:number = 0;
-//
-//            val = Utils.unique(val);
-//            objVal = Utils.unique(objVal);
-//
-//            valLen = val.length;
-//            index = objVal.length;
-//            if (valLen == index) {
-//                while (index) {
-//                    --index;
-//                    i = valLen;
-//                    while (!!i) {
-//                        --i;
-//                        if (((Utils.isDate(val[i], this.graph.date) && Utils.isDate(objVal[index], this.graph.date))
-//                            || (Utils.isMoney(val[i], this.graph.currency) && Utils.isMoney(objVal[index], this.graph.currency))
-//                            || (!(Utils.isDate(objVal[index], this.graph.date) || Utils.isMoney(objVal[index], this.graph.currency))))
-//                            && (Utils.parseNumber(objVal[index], this.graph) === Utils.parseNumber(val[i], this.graph))) {
-//
-//                            matches++;
-//                        }
-//                    }
-//                }
-//            }
-//            return matches == valLen;
-//        }
-//
-//        /*
-//         $startsWith
-//         $endsWith
-//         $contains
-//         $notContains
-//         */
-//
-//        static $hasAny(obj:{}, val:string[]):bool {
-//            var i:number = val.length,
-//                tempObj:{},
-//                tempProp:string;
-//
-//            while (!!i) {
-//                --i;
-//                tempObj = obj;
-//                tempProp = val[i];
-//                if (tempProp.indexOf(".") > -1) {
-//                    tempObj = Utils.embeddedObject(tempObj, tempProp);
-//                    tempProp = tempProp.split(".").slice(-1)[0];
-//                }
-//                if (tempObj.hasOwnProperty(tempProp)) {
-//                    return true;
-//                }
-//            }
-//            return false;
-//        }
-//
-//        static $hasAll(obj:{}, val:string[]):bool {
-//            var i:number = val.length,
-//                matches:number,
-//                tempObj:{},
-//                tempProp:string;
-//
-//            while (!!i) {
-//                --i;
-//                tempObj = obj;
-//                tempProp = val[i];
-//                if (tempProp.indexOf(".") > -1) {
-//                    tempObj = Utils.embeddedObject(tempObj, tempProp);
-//                    tempProp = tempProp.split(".").slice(-1)[0];
-//                }
-//                if (tempObj.hasOwnProperty(tempProp)) {
-//                    matches++;
-//                }
-//            }
-//            return matches == val.length;
-//        }
-//
-//        static $notAny(obj:{}, val:string[]):bool {
-//            return !Compare.$hasAny(obj, val);
-//        }
-//
-//        static $notAll(obj:{}, val:string[]):bool {
-//            return !Compare.$hasAll(obj, val);
-//        }
-//
-//    }
 }
 
 var g;
