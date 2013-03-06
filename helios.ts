@@ -3,10 +3,10 @@ module Helios {
 
     declare var Q;
     export class GraphDatabase {
-    	//Make arguments optional
-    	db;
-    	mc;
-    	//constructor(graph?:Graph);
+
+    	db:any;
+    	mc:any;
+
         constructor(options?:any) {
     		var msg:{method:string; parameters?:any;} = { method:'init'};
     		if(!!options){
@@ -26,15 +26,11 @@ module Helios {
 
 		setConfiguration(options:{}):void{
 			this.mc.port1.postMessage({message:[{method:'setConfiguration', parameters:[options]}]})
-				//.then(function(val){console.log(val)});
-			//return this;
 		}
 
-//        setPathEnabled(turnOn:bool):bool {
-//        	this.worker.postMessage([{method:'setPathEnabled', parameters:[turnOn]}])
-// 				.then(function(val){console.log(val)});
-//           return this.pathEnabled = turnOn;
-//        }
+       setPathEnabled(turnOn:bool):void {
+          this.mc.port1.postMessage({message:[{method:'setPathEnabled', parameters:[turnOn]}]})
+       }
 
 // //need to look at this
 //        getPathEnabled():bool {
@@ -43,57 +39,38 @@ module Helios {
 
 		createVIndex(idxName:string):void {
             this.mc.port1.postMessage({message:[{method:'createVIndex', parameters:[idxName]}]})
-				//.then(function(val){console.log(val)});
-			//return this;
         }
 
         createEIndex(idxName:string):void {
             this.mc.port1.postMessage({message:[{method:'createEIndex', parameters:[idxName]}]})
-				//.then(function(val){console.log(val)});
-			//return this;
         }
 
         deleteVIndex(idxName:string):void {
             this.mc.port1.postMessage({message:[{method:'deleteVIndex', parameters:[idxName]}]})
-				//.then(function(val){console.log(val)});
         }
 
         deleteEIndex(idxName:string):void {
             this.mc.port1.postMessage({message:[{method:'deleteEIndex', parameters:[idxName]}]})
-				//.then(function(val){console.log(val)});
         }
 
-		loadGraphSON(jsonData:string):GraphDatabase{
+		loadGraphSON(jsonData:string):void{
 			this.mc.port1.postMessage({message:[{method:'loadGraphSON', parameters:[jsonData]}]})
-				//.then(function(val){console.log(val)});
-			return this;
 		}
 
 		loadGraphML(xmlData:string):void{
-			//var deferred = Q.defer();
 			this.mc.port1.postMessage({message:[{method:'loadGraphML', parameters:[xmlData]}]})
-				//.then(function(val){console.log(val)});
-
-			// this.worker.onmessage = function(e) {
-			// 	deferred.resolve(e.data.result);
-		 //    };
-		 //    this.worker.onerror = function(e) {
-			// 	deferred.reject(['ERROR: Line ', e.lineno, ' in ', e.filename, ': ', e.message].join(''));
-		 //    };
-			// return deferred.promise;
-			//return this;
 		}
 
-		v(...ids:string[]):Pipeline;  //g.v()
-        v(...ids:number[]):Pipeline;  //g.v()
-        v(...objs:{}[]):Pipeline;     //g.V
+		v(...ids:string[]):Pipeline; 
+        v(...ids:number[]):Pipeline; 
+        v(...objs:{}[]):Pipeline;    
         v(...args:any[]):Pipeline {
     		return new Pipeline('v', args, this.db);
 		}
 
-		e(...ids:string[]):Pipeline;  //g.v()
-        e(...ids:number[]):Pipeline;  //g.v()
-        e(...objs:{}[]):Pipeline;     //g.V
+		e(...ids:string[]):Pipeline; 
+        e(...ids:number[]):Pipeline; 
+        e(...objs:{}[]):Pipeline; 
         e(...args:any[]):Pipeline {
     		return new Pipeline('e', args, this.db);
 		}	
@@ -102,10 +79,7 @@ module Helios {
 	export class Pipeline {
 		
 		private messages:{}[];
-        private deferreds:any[];
-        id:()=>Pipeline;
-        label:(...labels:string[])=>Pipeline;
-        property:(prop:string)=>Pipeline;
+
 		out:(...labels: string[]) => Pipeline;
 		in:(...labels:string[])=>Pipeline;
 		both:(...labels:string[])=>Pipeline;
@@ -115,7 +89,16 @@ module Helios {
         inV:()=>Pipeline;
         outE:(...labels:string[])=>Pipeline;
         outV:()=>Pipeline;
-        count:()=>Pipeline;
+
+        id:()=>any[];
+        label:()=>any[];
+        getProperty:(prop:string)=>any[];
+        count:()=>number;
+        stringify:()=>string;
+        hash:()=>{};
+        emit:()=>any;
+
+        path:()=>any[];
 
         // cap(...labels:string[])=>Pipeline;
         // gather(...labels:string[])=>Pipeline;        
@@ -127,13 +110,10 @@ module Helios {
         // scatter(...labels:string[])=>Pipeline;
         // select(...labels:string[])=>Pipeline;
         // transform(...labels:string[])=>Pipeline;
+
 		constructor(method:string, args:any[], public dbWorker:any){
 			this.messages = [{method:method, parameters:args}];
-			this.deferreds =[];
 
-	        this.id = this.add('id');
-	        this.label = this.add('label');
-	        this.property = this.add('property');
 			this.out = this.add('out');
 			this.in = this.add('in');
 			this.both = this.add('both');
@@ -143,24 +123,33 @@ module Helios {
 	        this.inV = this.add('inV');
 	        this.outE = this.add('outE');
 	        this.outV = this.add('outV');
-	        this.count = this.add('count')
 
+	        this.id = this.add('id', true);
+	        this.label = this.add('label', true);
+	        this.getProperty = this.add('getProperty', true);
+	        this.count = this.add('count', true);
+	        this.stringify = this.add('stringify', true);
+	        this.hash = this.add('hash', true);
+	        this.emit = this.add('emit', true);
 
+	        this.path = this.add('path', true);
 
 		}
-		add(func:string):()=>Pipeline{
-			return function(...args:string[]):Pipeline{
+
+		add(func:string, isFinal:bool=false):()=>any{
+			return function(...args:string[]):any{
                 this.messages.push({method:func, parameters:args});
-                return this;
+                return isFinal ? this.promise(this.messages) : this;
             }
 		}
-		emit():any{
+
+		//Move into class
+		promise(messages:{}[]):any {
 			var mc = new MessageChannel(),
 				deferred = Q.defer();
 
 			this.dbWorker.postMessage({}, [mc.port2]);
-			this.messages.push({method:'emit', paramaters:[]});
-
+			
 			function handler(event) {
 				deferred.resolve(event.data.result);
 				// no longer need this listener
@@ -171,9 +160,10 @@ module Helios {
 
 			// post a message to the shared web worker
 			mc.port1.start();
-			mc.port1.postMessage({message:this.messages});
+			mc.port1.postMessage({message:messages});
 			return deferred.promise;
 		}
+
 	}
     
 }

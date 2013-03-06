@@ -104,7 +104,7 @@ var Helios;
     Helios.Edge = Edge;    
     var GraphDatabase = (function () {
         function GraphDatabase(options) {
-            this.pathEnabled = false;
+            this.pathEnabled = true;
             this.date = {
                 format: "DD/MM/YYYY"
             };
@@ -666,9 +666,9 @@ var Helios;
             Pipeline.prototype.startPipe = function (elements) {
                 var pipe;
                 this.endPipe = [];
-                this.pipeline = this.tracingPath ? [] : undefined;
+                this.pipeline = this.graph.pathEnabled ? [] : undefined;
                 Utils.each(elements, function (element) {
-                    if(this.tracingPath) {
+                    if(this.graph.pathEnabled) {
                         pipe = [];
                         pipe.push(element);
                         this.pipeline.push(pipe);
@@ -678,17 +678,17 @@ var Helios;
                 return this;
             };
             Pipeline.prototype.id = function () {
-                return this.property(this.graph.meta.id);
+                return this.getProperty(this.graph.meta.id);
             };
             Pipeline.prototype.label = function () {
-                return this.property(this.graph.meta.label);
+                return this.getProperty(this.graph.meta.label);
             };
             Pipeline.prototype.out = function () {
                 var labels = [];
                 for (var _i = 0; _i < (arguments.length - 0); _i++) {
                     labels[_i] = arguments[_i + 0];
                 }
-                var value, vertex, iter = [], endPipeArray = [], hasArgs = !!labels.length, isTracing = !!this.tracing, traceArray = isTracing ? [] : undefined, isTracingPath = !!this.tracingPath, pipes, pipe;
+                var value, vertex, iter = [], endPipeArray = [], hasArgs = !!labels.length, isTracing = !!this.tracing, traceArray = isTracing ? [] : undefined, isTracingPath = !!this.graph.pathEnabled, pipes, pipe;
                 if(!!this.endPipe.length && this.endPipe[0].Type !== 'Vertex') {
                     throw new TypeError('Only accepts incoming ' + this.endPipe[0].Type + 's');
                 }
@@ -1272,7 +1272,7 @@ var Helios;
                 this.endPipe = endPipeArray;
                 return this;
             };
-            Pipeline.prototype.property = function (prop) {
+            Pipeline.prototype.getProperty = function (prop) {
                 var array = [], tempObj, tempProp, isEmbedded = prop.indexOf(".") > -1;
                 tempProp = isEmbedded ? prop.split(".").slice(-1)[0] : prop;
                 Utils.each(this.endPipe, function (element) {
@@ -1284,7 +1284,7 @@ var Helios;
                 this.endPipe = [];
                 return array;
             };
-            Pipeline.prototype.sort = function (order) {
+            Pipeline.prototype.order = function (order) {
                 var endPipeArray = [], isElement = !!this.endPipe.length && Utils.isElement(this.endPipe[0]), type;
                 if(!!order && Utils.isFunction(order)) {
                     if(isElement) {
@@ -1315,7 +1315,7 @@ var Helios;
                 }
                 return this;
             };
-            Pipeline.prototype.slice = function (start, end) {
+            Pipeline.prototype.range = function (start, end) {
                 this.endPipe = !!end ? this.endPipe.slice(start, end) : this.endPipe.slice(start);
                 return this;
             };
@@ -1340,7 +1340,7 @@ var Helios;
                 this.endPipe = Utils.materializeElementArray(endPipeIds, this.graph, this.endPipe[0].Type);
                 return this;
             };
-            Pipeline.prototype.intersect = function (dataSet) {
+            Pipeline.prototype.retain = function (dataSet) {
                 var intersectIds = Utils.pluck(Utils.flatten(dataSet), this.graph.meta.id);
                 var ids = Utils.pluck(this.endPipe, this.graph.meta.id);
                 var endPipeIds = Utils.intersection(ids, intersectIds);
@@ -1822,6 +1822,9 @@ var Helios;
                     results: array
                 };
             };
+            Pipeline.prototype.stringify = function () {
+                return JSON.stringify(this.emit().results);
+            };
             Pipeline.prototype.hash = function () {
                 this.steps = {
                     currentStep: 0
@@ -1829,7 +1832,7 @@ var Helios;
                 return Utils.toHash(this.endPipe);
             };
             Pipeline.prototype.path = function () {
-                if(!this.tracingPath) {
+                if(!this.graph.pathEnabled) {
                     throw Error('Not tracing path');
                     return;
                 }
