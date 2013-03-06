@@ -1,8 +1,36 @@
 "use strict"
 /// <reference path="moment.d.ts" />
 
-importScripts('sax.js', 'moment.min.js');
+if(!!self.importScripts){
+    importScripts('sax.js', 'moment.min.js');
 
+    var g;
+    self.onmessage = (e) => {
+        var port = e.ports[0];
+
+        function handler(e){
+            var msg = e.data.message;
+            var t = g;
+            for(var i=0,l=msg.length;i<l;i++){
+                t = t[msg[i].method].apply(t, msg[i].parameters);
+            }
+            port.postMessage({result:t});
+            port.removeEventListener('message', handler, false);
+            port.close();
+        }
+
+        switch(e.data.method) {
+            case 'init':
+                g = !!e.data.parameters ? new Helios.GraphDatabase(e.data.parameters[0]) : new Helios.GraphDatabase();
+                port.postMessage('done');
+                break;
+            default:
+                break;
+        }
+        port.addEventListener("message", handler, false);
+        port.start();
+    };
+};
 module Helios {
     export interface IBase {
         Type:string;
@@ -106,39 +134,6 @@ module Helios {
             this.Type = 'Edge';
         }
 
-
-        //move this into Graph and call func with call(this);
-        // associateVertices():void {
-        //     var vertex,
-        //         outVobj = {},
-        //         inVobj = {};
-
-        //     if (!this.graph.vertices[this.obj[this.graph.meta.outVid]]) {
-        //         outVobj[this.graph.meta.id] = this.obj[this.graph.meta.outVid];
-        //         this.graph.vertices[this.obj[this.graph.meta.outVid]] = new Vertex(outVobj, this.graph);
-        //     }
-        //     vertex = this.graph.vertices[this.obj[this.graph.meta.outVid]];
-        //     if (!vertex.outE[this.obj[this.graph.meta.label]]) {
-        //         vertex.outE[this.obj[this.graph.meta.label]] = [];
-        //     }
-        //     this.outV = vertex;
-        //     this.obj[this.graph.meta.VOut] = this.outV.obj;
-        //     delete this.obj[this.graph.meta.outVid];
-        //     push.call(vertex.outE[this.obj[this.graph.meta.label]], this);
-
-        //     if (!this.graph.vertices[this.obj[this.graph.meta.inVid]]) {
-        //         inVobj[this.graph.meta.id] = this.obj[this.graph.meta.inVid];
-        //         this.graph.vertices[this.obj[this.graph.meta.inVid]] = new Vertex(inVobj, this.graph);
-        //     }
-        //     vertex = this.graph.vertices[this.obj[this.graph.meta.inVid]];
-        //     if (!vertex.inE[this.obj[this.graph.meta.label]]) {
-        //         vertex.inE[this.obj[this.graph.meta.label]] = [];
-        //     }
-        //     this.inV = vertex;
-        //     this.obj[this.graph.meta.VIn] = this.inV.obj;
-        //     delete this.obj[this.graph.meta.inVid];
-        //     push.call(vertex.inE[this.obj[this.graph.meta.label]], this);
-        // }
     }
 
     export interface IConfiguration {
@@ -416,6 +411,16 @@ module Helios {
             var graph:GraphDatabase = this;
 
             if (Utils.isUndefined(jsonData)) { return null; }
+
+            if (!!jsonData.vertices) {
+               this.loadVertices(jsonData.vertices);
+            }
+
+            //process edges
+            if (!!jsonData.edges) {
+               this.loadEdges(jsonData.edges);
+            }
+
             if (Utils.isString(jsonData)) {
                 xmlhttp = new XMLHttpRequest();
                 xmlhttp.onreadystatechange = function () {
@@ -433,22 +438,9 @@ module Helios {
                     }
 
                 };
-                xmlhttp.open("GET", jsonData, false/*true*/);
+                xmlhttp.open("GET", jsonData, true);
                 xmlhttp.send(null);
             }
-
-            // if(Utils.isString(jsonData)){
-            //     //get the file
-            // }
-
-           // if (!!jsonData.vertices.length) {
-           //     this.loadVertices(jsonData.vertices);
-           // }
-
-           // //process edges
-           // if (jsonData.edges) {
-           //     this.loadEdges(jsonData.edges);
-           // }
             return this;
         }
 
@@ -595,7 +587,7 @@ module Helios {
                             parser.write(xmlhttp.responseText).close();
                         }
                     };
-                    xmlhttp.open("GET", xmlData, false);
+                    xmlhttp.open("GET", xmlData, true);
                     xmlhttp.send(null);
                 } else {
 
@@ -669,6 +661,7 @@ module Helios {
 
             var pipe = [],
                 l,
+                temp:Vertex,
                 tempObj:{} = {},
                 compObj:{} = {},
                 outputObj:{} = {},
@@ -784,7 +777,11 @@ module Helios {
                 return this._.startPipe(outputObj);
             }
             for (var i = 0; i < l; i++) {
-                push.call(pipe, this.vertices[args[i]]);
+                temp = this.vertices[args[i]];
+                if(typeof temp === "undefined"){
+                    throw new ReferenceError('No vertex with id ' + args[i]);
+                }
+                push.call(pipe, temp);
             }
             return this._.startPipe(pipe);
         }
@@ -796,6 +793,7 @@ module Helios {
 
             var pipe = [],
                 l,
+                temp:Edge,
                 tempObj:{} = {},
                 compObj:{} = {},
                 outputObj:{} = {},
@@ -909,7 +907,11 @@ module Helios {
                 return this._.startPipe(outputObj);
             }
             for (var i = 0; i < l; i++) {
-                push.call(pipe, this.edges[args[i]]);
+                temp = this.edges[args[i]];
+                if(typeof temp === "undefined"){
+                    throw new ReferenceError('No edge with id ' + args[i]);
+                }
+                push.call(pipe, temp);
             }
             return this._.startPipe(pipe);
         }
@@ -1760,6 +1762,8 @@ module Helios {
                 return this;
             }
 
+            /* MOVE TRAVERSED TO LOCAL VARIABLE*/
+
             /***************************************************************************************************
 
              @       bothE()                 callable/chainable
@@ -1804,11 +1808,11 @@ module Helios {
                         vertex = next;
                         if (this.traversed.hasOwnProperty(vertex.obj[this.graph.meta.id])) {
                             if (!!this.traversed[vertex.obj[this.graph.meta.id]].length) {
-                                endPipeArray.push.apply(endPipeArray, this.traversed[vertex.obj[this.graph.meta.id]]);
+                                push.apply(endPipeArray, this.traversed[vertex.obj[this.graph.meta.id]]);
                             }
                             return;
                         } else {
-                            this.traversed[vertex.obj[this.graph.meta.id]] = [];
+                           this.traversed[vertex.obj[this.graph.meta.id]] = [];
                         }
                     }
 
@@ -1819,7 +1823,7 @@ module Helios {
                     } else {
                         value = hasArgs ? Utils.pick(vertex.outE, labels) : vertex.outE;
                         Utils.each(Utils.flatten(Utils.values(value)), function (edge) {
-                            endPipeArray.push.call(edge);
+                            endPipeArray.push(edge);
                             if (isTracing) {
                                 traceArray.push(edge.obj[this.graph.meta.id]);
                             }
@@ -3479,29 +3483,3 @@ module Helios {
     }
 }
 
-var g;
-self.onmessage = (e) => {
-    var port = e.ports[0];
-
-    function handler(e){
-        var msg = e.data.message;
-        var t = g;
-        for(var i=0,l=msg.length;i<l;i++){
-            t = t[msg[i].method].apply(t, msg[i].parameters);
-        }
-        port.postMessage({result:t});
-        port.removeEventListener('message', handler, false);
-        port.close();
-    }
-
-    switch(e.data.method) {
-        case 'init':
-            g = !!e.data.parameters ? new Helios.GraphDatabase(e.data.parameters[0]) : new Helios.GraphDatabase();
-            port.postMessage('done');
-            break;
-        default:
-            break;
-    }
-    port.addEventListener("message", handler, false);
-    port.start();
-};

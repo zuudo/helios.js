@@ -143,6 +143,7 @@ var Helios;
             this.inV = this.add('inV');
             this.outE = this.add('outE');
             this.outV = this.add('outV');
+            this.count = this.add('count');
         }
         Pipeline.prototype.add = function (func) {
             return function () {
