@@ -31,6 +31,18 @@ var Helios;
                 ]
             });
         };
+        GraphDatabase.prototype.setPathEnabled = function (turnOn) {
+            this.mc.port1.postMessage({
+                message: [
+                    {
+                        method: 'setPathEnabled',
+                        parameters: [
+                            turnOn
+                        ]
+                    }
+                ]
+            });
+        };
         GraphDatabase.prototype.createVIndex = function (idxName) {
             this.mc.port1.postMessage({
                 message: [
@@ -90,7 +102,6 @@ var Helios;
                     }
                 ]
             });
-            return this;
         };
         GraphDatabase.prototype.loadGraphML = function (xmlData) {
             this.mc.port1.postMessage({
@@ -130,10 +141,6 @@ var Helios;
                     parameters: args
                 }
             ];
-            this.deferreds = [];
-            this.id = this.add('id');
-            this.label = this.add('label');
-            this.property = this.add('property');
             this.out = this.add('out');
             this.in = this.add('in');
             this.both = this.add('both');
@@ -143,9 +150,17 @@ var Helios;
             this.inV = this.add('inV');
             this.outE = this.add('outE');
             this.outV = this.add('outV');
-            this.count = this.add('count');
+            this.id = this.add('id', true);
+            this.label = this.add('label', true);
+            this.getProperty = this.add('getProperty', true);
+            this.count = this.add('count', true);
+            this.stringify = this.add('stringify', true);
+            this.hash = this.add('hash', true);
+            this.emit = this.add('emit', true);
+            this.path = this.add('path', true);
         }
-        Pipeline.prototype.add = function (func) {
+        Pipeline.prototype.add = function (func, isFinal) {
+            if (typeof isFinal === "undefined") { isFinal = false; }
             return function () {
                 var args = [];
                 for (var _i = 0; _i < (arguments.length - 0); _i++) {
@@ -155,19 +170,15 @@ var Helios;
                     method: func,
                     parameters: args
                 });
-                return this;
+                return isFinal ? this.promise(this.messages) : this;
             };
         };
-        Pipeline.prototype.emit = function () {
+        Pipeline.prototype.promise = function (messages) {
             var mc = new MessageChannel(), deferred = Q.defer();
             this.dbWorker.postMessage({
             }, [
                 mc.port2
             ]);
-            this.messages.push({
-                method: 'emit',
-                paramaters: []
-            });
             function handler(event) {
                 deferred.resolve(event.data.result);
                 mc.port1.removeEventListener('message', handler, false);
@@ -176,7 +187,7 @@ var Helios;
             mc.port1.addEventListener('message', handler, false);
             mc.port1.start();
             mc.port1.postMessage({
-                message: this.messages
+                message: messages
             });
             return deferred.promise;
         };

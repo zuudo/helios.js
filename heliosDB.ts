@@ -179,7 +179,7 @@ module Helios {
 
         _:Mogwai.Pipeline;
 
-        pathEnabled:bool = false;
+        pathEnabled:bool = true;
         date:{
             format:any;//can be array
         } = {
@@ -230,19 +230,15 @@ module Helios {
             'ssl': false
         };
 
-        //config:IConfiguration;
-
-        //constructor(graph?:GraphDatabase);
         constructor(options?:any) {
 
-            if (!!options /*&& (options.hasOwnProperty('vertices') || options.hasOwnProperty('edges'))*/) {
+            if (!!options) {
                 //Then passing in starts
                 for (var k in options) {
                     if (options.hasOwnProperty(k)) {
                         this[k] = options[k];
                     }
                 }
-                //this.CONFIG = null;//new Configuration(this.CONFIG);
             } else {
                 this.vertices = {};
                 this.edges = {};
@@ -1060,10 +1056,10 @@ module Helios {
                 var pipe:{}[];
 
                 this.endPipe = [];
-                this.pipeline = this.tracingPath ? [] : undefined;
+                this.pipeline = this.graph.pathEnabled ? [] : undefined;
 
                 Utils.each(elements, function (element) {
-                    if (this.tracingPath) {
+                    if (this.graph.pathEnabled) {
                         pipe = [];
                         pipe.push(element);
                         this.pipeline.push(pipe);
@@ -1112,7 +1108,7 @@ module Helios {
             // }
 
             id():any[] {
-                return this.property(this.graph.meta.id);
+                return this.getProperty(this.graph.meta.id);
             }
 
             /***************************************************************************************************
@@ -1126,7 +1122,7 @@ module Helios {
 
              ***************************************************************************************************/
             label():any[] {
-                return this.property(this.graph.meta.label);
+                return this.getProperty(this.graph.meta.label);
             }
 
             out(...labels:string[]):Pipeline {
@@ -1138,7 +1134,7 @@ module Helios {
                     hasArgs:bool = !!labels.length,
                     isTracing:bool = !!this.tracing,
                     traceArray:any[] = isTracing ? [] : undefined,
-                    isTracingPath:bool = !!this.tracingPath,
+                    isTracingPath:bool = !!this.graph.pathEnabled,
                     pipes:any[],
                     pipe:IElement[];
 
@@ -1877,7 +1873,7 @@ module Helios {
                 return this;
             }
 
-            property(prop:string):any[] {
+            getProperty(prop:string):any[] {
 
                 var array:any[] = [],
                     tempObj:{},
@@ -1898,9 +1894,9 @@ module Helios {
             }
 
             //Needs to be optimized
-            sort(order?:number):Pipeline;
-            sort(func?:() => bool):Pipeline;
-            sort(order?:any):Pipeline {
+            order(order?:number):Pipeline;
+            order(func?:() => bool):Pipeline;
+            order(order?:any):Pipeline {
                 //order => if -1 the desc else asc
                 var endPipeArray:any[] = [],
                     isElement:bool = !!this.endPipe.length && Utils.isElement(this.endPipe[0]),
@@ -1939,7 +1935,7 @@ module Helios {
             }
 
             //[i..j] -> range
-            slice(start:number, end?:number):Pipeline {
+            range(start:number, end?:number):Pipeline {
                 this.endPipe = !!end ? this.endPipe.slice(start, end) : this.endPipe.slice(start);
                 return this;
             }
@@ -1967,7 +1963,7 @@ module Helios {
              g.v(10).out().in().dedup().value();
 
              ****************************************************************************************************/
-                dedup():Pipeline {
+            dedup():Pipeline {
 
                 this.endPipe = Utils.uniqueElement(this.endPipe);
                 return this;
@@ -1987,7 +1983,7 @@ module Helios {
             }
 
             //retain
-            intersect(dataSet:{}[]):Pipeline {
+            retain(dataSet:{}[]):Pipeline {
 
                 var intersectIds = Utils.pluck(Utils.flatten(dataSet), this.graph.meta.id);
                 var ids = Utils.pluck(this.endPipe, this.graph.meta.id);
@@ -2596,7 +2592,7 @@ module Helios {
             }
 
 
-            //Maybe I should allow for a function to be passed in to emit() ??????
+            
             emit():{ results:any[]; } {
 
                 var array:any[] = [],
@@ -2654,9 +2650,9 @@ module Helios {
             //  var result = g.V().stringify('name','age');
 
             //  **************************************************************************************************
-            //     stringify(...props:string[]):string {
-            //     return 'test'; //JSON.stringify(!!props.length ? this.emit.apply(this, props).results : this.emit().results);
-            // }
+            stringify():string {
+                return JSON.stringify(this.emit().results);
+            }
 
             hash():{} {
                 //reset steps
@@ -2665,7 +2661,7 @@ module Helios {
             }
 
             path():any[] {
-                if (!this.tracingPath) {
+                if (!this.graph.pathEnabled) {
                     throw Error('Not tracing path');
                     return;
                 }
