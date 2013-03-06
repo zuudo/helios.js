@@ -115,6 +115,7 @@ module Helios {
         inV:()=>Pipeline;
         outE:(...labels:string[])=>Pipeline;
         outV:()=>Pipeline;
+        count:()=>Pipeline;
 
         // cap(...labels:string[])=>Pipeline;
         // gather(...labels:string[])=>Pipeline;        
@@ -142,6 +143,7 @@ module Helios {
 	        this.inV = this.add('inV');
 	        this.outE = this.add('outE');
 	        this.outV = this.add('outV');
+	        this.count = this.add('count')
 
 
 

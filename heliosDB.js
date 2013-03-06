@@ -4,7 +4,36 @@ var __extends = this.__extends || function (d, b) {
     __.prototype = b.prototype;
     d.prototype = new __();
 };
-importScripts('sax.js', 'moment.min.js');
+if(!!self.importScripts) {
+    importScripts('sax.js', 'moment.min.js');
+    var g;
+    self.onmessage = function (e) {
+        var port = e.ports[0];
+        function handler(e) {
+            var msg = e.data.message;
+            var t = g;
+            for(var i = 0, l = msg.length; i < l; i++) {
+                t = t[msg[i].method].apply(t, msg[i].parameters);
+            }
+            port.postMessage({
+                result: t
+            });
+            port.removeEventListener('message', handler, false);
+            port.close();
+        }
+        switch(e.data.method) {
+            case 'init':
+                g = !!e.data.parameters ? new Helios.GraphDatabase(e.data.parameters[0]) : new Helios.GraphDatabase();
+                port.postMessage('done');
+                break;
+            default:
+                break;
+        }
+        port.addEventListener("message", handler, false);
+        port.start();
+    };
+}
+;
 var Helios;
 (function (Helios) {
     var toString = Object.prototype.toString, ArrayProto = Array.prototype, push = ArrayProto.push, slice = ArrayProto.slice, indexOf = ArrayProto.indexOf;
@@ -232,6 +261,12 @@ var Helios;
             if(Utils.isUndefined(jsonData)) {
                 return null;
             }
+            if(!!jsonData.vertices) {
+                this.loadVertices(jsonData.vertices);
+            }
+            if(!!jsonData.edges) {
+                this.loadEdges(jsonData.edges);
+            }
             if(Utils.isString(jsonData)) {
                 xmlhttp = new XMLHttpRequest();
                 xmlhttp.onreadystatechange = function () {
@@ -245,7 +280,7 @@ var Helios;
                         }
                     }
                 };
-                xmlhttp.open("GET", jsonData, false);
+                xmlhttp.open("GET", jsonData, true);
                 xmlhttp.send(null);
             }
             return this;
@@ -356,7 +391,7 @@ var Helios;
                             parser.write(xmlhttp.responseText).close();
                         }
                     };
-                    xmlhttp.open("GET", xmlData, false);
+                    xmlhttp.open("GET", xmlData, true);
                     xmlhttp.send(null);
                 } else {
                 }
@@ -368,7 +403,7 @@ var Helios;
             for (var _i = 0; _i < (arguments.length - 0); _i++) {
                 args[_i] = arguments[_i + 0];
             }
-            var pipe = [], l, tempObj = {
+            var pipe = [], l, temp, tempObj = {
             }, compObj = {
             }, outputObj = {
             }, subset = {
@@ -477,7 +512,11 @@ var Helios;
                 return this._.startPipe(outputObj);
             }
             for(var i = 0; i < l; i++) {
-                push.call(pipe, this.vertices[args[i]]);
+                temp = this.vertices[args[i]];
+                if(typeof temp === "undefined") {
+                    throw new ReferenceError('No vertex with id ' + args[i]);
+                }
+                push.call(pipe, temp);
             }
             return this._.startPipe(pipe);
         };
@@ -486,7 +525,7 @@ var Helios;
             for (var _i = 0; _i < (arguments.length - 0); _i++) {
                 args[_i] = arguments[_i + 0];
             }
-            var pipe = [], l, tempObj = {
+            var pipe = [], l, temp, tempObj = {
             }, compObj = {
             }, outputObj = {
             }, subset = {
@@ -594,7 +633,11 @@ var Helios;
                 return this._.startPipe(outputObj);
             }
             for(var i = 0; i < l; i++) {
-                push.call(pipe, this.edges[args[i]]);
+                temp = this.edges[args[i]];
+                if(typeof temp === "undefined") {
+                    throw new ReferenceError('No edge with id ' + args[i]);
+                }
+                push.call(pipe, temp);
             }
             return this._.startPipe(pipe);
         };
@@ -1164,7 +1207,7 @@ var Helios;
                         vertex = next;
                         if(this.traversed.hasOwnProperty(vertex.obj[this.graph.meta.id])) {
                             if(!!this.traversed[vertex.obj[this.graph.meta.id]].length) {
-                                endPipeArray.push.apply(endPipeArray, this.traversed[vertex.obj[this.graph.meta.id]]);
+                                push.apply(endPipeArray, this.traversed[vertex.obj[this.graph.meta.id]]);
                             }
                             return;
                         } else {
@@ -1178,7 +1221,7 @@ var Helios;
                     } else {
                         value = hasArgs ? Utils.pick(vertex.outE, labels) : vertex.outE;
                         Utils.each(Utils.flatten(Utils.values(value)), function (edge) {
-                            endPipeArray.push.call(edge);
+                            endPipeArray.push(edge);
                             if(isTracing) {
                                 traceArray.push(edge.obj[this.graph.meta.id]);
                             }
@@ -2372,30 +2415,4 @@ var Helios;
         return Utils;
     })();    
 })(Helios || (Helios = {}));
-var g;
-self.onmessage = function (e) {
-    var port = e.ports[0];
-    function handler(e) {
-        var msg = e.data.message;
-        var t = g;
-        for(var i = 0, l = msg.length; i < l; i++) {
-            t = t[msg[i].method].apply(t, msg[i].parameters);
-        }
-        port.postMessage({
-            result: t
-        });
-        port.removeEventListener('message', handler, false);
-        port.close();
-    }
-    switch(e.data.method) {
-        case 'init':
-            g = !!e.data.parameters ? new Helios.GraphDatabase(e.data.parameters[0]) : new Helios.GraphDatabase();
-            port.postMessage('done');
-            break;
-        default:
-            break;
-    }
-    port.addEventListener("message", handler, false);
-    port.start();
-};
 //@ sourceMappingURL=heliosDB.js.map

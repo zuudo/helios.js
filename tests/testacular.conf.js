@@ -8,16 +8,22 @@ basePath = '../';
 
 // list of files / patterns to load in the browser
 files = [
-  JASMINE,
-  JASMINE_ADAPTER,
-  '*.js',
-  'tests/*.spec.js'
+  MOCHA,
+  MOCHA_ADAPTER,
+  'tests/chai.js',
+  'q.js',
+  'sax.js',
+  'moment.min.js',
+  'heliosDB.js',
+  'tests/*.js'
+
 ];
 
 
 // list of files to exclude
 exclude = [
-
+  
+  'tests/testacular.conf.js'
 ];
 
 
@@ -27,7 +33,7 @@ reporters = ['progress'];
 
 
 // web server port
-port = 8080;
+port = 8088;
 
 
 // cli runner port
