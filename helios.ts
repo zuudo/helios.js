@@ -24,12 +24,12 @@ module Helios {
     		
 		}
 
-		setConfiguration(options:{}):void{
-			this.mc.port1.postMessage({message:[{method:'setConfiguration', parameters:[options]}]})
+		setConfiguration(options:{}):any{
+			return new Promise([{method:'setConfiguration', parameters:[options]}], this.db);
 		}
 
-       setPathEnabled(turnOn:bool):void {
-          this.mc.port1.postMessage({message:[{method:'setPathEnabled', parameters:[turnOn]}]})
+		setPathEnabled(turnOn:bool):any {
+			return new Promise([{method:'setPathEnabled', parameters:[turnOn]}], this.db);
        }
 
 // //need to look at this
@@ -37,28 +37,28 @@ module Helios {
 //            return this.pathEnabled;
 //        }
 
-		createVIndex(idxName:string):void {
-            this.mc.port1.postMessage({message:[{method:'createVIndex', parameters:[idxName]}]})
+		createVIndex(idxName:string):any {
+			return new Promise([{method:'createVIndex', parameters:[idxName]}], this.db);
         }
 
-        createEIndex(idxName:string):void {
-            this.mc.port1.postMessage({message:[{method:'createEIndex', parameters:[idxName]}]})
+        createEIndex(idxName:string):any {
+			return new Promise([{method:'createEIndex', parameters:[idxName]}], this.db);
         }
 
-        deleteVIndex(idxName:string):void {
-            this.mc.port1.postMessage({message:[{method:'deleteVIndex', parameters:[idxName]}]})
+        deleteVIndex(idxName:string):any {
+			return new Promise([{method:'deleteVIndex', parameters:[idxName]}], this.db);
         }
 
-        deleteEIndex(idxName:string):void {
-            this.mc.port1.postMessage({message:[{method:'deleteEIndex', parameters:[idxName]}]})
+        deleteEIndex(idxName:string):any {
+			return new Promise([{method:'deleteEIndex', parameters:[idxName]}], this.db);
         }
 
-		loadGraphSON(jsonData:string):void{
-			this.mc.port1.postMessage({message:[{method:'loadGraphSON', parameters:[jsonData]}]})
+		loadGraphSON(jsonData:string):any{
+			return new Promise([{method:'loadGraphSON', parameters:[jsonData]}], this.db);
 		}
 
-		loadGraphML(xmlData:string):void{
-			this.mc.port1.postMessage({message:[{method:'loadGraphML', parameters:[xmlData]}]})
+		loadGraphML(xmlData:string):any{
+			return new Promise([{method:'loadGraphML', parameters:[xmlData]}], this.db);
 		}
 
 		v(...ids:string[]):Pipeline; 
@@ -74,6 +74,28 @@ module Helios {
         e(...args:any[]):Pipeline {
     		return new Pipeline('e', args, this.db);
 		}	
+	}
+
+	class Promise {
+		constructor(messages:{}[], public dbWorker:any){
+			var mc = new MessageChannel(),
+				deferred = Q.defer();
+
+			this.dbWorker.postMessage({}, [mc.port2]);
+			
+			function handler(event) {
+				deferred.resolve(event.data.result);
+				// no longer need this listener
+				mc.port1.removeEventListener('message', handler, false);
+				mc.port1.close();
+		   	}
+	   		mc.port1.addEventListener('message', handler, false);
+
+			// post a message to the web worker
+			mc.port1.start();
+			mc.port1.postMessage({message:messages});
+			return deferred.promise;
+		}
 	}
 
 	export class Pipeline {
@@ -139,29 +161,8 @@ module Helios {
 		add(func:string, isFinal:bool=false):()=>any{
 			return function(...args:string[]):any{
                 this.messages.push({method:func, parameters:args});
-                return isFinal ? this.promise(this.messages) : this;
+                return isFinal ? new Promise(this.messages, this.dbWorker) : this;
             }
-		}
-
-		//Move into class
-		promise(messages:{}[]):any {
-			var mc = new MessageChannel(),
-				deferred = Q.defer();
-
-			this.dbWorker.postMessage({}, [mc.port2]);
-			
-			function handler(event) {
-				deferred.resolve(event.data.result);
-				// no longer need this listener
-				mc.port1.removeEventListener('message', handler, false);
-				mc.port1.close();
-		   	}
-	   		mc.port1.addEventListener('message', handler, false);
-
-			// post a message to the shared web worker
-			mc.port1.start();
-			mc.port1.postMessage({message:messages});
-			return deferred.promise;
 		}
 
 	}
