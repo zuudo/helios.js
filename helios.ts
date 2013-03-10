@@ -122,6 +122,8 @@ module Helios {
 
         path:()=>any[];
 
+        step:(func:() => any[], ...args:any[])=>Pipeline;
+
         // cap(...labels:string[])=>Pipeline;
         // gather(...labels:string[])=>Pipeline;        
         // map(...labels:string[])=>Pipeline;
@@ -156,10 +158,15 @@ module Helios {
 
 	        this.path = this.add('path', true);
 
+	        this.step = this.add('step');
+
 		}
 
 		add(func:string, isFinal:bool=false):()=>any{
 			return function(...args:string[]):any{
+				// if(typeof args[0] === 'function'){
+				// 	args[0] = args[0].toString();
+				// }
                 this.messages.push({method:func, parameters:args});
                 return isFinal ? new Promise(this.messages, this.dbWorker) : this;
             }

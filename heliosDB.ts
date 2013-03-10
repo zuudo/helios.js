@@ -1007,9 +1007,6 @@ module Helios {
             private pipeline:any[]; //requires Cleanup
             private traceObj:{}; //requires Cleanup
             private tracing:bool;
-            private tracingPath:bool;
-            //private pinned:bool;
-            private snapshot:any = {};
 
             private traversed:{};
             private steps:{
@@ -1019,35 +1016,14 @@ module Helios {
             private asHash:{}; //requires Cleanup
             private endPipe:any[]; //requires Cleanup
 
-            //constructor(graph:GraphDatabase, elements?:{}, clonedPipeline?:Pipeline, pinned?:bool);
-            //constructor(graph:GraphDatabase, elements?:{}[], clonedPipeline?:Pipeline, pinned?:bool);
-            constructor(public graph:GraphDatabase, elements?:any/*, clonedPipeline?:Pipeline, public pinned?:bool*/) {
+            constructor(public graph:GraphDatabase, elements?:any) {
 
-                // if (!!clonedPipeline) {
-                //     this.traceObj = clonedPipeline.traceObj;
-                //     this.tracing = clonedPipeline.tracing;
-                //     this.traversed = clonedPipeline.traversed;
-                //     this.asHash = clonedPipeline.asHash;
-                //     this.tracingPath = clonedPipeline.tracingPath;
-                //     this.steps = clonedPipeline.steps;
-                // } else {
-                    this.tracingPath = graph.pathEnabled;
-                    this.tracing = false;
-                    this.steps = { currentStep: 1 };
-                // }
+                this.tracing = false;
+                this.steps = { currentStep: 1 };
 
                 if (!!elements) {
                     this.startPipe(elements);
                 }
-
-                // if (!!this.pinned) {
-                //     for (var k in this) {
-                //         /* TODO - check */
-                //         //if (this.hasOwnProperty(k)) {
-                //         this.snapshot[k] = this[k];
-                //         //}
-                //     }
-                // }
 
             }
 
@@ -1220,7 +1196,7 @@ module Helios {
                     hasArgs:bool = !!labels.length,
                     isTracing:bool = !!this.tracing,
                     traceArray:any[] = isTracing ? [] : undefined,
-                    isTracingPath:bool = !!this.tracingPath,
+                    isTracingPath:bool = !!this.graph.pathEnabled,
                     pipes:any[],
                     pipe:IElement[];
 
@@ -1313,7 +1289,7 @@ module Helios {
                     iter:any[],
                     endPipeArray:any[] = [],
                     isTracing:bool = !!this.tracing,
-                    isTracingPath:bool = !!this.tracingPath,
+                    isTracingPath:bool = !!this.graph.pathEnabled,
                     pipes:any[] = isTracingPath ? [] : undefined,
                     pipe:IElement[];
                 this.steps[++this.steps.currentStep] = {   func: 'outV'  };
@@ -1363,7 +1339,7 @@ module Helios {
                     iter:any[] = [],
                     endPipeArray:any[] = [],
                     isTracing:bool = !!this.tracing,
-                    isTracingPath:bool = !!this.tracingPath,
+                    isTracingPath:bool = !!this.graph.pathEnabled,
                     pipes:any[] = isTracingPath ? [] : undefined,
                     pipe:IElement[];
                 ;
@@ -1423,7 +1399,7 @@ module Helios {
                     hasArgs:bool = !!labels.length,
                     isTracing:bool = !!this.tracing,
                     traceArray:any[] = isTracing ? [] : undefined,
-                    isTracingPath:bool = !!this.tracingPath,
+                    isTracingPath:bool = !!this.graph.pathEnabled,
                     pipes:any[] = isTracingPath ? [] : undefined,
                     pipe:IElement[];
 
@@ -1515,7 +1491,7 @@ module Helios {
                     hasArgs:bool = !!labels.length,
                     isTracing:bool = !!this.tracing,
                     traceArray:any[] = isTracing ? [] : undefined,
-                    isTracingPath:bool = !!this.tracingPath,
+                    isTracingPath:bool = !!this.graph.pathEnabled,
                     pipes:any[] = isTracingPath ? [] : undefined,
                     pipe:IElement[];
 
@@ -1607,7 +1583,7 @@ module Helios {
                     hasArgs:bool = !!labels.length,
                     isTracing:bool = !!this.tracing,
                     traceArray:any[] = isTracing ? [] : undefined,
-                    isTracingPath:bool = !!this.tracingPath,
+                    isTracingPath:bool = !!this.graph.pathEnabled,
                     pipes:any[] = isTracingPath ? [] : undefined,
                     pipe:IElement[];
 
@@ -1716,7 +1692,7 @@ module Helios {
                     iter:any[] = [],
                     endPipeArray:any[] = [],
                     isTracing:bool = !!this.tracing,
-                    isTracingPath:bool = !!this.tracingPath,
+                    isTracingPath:bool = !!this.graph.pathEnabled,
                     pipes:any[] = isTracingPath ? [] : undefined,
                     pipe:IElement[];
                 ;
@@ -1780,7 +1756,7 @@ module Helios {
                     hasArgs:bool = !!labels.length,
                     isTracing:bool = !!this.tracing,
                     traceArray:any[] = isTracing ? [] : undefined,
-                    isTracingPath:bool = !!this.tracingPath,
+                    isTracingPath:bool = !!this.graph.pathEnabled,
                     pipes:any[] = isTracingPath ? [] : undefined,
                     pipe:IElement[];
 
@@ -2006,7 +1982,7 @@ module Helios {
                     endPipeArray:any[] = [],
                     isTracing:bool = !!this.tracing,
                     traceArray:any[] = isTracing ? [] : undefined,
-                    isTracingPath:bool = !!this.tracingPath,
+                    isTracingPath:bool = !!this.graph.pathEnabled,
                     pipes:any[] = isTracingPath ? [] : undefined,
                     funcObj:{},
                     tempObj:{},
@@ -2098,7 +2074,7 @@ module Helios {
                     endPipeArray:any[] = [],
                     isTracing:bool = !!this.tracing,
                     traceArray:any[] = isTracing ? [] : undefined,
-                    isTracingPath:bool = !!this.tracingPath,
+                    isTracingPath:bool = !!this.graph.pathEnabled,
                     pipes:any[] = isTracingPath ? [] : undefined;
 
                 iter = isTracingPath ? this.pipeline : this.endPipe;
@@ -2132,7 +2108,7 @@ module Helios {
                     endPipeArray:IElement[] = [],
                     isTracing:bool = !!this.tracing,
                     traceArray:any[] = isTracing ? [] : undefined,
-                    isTracingPath:bool = !!this.tracingPath,
+                    isTracingPath:bool = !!this.graph.pathEnabled,
                     pipes:any[] = isTracingPath ? [] : undefined,
                     comp:number,
                     newComp:number,
@@ -2206,7 +2182,7 @@ module Helios {
                     endPipeArray:IElement[] = [],
                     isTracing:bool = !!this.tracing,
                     traceArray:any[] = isTracing ? [] : undefined,
-                    isTracingPath:bool = !!this.tracingPath,
+                    isTracingPath:bool = !!this.graph.pathEnabled,
                     pipes:any[] = isTracingPath ? [] : undefined,
                     comp:number,
                     newComp:number,
@@ -2369,7 +2345,7 @@ module Helios {
              ****************************************************************************************************/
                 group(args:string[]):{} {
 
-                var isTracingPath:bool = !!this.tracingPath,
+                var isTracingPath:bool = !!this.graph.pathEnabled,
                     props:string[] = [],
                     tempObj:{},
                     tempProp:string,
@@ -2415,7 +2391,7 @@ module Helios {
 
             sum(args:string[]):{} {
 
-                var isTracingPath:bool = !!this.tracingPath,
+                var isTracingPath:bool = !!this.graph.pathEnabled,
                     props:string[] = [],
                     tempObj:{},
                     tempProp:string,
@@ -2487,11 +2463,11 @@ module Helios {
             }
 
 
-            step(func:() => any[], ...args:any[]):Pipeline {
+            step(func:string/*() => any[], ...args:any[]*/):Pipeline {
                 var endPipeArray:any[] = [];
-
+                var customFunc = new Function("var it = this;"+func);
                 Utils.each(this.endPipe, function (element) {
-                    endPipeArray.push(func.apply(element.obj, args));
+                    endPipeArray.push(customFunc.call(element.obj/*, args*/));
                 });
                 this.endPipe = endPipeArray;
                 return this;
@@ -2536,7 +2512,7 @@ module Helios {
                     element:IElement,
                     iter:any[] = [],
                     isTracing:bool = !!this.tracing,
-                    isTracingPath:bool = !!this.tracingPath,
+                    isTracingPath:bool = !!this.graph.pathEnabled,
                     pipes:any[] = isTracingPath ? [] : undefined,
                     hasFunction:bool = !!func && typeof func == "function",
                     callFunc:() => void = function () {
@@ -2595,45 +2571,18 @@ module Helios {
             
             emit():{ results:any[]; } {
 
-                var array:any[] = [],
-                    temp:any,
-                    iter:any[];
+                //reset steps
+                this.steps = { currentStep: 0 };
 
-                iter = this.endPipe;
-
-                // if (!!this.pinned) {
-                //     this.traceObj = this.snapshot.traceObj;   //????????????????????
-                //     this.tracing = this.snapshot.tracing;
-                //     this.traversed = this.snapshot.traversed;
-                //     this.asHash = this.snapshot.asHash;
-                //     this.tracingPath = this.snapshot.tracingPath;
-                //     this.steps = this.snapshot.steps;
-                //     this.endPipe = this.snapshot.endPipe;
-
-                // } else {
-                    //reset steps
-                    this.steps = { currentStep: 0 };
-                //}
-
-                if (!!iter.length) {
-                    if (!iter[0] || !Utils.isElement(iter[0])) {
-                        return {results: iter};
-                    }
-                    //if (!props.length) {
-                       // var t = Utils.toObjArray(iter);
-                    
-                        return {results: Utils.toObjArray(iter)};
-                    //}
-                    /*Utils.each(Utils.toObjArray(iter), function (element) {
-                        temp = Utils.pick(element, props);
-                        if (!Utils.isEmpty(temp)) {
-                            array.push(Utils.pick(element, props));
-                        }
-                    });*/
+                if (!!this.endPipe.length) {
+                    if (!this.endPipe[0] || !Utils.isElement(this.endPipe[0])) {
+                        return {results: this.endPipe};
+                    }                    
+                    return {results: Utils.toObjArray(this.endPipe)};
                 }
 
 
-                return {results: array};
+                return {results: []};
             }
 
             // **************************************************************************************************
@@ -2647,7 +2596,6 @@ module Helios {
             //  @example
 
             //  var result = g.V().stringify();
-            //  var result = g.V().stringify('name','age');
 
             //  **************************************************************************************************
             stringify():string {
@@ -2675,21 +2623,6 @@ module Helios {
                 this.pipeline.length = 0;
                 return outputArray;
             }
-
-            // **************************************************************************************************
-            //  Clone output objects
-            //  @       clone()                 callable
-            //  @returns    {Object Array}          emits an Object Array
-            //  @example
-
-            //  g.v(10).out().clone();
-
-            //  ***************************************************************************************************
-            //     clone():{}[] {
-            //     //reset steps
-            //     this.steps = { currentStep: 0 };
-            //     return JSON.parse(JSON.stringify(this.emit().results));
-            // }
 
         }
 
