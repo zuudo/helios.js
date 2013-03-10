@@ -164,6 +164,7 @@ function handler(event) {
             this.hash = this.add('hash', true);
             this.emit = this.add('emit', true);
             this.path = this.add('path', true);
+            this.step = this.add('step');
         }
         Pipeline.prototype.add = function (func, isFinal) {
             if (typeof isFinal === "undefined") { isFinal = false; }

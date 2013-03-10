@@ -652,9 +652,6 @@ var Helios;
         var Pipeline = (function () {
             function Pipeline(graph, elements) {
                 this.graph = graph;
-                this.snapshot = {
-                };
-                this.tracingPath = graph.pathEnabled;
                 this.tracing = false;
                 this.steps = {
                     currentStep: 1
@@ -760,7 +757,7 @@ var Helios;
                 for (var _i = 0; _i < (arguments.length - 0); _i++) {
                     labels[_i] = arguments[_i + 0];
                 }
-                var value, vertex, iter = [], endPipeArray = [], hasArgs = !!labels.length, isTracing = !!this.tracing, traceArray = isTracing ? [] : undefined, isTracingPath = !!this.tracingPath, pipes, pipe;
+                var value, vertex, iter = [], endPipeArray = [], hasArgs = !!labels.length, isTracing = !!this.tracing, traceArray = isTracing ? [] : undefined, isTracingPath = !!this.graph.pathEnabled, pipes, pipe;
                 if(!!this.endPipe.length && this.endPipe[0].Type !== 'Vertex') {
                     throw new TypeError('Only accepts incoming ' + this.endPipe[0].Type + 's');
                 }
@@ -828,7 +825,7 @@ var Helios;
                 return this;
             };
             Pipeline.prototype.outV = function () {
-                var edge, iter, endPipeArray = [], isTracing = !!this.tracing, isTracingPath = !!this.tracingPath, pipes = isTracingPath ? [] : undefined, pipe;
+                var edge, iter, endPipeArray = [], isTracing = !!this.tracing, isTracingPath = !!this.graph.pathEnabled, pipes = isTracingPath ? [] : undefined, pipe;
                 this.steps[++this.steps.currentStep] = {
                     func: 'outV'
                 };
@@ -863,7 +860,7 @@ var Helios;
                 return this;
             };
             Pipeline.prototype.inV = function () {
-                var edge, iter = [], endPipeArray = [], isTracing = !!this.tracing, isTracingPath = !!this.tracingPath, pipes = isTracingPath ? [] : undefined, pipe;
+                var edge, iter = [], endPipeArray = [], isTracing = !!this.tracing, isTracingPath = !!this.graph.pathEnabled, pipes = isTracingPath ? [] : undefined, pipe;
                 ;
                 this.steps[++this.steps.currentStep] = {
                     func: 'inV'
@@ -903,7 +900,7 @@ var Helios;
                 for (var _i = 0; _i < (arguments.length - 0); _i++) {
                     labels[_i] = arguments[_i + 0];
                 }
-                var value, vertex, iter = [], endPipeArray = [], hasArgs = !!labels.length, isTracing = !!this.tracing, traceArray = isTracing ? [] : undefined, isTracingPath = !!this.tracingPath, pipes = isTracingPath ? [] : undefined, pipe;
+                var value, vertex, iter = [], endPipeArray = [], hasArgs = !!labels.length, isTracing = !!this.tracing, traceArray = isTracing ? [] : undefined, isTracingPath = !!this.graph.pathEnabled, pipes = isTracingPath ? [] : undefined, pipe;
                 if(!!this.endPipe.length && this.endPipe[0].Type !== 'Vertex') {
                     throw new TypeError('Only accepts incoming ' + this.endPipe[0].Type + 's');
                 }
@@ -975,7 +972,7 @@ var Helios;
                 for (var _i = 0; _i < (arguments.length - 0); _i++) {
                     labels[_i] = arguments[_i + 0];
                 }
-                var value, vertex, iter = [], endPipeArray = [], hasArgs = !!labels.length, isTracing = !!this.tracing, traceArray = isTracing ? [] : undefined, isTracingPath = !!this.tracingPath, pipes = isTracingPath ? [] : undefined, pipe;
+                var value, vertex, iter = [], endPipeArray = [], hasArgs = !!labels.length, isTracing = !!this.tracing, traceArray = isTracing ? [] : undefined, isTracingPath = !!this.graph.pathEnabled, pipes = isTracingPath ? [] : undefined, pipe;
                 if(!!this.endPipe.length && this.endPipe[0].Type !== 'Vertex') {
                     throw new TypeError('Only accepts incoming ' + this.endPipe[0].Type + 's');
                 }
@@ -1047,7 +1044,7 @@ var Helios;
                 for (var _i = 0; _i < (arguments.length - 0); _i++) {
                     labels[_i] = arguments[_i + 0];
                 }
-                var value, vertex, iter = [], endPipeArray = [], hasArgs = !!labels.length, isTracing = !!this.tracing, traceArray = isTracing ? [] : undefined, isTracingPath = !!this.tracingPath, pipes = isTracingPath ? [] : undefined, pipe;
+                var value, vertex, iter = [], endPipeArray = [], hasArgs = !!labels.length, isTracing = !!this.tracing, traceArray = isTracing ? [] : undefined, isTracingPath = !!this.graph.pathEnabled, pipes = isTracingPath ? [] : undefined, pipe;
                 this.steps[++this.steps.currentStep] = {
                     func: 'both',
                     args: labels
@@ -1136,7 +1133,7 @@ var Helios;
                 return this;
             };
             Pipeline.prototype.bothV = function () {
-                var edge, iter = [], endPipeArray = [], isTracing = !!this.tracing, isTracingPath = !!this.tracingPath, pipes = isTracingPath ? [] : undefined, pipe;
+                var edge, iter = [], endPipeArray = [], isTracing = !!this.tracing, isTracingPath = !!this.graph.pathEnabled, pipes = isTracingPath ? [] : undefined, pipe;
                 ;
                 this.steps[++this.steps.currentStep] = {
                     func: 'bothV'
@@ -1184,7 +1181,7 @@ var Helios;
                 for (var _i = 0; _i < (arguments.length - 0); _i++) {
                     labels[_i] = arguments[_i + 0];
                 }
-                var value, vertex, iter = [], endPipeArray = [], hasArgs = !!labels.length, isTracing = !!this.tracing, traceArray = isTracing ? [] : undefined, isTracingPath = !!this.tracingPath, pipes = isTracingPath ? [] : undefined, pipe;
+                var value, vertex, iter = [], endPipeArray = [], hasArgs = !!labels.length, isTracing = !!this.tracing, traceArray = isTracing ? [] : undefined, isTracingPath = !!this.graph.pathEnabled, pipes = isTracingPath ? [] : undefined, pipe;
                 this.steps[++this.steps.currentStep] = {
                     func: 'bothE',
                     args: labels
@@ -1352,7 +1349,7 @@ var Helios;
                 for (var _i = 0; _i < (arguments.length - 0); _i++) {
                     args[_i] = arguments[_i + 0];
                 }
-                var element, iter = [], l, nextIter = [], comparables = [], endPipeArray = [], isTracing = !!this.tracing, traceArray = isTracing ? [] : undefined, isTracingPath = !!this.tracingPath, pipes = isTracingPath ? [] : undefined, funcObj, tempObj, compObj, tempProp, propVals = [], isIn;
+                var element, iter = [], l, nextIter = [], comparables = [], endPipeArray = [], isTracing = !!this.tracing, traceArray = isTracing ? [] : undefined, isTracingPath = !!this.graph.pathEnabled, pipes = isTracingPath ? [] : undefined, funcObj, tempObj, compObj, tempProp, propVals = [], isIn;
                 iter = isTracingPath ? this.pipeline : this.endPipe;
                 comparables = Utils.flatten(args);
                 l = comparables.length;
@@ -1428,7 +1425,7 @@ var Helios;
                 for (var _i = 0; _i < (arguments.length - 1); _i++) {
                     args[_i] = arguments[_i + 1];
                 }
-                var element, iter = [], endPipeArray = [], isTracing = !!this.tracing, traceArray = isTracing ? [] : undefined, isTracingPath = !!this.tracingPath, pipes = isTracingPath ? [] : undefined;
+                var element, iter = [], endPipeArray = [], isTracing = !!this.tracing, traceArray = isTracing ? [] : undefined, isTracingPath = !!this.graph.pathEnabled, pipes = isTracingPath ? [] : undefined;
                 iter = isTracingPath ? this.pipeline : this.endPipe;
                 Utils.each(iter, function (next) {
                     element = isTracingPath ? slice.call(next, -1)[0] : next;
@@ -1450,7 +1447,7 @@ var Helios;
                 return this;
             };
             Pipeline.prototype.min = function (arg) {
-                var element, iter = [], endPipeArray = [], isTracing = !!this.tracing, traceArray = isTracing ? [] : undefined, isTracingPath = !!this.tracingPath, pipes = isTracingPath ? [] : undefined, comp, newComp, tempObj, tempProp, isEmbedded = arg.indexOf(".") > -1;
+                var element, iter = [], endPipeArray = [], isTracing = !!this.tracing, traceArray = isTracing ? [] : undefined, isTracingPath = !!this.graph.pathEnabled, pipes = isTracingPath ? [] : undefined, comp, newComp, tempObj, tempProp, isEmbedded = arg.indexOf(".") > -1;
                 iter = isTracingPath ? this.pipeline : this.endPipe;
                 tempProp = isEmbedded ? arg.split(".").slice(-1)[0] : arg;
                 Utils.each(iter, function (next) {
@@ -1505,7 +1502,7 @@ var Helios;
                 return this;
             };
             Pipeline.prototype.max = function (arg) {
-                var element, iter = [], endPipeArray = [], isTracing = !!this.tracing, traceArray = isTracing ? [] : undefined, isTracingPath = !!this.tracingPath, pipes = isTracingPath ? [] : undefined, comp, newComp, tempObj, tempProp, isEmbedded = arg.indexOf(".") > -1;
+                var element, iter = [], endPipeArray = [], isTracing = !!this.tracing, traceArray = isTracing ? [] : undefined, isTracingPath = !!this.graph.pathEnabled, pipes = isTracingPath ? [] : undefined, comp, newComp, tempObj, tempProp, isEmbedded = arg.indexOf(".") > -1;
                 iter = isTracingPath ? this.pipeline : this.endPipe;
                 tempProp = isEmbedded ? arg.split(".").slice(-1)[0] : arg;
                 Utils.each(iter, function (next) {
@@ -1617,7 +1614,7 @@ var Helios;
                 return this.endPipe.length;
             };
             Pipeline.prototype.group = function (args) {
-                var isTracingPath = !!this.tracingPath, props = [], tempObj, tempProp, groupObj = {
+                var isTracingPath = !!this.graph.pathEnabled, props = [], tempObj, tempProp, groupObj = {
                 }, o = {
                 }, outputObj = {
                 }, element;
@@ -1654,7 +1651,7 @@ var Helios;
                 return outputObj;
             };
             Pipeline.prototype.sum = function (args) {
-                var isTracingPath = !!this.tracingPath, props = [], tempObj, tempProp, outputObj, o = {
+                var isTracingPath = !!this.graph.pathEnabled, props = [], tempObj, tempProp, outputObj, o = {
                 }, isEmbedded = false;
                 function createChildren(val) {
                     var properties = [];
@@ -1725,13 +1722,10 @@ var Helios;
                 return outputObj;
             };
             Pipeline.prototype.step = function (func) {
-                var args = [];
-                for (var _i = 0; _i < (arguments.length - 1); _i++) {
-                    args[_i] = arguments[_i + 1];
-                }
                 var endPipeArray = [];
+                var customFunc = new Function("var it = this;" + func);
                 Utils.each(this.endPipe, function (element) {
-                    endPipeArray.push(func.apply(element.obj, args));
+                    endPipeArray.push(customFunc.call(element.obj));
                 });
                 this.endPipe = endPipeArray;
                 return this;
@@ -1755,7 +1749,7 @@ var Helios;
                 for (var _i = 0; _i < (arguments.length - 3); _i++) {
                     args[_i] = arguments[_i + 3];
                 }
-                var i, stepFrom = 0, stepTo = this.steps.currentStep, endPipeArray = [], element, iter = [], isTracing = !!this.tracing, isTracingPath = !!this.tracingPath, pipes = isTracingPath ? [] : undefined, hasFunction = !!func && typeof func == "function", callFunc = function () {
+                var i, stepFrom = 0, stepTo = this.steps.currentStep, endPipeArray = [], element, iter = [], isTracing = !!this.tracing, isTracingPath = !!this.graph.pathEnabled, pipes = isTracingPath ? [] : undefined, hasFunction = !!func && typeof func == "function", callFunc = function () {
                     iter = isTracingPath ? this.pipeline : this.endPipe;
                     Utils.each(iter, function (next) {
                         element = isTracingPath ? slice.call(next, -1)[0] : next;
@@ -1803,23 +1797,21 @@ var Helios;
                 return this;
             };
             Pipeline.prototype.emit = function () {
-                var array = [], temp, iter;
-                iter = this.endPipe;
                 this.steps = {
                     currentStep: 0
                 };
-                if(!!iter.length) {
-                    if(!iter[0] || !Utils.isElement(iter[0])) {
+                if(!!this.endPipe.length) {
+                    if(!this.endPipe[0] || !Utils.isElement(this.endPipe[0])) {
                         return {
-                            results: iter
+                            results: this.endPipe
                         };
                     }
                     return {
-                        results: Utils.toObjArray(iter)
+                        results: Utils.toObjArray(this.endPipe)
                     };
                 }
                 return {
-                    results: array
+                    results: []
                 };
             };
             Pipeline.prototype.stringify = function () {
