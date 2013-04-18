@@ -179,7 +179,7 @@ module Helios {
 
         _:Mogwai.Pipeline;
 
-        pathEnabled:bool = true;
+        pathEnabled:bool = false;
         date:{
             format:any;//can be array
         } = {
