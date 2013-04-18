@@ -13,7 +13,7 @@ module Helios {
     			msg.parameters = [options];
     		}
 
-    		this.db = new Worker('heliosDB.js');
+    		this.db = new Worker('./libs/heliosDB.js');
 
     		this.mc = new MessageChannel();
     		this.db.postMessage(msg, [this.mc.port2]);
