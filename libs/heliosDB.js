@@ -104,7 +104,7 @@ var Helios;
     Helios.Edge = Edge;    
     var GraphDatabase = (function () {
         function GraphDatabase(options) {
-            this.pathEnabled = true;
+            this.pathEnabled = false;
             this.date = {
                 format: "DD/MM/YYYY"
             };
