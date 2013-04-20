@@ -485,7 +485,7 @@ var Helios;
             for(var i = 0; i < l; i++) {
                 temp = isObject ? this.vertices[args[i][this.meta.id]] : this.vertices[args[i]];
                 if(typeof temp === "undefined") {
-                    throw new ReferenceError('No vertex with id ' + args[i]);
+                    throw new ReferenceError('No vertex with id ' + isObject ? args[i][this.meta.id] : args[i]);
                 }
                 push.call(pipe, temp);
             }
@@ -607,7 +607,7 @@ var Helios;
             for(var i = 0; i < l; i++) {
                 temp = isObject ? this.edges[args[i][this.meta.id]] : this.edges[args[i]];
                 if(typeof temp === "undefined") {
-                    throw new ReferenceError('No edge with id ' + args[i]);
+                    throw new ReferenceError('No edge with id ' + isObject ? args[i][this.meta.id] : args[i]);
                 }
                 push.call(pipe, temp);
             }
