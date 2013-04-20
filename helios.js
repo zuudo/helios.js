@@ -150,18 +150,16 @@ var Helios;
             this.inV = this.add('inV');
             this.outE = this.add('outE');
             this.outV = this.add('outV');
-            this.id = this.add('id', true);
-            this.label = this.add('label', true);
-            this.getProperty = this.add('getProperty', true);
-            this.count = this.add('count', true);
-            this.stringify = this.add('stringify', true);
-            this.hash = this.add('hash', true);
-            this.emit = this.add('emit', true);
-            this.path = this.add('path', true);
+            this.id = this.add('id');
+            this.label = this.add('label');
+            this.getProperty = this.add('getProperty');
+            this.count = this.add('count');
+            this.stringify = this.add('stringify');
+            this.hash = this.add('hash');
+            this.path = this.add('path');
             this.step = this.add('step');
         }
-        Pipeline.prototype.add = function (func, isFinal) {
-            if (typeof isFinal === "undefined") { isFinal = false; }
+        Pipeline.prototype.add = function (func) {
             return function () {
                 var args = [];
                 for (var _i = 0; _i < (arguments.length - 0); _i++) {
@@ -171,10 +169,15 @@ var Helios;
                     method: func,
                     parameters: args
                 });
-                return isFinal ? this.db.invoke("run", this.messages).fail(function (error) {
-                    console.log(error);
-                }) : this;
+                return this;
             };
+        };
+        Pipeline.prototype.then = function (success, error) {
+            this.messages.push({
+                method: 'emit',
+                parameters: []
+            });
+            this.db.invoke("run", this.messages).then(success, error).end();
         };
         return Pipeline;
     })();

@@ -3432,7 +3432,7 @@ try{
     var i, l, g, r;
     Q_COMM.Connection(this, {
         init: function (params) {
-            for(var i=0;i<3000000000;i++){}
+            //for(var i=0;i<3000000000;i++){}
             g = !!params ? new Helios.GraphDatabase(params) : new Helios.GraphDatabase();
             return 'Database created';
         },
