@@ -80,6 +80,8 @@ module Helios {
 		private messages:{}[];
 		private db:any;
 
+		//then:(success?:()=>any,error?:()=>any) => any;
+
 		out:(...labels: string[]) => Pipeline;
 		in:(...labels:string[])=>Pipeline;
 		both:(...labels:string[])=>Pipeline;
@@ -128,25 +130,31 @@ module Helios {
 	        this.outE = this.add('outE');
 	        this.outV = this.add('outV');
 
-	        this.id = this.add('id', true);
-	        this.label = this.add('label', true);
-	        this.getProperty = this.add('getProperty', true);
-	        this.count = this.add('count', true);
-	        this.stringify = this.add('stringify', true);
-	        this.hash = this.add('hash', true);
-	        this.emit = this.add('emit', true);
+	        this.id = this.add('id');
+	        this.label = this.add('label');
+	        this.getProperty = this.add('getProperty');
+	        this.count = this.add('count');
+	        this.stringify = this.add('stringify');
+	        this.hash = this.add('hash');
+	        //this.emit = this.add('emit', true);
 
-	        this.path = this.add('path', true);
+	        this.path = this.add('path');
 
 	        this.step = this.add('step');
 
+
 		}
 
-		add(func:string, isFinal:bool=false):()=>any{
+		add(func:string):()=>any{
 			return function(...args:string[]):any{
                 this.messages.push({method:func, parameters:args});
-                return isFinal ? this.db.invoke("run", this.messages).fail(function (error) {console.log(error)}) : this;
+                return this;
             }
+		}
+
+		then(success?:()=>any, error?:()=>any):void{
+			this.messages.push({method:'emit', parameters:[]});
+			this.db.invoke("run", this.messages).then(success, error).end();
 		}
 
 	}
