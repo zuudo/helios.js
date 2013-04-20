@@ -1,35 +1,30 @@
-
 module Helios {
 
     declare var Q;
+    declare var Q_COMM;
+    declare var UUID;
     export class GraphDatabase {
 
-    	db:any;
-    	mc:any;
+    	private worker:any;
+    	private db:any;
 
         constructor(options?:any) {
-    		var msg:{method:string; parameters?:any;} = { method:'init'};
-    		if(!!options){
-    			msg.parameters = [options];
-    		}
 
-    		this.db = new Worker('./libs/heliosDB.js');
+    		this.worker = new Worker('./libs/heliosDB.js');
+			this.db = Q_COMM.Connection(this.worker, null, {max: 1024});
 
-    		this.mc = new MessageChannel();
-    		this.db.postMessage(msg, [this.mc.port2]);
-
-    		this.mc.port1.onmessage = (e) => {
-				console.log(e.data);
-			};
-    		
-		}
+            this.db.invoke("init", options)
+            .then(function (message) {
+                console.log(message);
+            }).end();
+  		}
 
 		setConfiguration(options:{}):any{
-			return new Promise([{method:'setConfiguration', parameters:[options]}], this.db);
+			this.worker.postMessage({async:false, message:[{method:'setConfiguration', parameters:[options]}]});
 		}
 
 		setPathEnabled(turnOn:bool):any {
-			return new Promise([{method:'setPathEnabled', parameters:[turnOn]}], this.db);
+			this.worker.postMessage({async:false, message:[{method:'setPathEnabled', parameters:[turnOn]}]});
        }
 
 // //need to look at this
@@ -38,69 +33,52 @@ module Helios {
 //        }
 
 		createVIndex(idxName:string):any {
-			return new Promise([{method:'createVIndex', parameters:[idxName]}], this.db);
+			this.worker.postMessage({async:false, message:[{method:'createVIndex', parameters:[idxName]}]});
         }
 
         createEIndex(idxName:string):any {
-			return new Promise([{method:'createEIndex', parameters:[idxName]}], this.db);
+			this.worker.postMessage({async:false, message:[{method:'createEIndex', parameters:[idxName]}]});
         }
 
         deleteVIndex(idxName:string):any {
-			return new Promise([{method:'deleteVIndex', parameters:[idxName]}], this.db);
+			this.worker.postMessage({async:false, message:[{method:'deleteVIndex', parameters:[idxName]}]});
         }
 
         deleteEIndex(idxName:string):any {
-			return new Promise([{method:'deleteEIndex', parameters:[idxName]}], this.db);
+			this.worker.postMessage({async:false, message:[{method:'deleteEIndex', parameters:[idxName]}]});
         }
 
-		loadGraphSON(jsonData:string):any{
-			return new Promise([{method:'loadGraphSON', parameters:[jsonData]}], this.db);
+		loadGraphSON(jsonData:string):bool{
+			this.db.invoke("run", [{method:'loadGraphSON', parameters:[jsonData]}]).then(function (message) {
+                console.log(message);
+            })
+            .end();
+            return true;
 		}
 
 		loadGraphML(xmlData:string):any{
-			return new Promise([{method:'loadGraphML', parameters:[xmlData]}], this.db);
+			this.worker.postMessage({async:false, message:[{method:'loadGraphML', parameters:[xmlData]}]});
 		}
 
 		v(...ids:string[]):Pipeline; 
         v(...ids:number[]):Pipeline; 
         v(...objs:{}[]):Pipeline;    
         v(...args:any[]):Pipeline {
-    		return new Pipeline('v', args, this.db);
+    		return new Pipeline('v', args, this);
 		}
 
 		e(...ids:string[]):Pipeline; 
         e(...ids:number[]):Pipeline; 
         e(...objs:{}[]):Pipeline; 
         e(...args:any[]):Pipeline {
-    		return new Pipeline('e', args, this.db);
+    		return new Pipeline('e', args, this);
 		}	
-	}
-
-	class Promise {
-		constructor(messages:{}[], public dbWorker:any){
-			var mc = new MessageChannel(),
-				deferred = Q.defer();
-
-			this.dbWorker.postMessage({}, [mc.port2]);
-			
-			function handler(event) {
-				deferred.resolve(event.data.result);
-				// no longer need this listener
-				mc.port1.removeEventListener('message', handler, false);
-				mc.port1.close();
-		   	}
-	   		mc.port1.addEventListener('message', handler, false);
-
-			// post a message to the web worker
-			mc.port1.start();
-			mc.port1.postMessage({message:messages});
-			return deferred.promise;
-		}
 	}
 
 	export class Pipeline {
 		
 		private messages:{}[];
+		private db:any;
 
 		out:(...labels: string[]) => Pipeline;
 		in:(...labels:string[])=>Pipeline;
@@ -135,8 +113,10 @@ module Helios {
         // select(...labels:string[])=>Pipeline;
         // transform(...labels:string[])=>Pipeline;
 
-		constructor(method:string, args:any[], public dbWorker:any){
+		constructor(method:string, args:any[], public helios:any){
 			this.messages = [{method:method, parameters:args}];
+
+			this.db = helios.db;
 
 			this.out = this.add('out');
 			this.in = this.add('in');
@@ -164,11 +144,8 @@ module Helios {
 
 		add(func:string, isFinal:bool=false):()=>any{
 			return function(...args:string[]):any{
-				// if(typeof args[0] === 'function'){
-				// 	args[0] = args[0].toString();
-				// }
                 this.messages.push({method:func, parameters:args});
-                return isFinal ? new Promise(this.messages, this.dbWorker) : this;
+                return isFinal ? this.db.invoke("run", this.messages).fail(function (error) {console.log(error)}) : this;
             }
 		}
 
