@@ -1,36 +1,46 @@
 "use strict"
 /// <reference path="moment.d.ts" />
+declare var Q_COMM;
+    
+// if(!!self.importScripts) {
+//     importScripts('sax.js', 'moment.min.js', "q.js", "uuid.js", "q-comm.js");
+//     var i, l, g, r;
+//     g = new Helios.GraphDatabase();
+//     Q_COMM.Connection(this, {
+//         init: function (params) {
+//             //g = !!params ? new Helios.GraphDatabase(params) : new Helios.GraphDatabase();
+//             return g;//'Database created';
+//         },
+//         run: function (params) {
+//             for(i=0, l=params.length;i<l;i++){
+//                 r = g[params[i].method].apply(g, params[i].parameters);
+//             }
+//             return g;
+//         }
+//     });
+//     // var g, r;
+//     // self.onmessage = (e) => {
+//     //     var msg;
+//     //     switch(e.data.src) {
+//     //         case 'db':
+//     //             msg = e.data.message[0];
+//     //             //delay return --> testing only
+//     //             for(var i=0;i<3000000000;i++){}
+//     //             g = !!msg.parameters ? new Helios.GraphDatabase(msg.parameters[0]) : new Helios.GraphDatabase();
+//     //             self.postMessage({result:"Database created"});
+//     //             break;
+            
+//     //         default:
+//     //             msg = e.data.message.message;
+//     //             for(var i=0,l=msg.length;i<l;i++){
+//     //                 r = g[msg[i].method].apply(g, msg[i].parameters);
+//     //             }
+//     //             self.postMessage({id:e.data.id, result:r});
+//     //             break;
+//     //     }
+//     // }
+// };
 
-if(!!self.importScripts){
-    importScripts('sax.js', 'moment.min.js');
-
-    var g;
-    self.onmessage = (e) => {
-        var port = e.ports[0];
-
-        function handler(e){
-            var msg = e.data.message;
-            var t = g;
-            for(var i=0,l=msg.length;i<l;i++){
-                t = t[msg[i].method].apply(t, msg[i].parameters);
-            }
-            port.postMessage({result:t});
-            port.removeEventListener('message', handler, false);
-            port.close();
-        }
-
-        switch(e.data.method) {
-            case 'init':
-                g = !!e.data.parameters ? new Helios.GraphDatabase(e.data.parameters[0]) : new Helios.GraphDatabase();
-                port.postMessage('done');
-                break;
-            default:
-                break;
-        }
-        port.addEventListener("message", handler, false);
-        port.start();
-    };
-};
 module Helios {
     export interface IBase {
         Type:string;
@@ -397,9 +407,9 @@ module Helios {
 
 
 
-        loadGraphSON(jsonData:string):GraphDatabase;
-        loadGraphSON(jsonData:{ vertices?:{}[]; edges?:{}[]; }):GraphDatabase;
-        loadGraphSON(jsonData:any):GraphDatabase {
+        loadGraphSON(jsonData:string):string;
+        loadGraphSON(jsonData:{ vertices?:{}[]; edges?:{}[]; }):string;
+        loadGraphSON(jsonData:any):string {
             //process vertices
 
             var xmlhttp;
@@ -437,7 +447,7 @@ module Helios {
                 xmlhttp.open("GET", jsonData, true);
                 xmlhttp.send(null);
             }
-            return this;
+            return "Data Loaded";
         }
 
 
@@ -650,6 +660,7 @@ module Helios {
             return this;
         }
 
+        //Can pass in Object Array, but must have _type = 'vertex' || _type = 'edge'
         v(...ids:string[]):Mogwai.Pipeline;  //g.v()
         v(...ids:number[]):Mogwai.Pipeline;  //g.v()
         v(...objs:{}[]):Mogwai.Pipeline;     //g.V
@@ -665,7 +676,8 @@ module Helios {
                 tempObjArray:any = {},//{ obj?:{}; }[] = [],
                 preProcObj:{} = {},
                 postProcObj:{} = {},
-                tempObjArrLen:number = 0;
+                tempObjArrLen:number = 0,
+                isObject:bool = false;
 
             if (!args.length) {
                 return this._.startPipe(this.vertices);
@@ -673,8 +685,8 @@ module Helios {
 
             args = Utils.flatten(args);
             l = args.length;
-
-            if (Utils.isObject(args[0])) {
+            isObject = Utils.isObject(args[0]);
+            if (isObject && !((this.meta.type in args[0]) && (args[0][this.meta.type] == 'vertex'))) {
                 for (var i = 0; i < l; i++) {
                     compObj = args[i];
 
@@ -773,7 +785,7 @@ module Helios {
                 return this._.startPipe(outputObj);
             }
             for (var i = 0; i < l; i++) {
-                temp = this.vertices[args[i]];
+                temp = isObject ? this.vertices[args[i][this.meta.id]] : this.vertices[args[i]];
                 if(typeof temp === "undefined"){
                     throw new ReferenceError('No vertex with id ' + args[i]);
                 }
@@ -797,7 +809,8 @@ module Helios {
                 tempObjArray:{ obj?:{}; }[] = [],
                 preProcObj:{} = {},
                 postProcObj:{} = {},
-                tempObjArrLen:number = 0;
+                tempObjArrLen:number = 0,
+                isObject:bool = false;
 
             if (!args.length) {
                 return this._.startPipe(this.edges);
@@ -805,8 +818,9 @@ module Helios {
 
             args = Utils.flatten(args);
             l = args.length;
-
-            if (Utils.isObject(args[0])) {
+            
+            isObject = Utils.isObject(args[0]);
+            if (isObject && !((this.meta.type in args[0]) && (args[0][this.meta.type] == 'edge'))) {
                 for (var i = 0; i < l; i++) {
                     compObj = args[i];
 
@@ -903,7 +917,7 @@ module Helios {
                 return this._.startPipe(outputObj);
             }
             for (var i = 0; i < l; i++) {
-                temp = this.edges[args[i]];
+                temp = isObject ? this.edges[args[i][this.meta.id]] : this.edges[args[i]];
                 if(typeof temp === "undefined"){
                     throw new ReferenceError('No edge with id ' + args[i]);
                 }
@@ -2320,7 +2334,7 @@ module Helios {
              var result = g.V().count();
 
              ****************************************************************************************************/
-                count():number {
+            count():number {
                 return this.endPipe.length;
             }
 
@@ -2343,7 +2357,7 @@ module Helios {
              g.v(1).out('knows').groupBy(t,['salary','age']).value()
 
              ****************************************************************************************************/
-                group(args:string[]):{} {
+            group(args:string[]):{} {
 
                 var isTracingPath:bool = !!this.graph.pathEnabled,
                     props:string[] = [],
@@ -2465,9 +2479,10 @@ module Helios {
 
             step(func:string/*() => any[], ...args:any[]*/):Pipeline {
                 var endPipeArray:any[] = [];
-                var customFunc = new Function("var it = this;"+func);
+                var customFunc = new Function("it","use strict; "+func+" return it;");
                 Utils.each(this.endPipe, function (element) {
-                    endPipeArray.push(customFunc.call(element.obj/*, args*/));
+                    var t = customFunc(element.obj);
+                    endPipeArray.push(customFunc.call(element.obj, element.obj)/*, args*/);
                 });
                 this.endPipe = endPipeArray;
                 return this;
@@ -3410,5 +3425,26 @@ module Helios {
         }
 
     }
+}
+
+try{
+    importScripts('sax.js', 'moment.min.js', "q.js", "uuid.js", "q-comm.js");
+    var i, l, g, r;
+    Q_COMM.Connection(this, {
+        init: function (params) {
+            for(var i=0;i<3000000000;i++){}
+            g = !!params ? new Helios.GraphDatabase(params) : new Helios.GraphDatabase();
+            return 'Database created';
+        },
+        run: function (params) {
+            r = g;
+            for(i=0, l=params.length;i<l;i++){
+                r = r[params[i].method].apply(r, params[i].parameters);
+            }
+            return r;
+        }
+    });
+} catch (exception){
+    console.log(exception.message);
 }
 

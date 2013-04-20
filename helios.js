@@ -2,151 +2,145 @@ var Helios;
 (function (Helios) {
     var GraphDatabase = (function () {
         function GraphDatabase(options) {
-            var msg = {
-                method: 'init'
-            };
-            if(!!options) {
-                msg.parameters = [
-                    options
-                ];
-            }
-            this.db = new Worker('./libs/heliosDB.js');
-            this.mc = new MessageChannel();
-            this.db.postMessage(msg, [
-                this.mc.port2
-            ]);
-            this.mc.port1.onmessage = function (e) {
-                console.log(e.data);
-            };
+            this.worker = new Worker('./libs/heliosDB.js');
+            this.db = Q_COMM.Connection(this.worker, null, {
+                max: 1024
+            });
+            this.db.invoke("init", options).then(function (message) {
+                console.log(message);
+            }).end();
         }
         GraphDatabase.prototype.setConfiguration = function (options) {
-            return new Promise([
-                {
-                    method: 'setConfiguration',
-                    parameters: [
-                        options
-                    ]
-                }
-            ], this.db);
+            this.worker.postMessage({
+                async: false,
+                message: [
+                    {
+                        method: 'setConfiguration',
+                        parameters: [
+                            options
+                        ]
+                    }
+                ]
+            });
         };
         GraphDatabase.prototype.setPathEnabled = function (turnOn) {
-            return new Promise([
-                {
-                    method: 'setPathEnabled',
-                    parameters: [
-                        turnOn
-                    ]
-                }
-            ], this.db);
+            this.worker.postMessage({
+                async: false,
+                message: [
+                    {
+                        method: 'setPathEnabled',
+                        parameters: [
+                            turnOn
+                        ]
+                    }
+                ]
+            });
         };
         GraphDatabase.prototype.createVIndex = function (idxName) {
-            return new Promise([
-                {
-                    method: 'createVIndex',
-                    parameters: [
-                        idxName
-                    ]
-                }
-            ], this.db);
+            this.worker.postMessage({
+                async: false,
+                message: [
+                    {
+                        method: 'createVIndex',
+                        parameters: [
+                            idxName
+                        ]
+                    }
+                ]
+            });
         };
         GraphDatabase.prototype.createEIndex = function (idxName) {
-            return new Promise([
-                {
-                    method: 'createEIndex',
-                    parameters: [
-                        idxName
-                    ]
-                }
-            ], this.db);
+            this.worker.postMessage({
+                async: false,
+                message: [
+                    {
+                        method: 'createEIndex',
+                        parameters: [
+                            idxName
+                        ]
+                    }
+                ]
+            });
         };
         GraphDatabase.prototype.deleteVIndex = function (idxName) {
-            return new Promise([
-                {
-                    method: 'deleteVIndex',
-                    parameters: [
-                        idxName
-                    ]
-                }
-            ], this.db);
+            this.worker.postMessage({
+                async: false,
+                message: [
+                    {
+                        method: 'deleteVIndex',
+                        parameters: [
+                            idxName
+                        ]
+                    }
+                ]
+            });
         };
         GraphDatabase.prototype.deleteEIndex = function (idxName) {
-            return new Promise([
-                {
-                    method: 'deleteEIndex',
-                    parameters: [
-                        idxName
-                    ]
-                }
-            ], this.db);
+            this.worker.postMessage({
+                async: false,
+                message: [
+                    {
+                        method: 'deleteEIndex',
+                        parameters: [
+                            idxName
+                        ]
+                    }
+                ]
+            });
         };
         GraphDatabase.prototype.loadGraphSON = function (jsonData) {
-            return new Promise([
+            this.db.invoke("run", [
                 {
                     method: 'loadGraphSON',
                     parameters: [
                         jsonData
                     ]
                 }
-            ], this.db);
+            ]).then(function (message) {
+                console.log(message);
+            }).end();
+            return true;
         };
         GraphDatabase.prototype.loadGraphML = function (xmlData) {
-            return new Promise([
-                {
-                    method: 'loadGraphML',
-                    parameters: [
-                        xmlData
-                    ]
-                }
-            ], this.db);
+            this.worker.postMessage({
+                async: false,
+                message: [
+                    {
+                        method: 'loadGraphML',
+                        parameters: [
+                            xmlData
+                        ]
+                    }
+                ]
+            });
         };
         GraphDatabase.prototype.v = function () {
             var args = [];
             for (var _i = 0; _i < (arguments.length - 0); _i++) {
                 args[_i] = arguments[_i + 0];
             }
-            return new Pipeline('v', args, this.db);
+            return new Pipeline('v', args, this);
         };
         GraphDatabase.prototype.e = function () {
             var args = [];
             for (var _i = 0; _i < (arguments.length - 0); _i++) {
                 args[_i] = arguments[_i + 0];
             }
-            return new Pipeline('e', args, this.db);
+            return new Pipeline('e', args, this);
         };
         return GraphDatabase;
     })();
     Helios.GraphDatabase = GraphDatabase;    
-    var Promise = (function () {
-        function Promise(messages, dbWorker) {
-            this.dbWorker = dbWorker;
-            var mc = new MessageChannel(), deferred = Q.defer();
-            this.dbWorker.postMessage({
-            }, [
-                mc.port2
-            ]);
-function handler(event) {
-                deferred.resolve(event.data.result);
-                mc.port1.removeEventListener('message', handler, false);
-                mc.port1.close();
-            }
-            mc.port1.addEventListener('message', handler, false);
-            mc.port1.start();
-            mc.port1.postMessage({
-                message: messages
-            });
-            return deferred.promise;
-        }
-        return Promise;
-    })();    
     var Pipeline = (function () {
-        function Pipeline(method, args, dbWorker) {
-            this.dbWorker = dbWorker;
+        function Pipeline(method, args, helios) {
+            this.helios = helios;
             this.messages = [
                 {
                     method: method,
                     parameters: args
                 }
             ];
+            this.db = helios.db;
             this.out = this.add('out');
             this.in = this.add('in');
             this.both = this.add('both');
@@ -177,7 +171,9 @@ function handler(event) {
                     method: func,
                     parameters: args
                 });
-                return isFinal ? new Promise(this.messages, this.dbWorker) : this;
+                return isFinal ? this.db.invoke("run", this.messages).fail(function (error) {
+                    console.log(error);
+                }) : this;
             };
         };
         return Pipeline;

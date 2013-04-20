@@ -4,36 +4,6 @@ var __extends = this.__extends || function (d, b) {
     __.prototype = b.prototype;
     d.prototype = new __();
 };
-if(!!self.importScripts) {
-    importScripts('sax.js', 'moment.min.js');
-    var g;
-    self.onmessage = function (e) {
-        var port = e.ports[0];
-        function handler(e) {
-            var msg = e.data.message;
-            var t = g;
-            for(var i = 0, l = msg.length; i < l; i++) {
-                t = t[msg[i].method].apply(t, msg[i].parameters);
-            }
-            port.postMessage({
-                result: t
-            });
-            port.removeEventListener('message', handler, false);
-            port.close();
-        }
-        switch(e.data.method) {
-            case 'init':
-                g = !!e.data.parameters ? new Helios.GraphDatabase(e.data.parameters[0]) : new Helios.GraphDatabase();
-                port.postMessage('done');
-                break;
-            default:
-                break;
-        }
-        port.addEventListener("message", handler, false);
-        port.start();
-    };
-}
-;
 var Helios;
 (function (Helios) {
     var toString = Object.prototype.toString, ArrayProto = Array.prototype, push = ArrayProto.push, slice = ArrayProto.slice, indexOf = ArrayProto.indexOf;
@@ -283,7 +253,7 @@ var Helios;
                 xmlhttp.open("GET", jsonData, true);
                 xmlhttp.send(null);
             }
-            return this;
+            return "Data Loaded";
         };
         GraphDatabase.prototype.loadGraphML = function (xmlData) {
             var _this = this;
@@ -410,13 +380,14 @@ var Helios;
             }, tempObjArray = {
             }, preProcObj = {
             }, postProcObj = {
-            }, tempObjArrLen = 0;
+            }, tempObjArrLen = 0, isObject = false;
             if(!args.length) {
                 return this._.startPipe(this.vertices);
             }
             args = Utils.flatten(args);
             l = args.length;
-            if(Utils.isObject(args[0])) {
+            isObject = Utils.isObject(args[0]);
+            if(isObject && !((this.meta.type in args[0]) && (args[0][this.meta.type] == 'vertex'))) {
                 for(var i = 0; i < l; i++) {
                     compObj = args[i];
                     preProcObj = {
@@ -512,7 +483,7 @@ var Helios;
                 return this._.startPipe(outputObj);
             }
             for(var i = 0; i < l; i++) {
-                temp = this.vertices[args[i]];
+                temp = isObject ? this.vertices[args[i][this.meta.id]] : this.vertices[args[i]];
                 if(typeof temp === "undefined") {
                     throw new ReferenceError('No vertex with id ' + args[i]);
                 }
@@ -531,13 +502,14 @@ var Helios;
             }, subset = {
             }, tempObjArray = [], preProcObj = {
             }, postProcObj = {
-            }, tempObjArrLen = 0;
+            }, tempObjArrLen = 0, isObject = false;
             if(!args.length) {
                 return this._.startPipe(this.edges);
             }
             args = Utils.flatten(args);
             l = args.length;
-            if(Utils.isObject(args[0])) {
+            isObject = Utils.isObject(args[0]);
+            if(isObject && !((this.meta.type in args[0]) && (args[0][this.meta.type] == 'edge'))) {
                 for(var i = 0; i < l; i++) {
                     compObj = args[i];
                     preProcObj = {
@@ -633,7 +605,7 @@ var Helios;
                 return this._.startPipe(outputObj);
             }
             for(var i = 0; i < l; i++) {
-                temp = this.edges[args[i]];
+                temp = isObject ? this.edges[args[i][this.meta.id]] : this.edges[args[i]];
                 if(typeof temp === "undefined") {
                     throw new ReferenceError('No edge with id ' + args[i]);
                 }
@@ -1723,9 +1695,10 @@ var Helios;
             };
             Pipeline.prototype.step = function (func) {
                 var endPipeArray = [];
-                var customFunc = new Function("var it = this;" + func);
+                var customFunc = new Function("it", "use strict; " + func + " return it;");
                 Utils.each(this.endPipe, function (element) {
-                    endPipeArray.push(customFunc.call(element.obj));
+                    var t = customFunc(element.obj);
+                    endPipeArray.push(customFunc.call(element.obj, element.obj));
                 });
                 this.endPipe = endPipeArray;
                 return this;
@@ -2410,4 +2383,25 @@ var Helios;
         return Utils;
     })();    
 })(Helios || (Helios = {}));
+try  {
+    importScripts('sax.js', 'moment.min.js', "q.js", "uuid.js", "q-comm.js");
+    var i, l, g, r;
+    Q_COMM.Connection(this, {
+        init: function (params) {
+            for(var i = 0; i < 3000000000; i++) {
+            }
+            g = !!params ? new Helios.GraphDatabase(params) : new Helios.GraphDatabase();
+            return 'Database created';
+        },
+        run: function (params) {
+            r = g;
+            for(i = 0 , l = params.length; i < l; i++) {
+                r = r[params[i].method].apply(r, params[i].parameters);
+            }
+            return r;
+        }
+    });
+} catch (exception) {
+    console.log(exception.message);
+}
 //@ sourceMappingURL=heliosDB.js.map
