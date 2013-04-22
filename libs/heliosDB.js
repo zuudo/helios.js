@@ -1285,10 +1285,14 @@ var Helios;
                 return this;
             };
             Pipeline.prototype.range = function (start, end) {
-                this.endPipe = !!end ? this.endPipe.slice(start, end) : this.endPipe.slice(start);
+                this.endPipe = !!end ? this.endPipe.slice(start, end + 1) : this.endPipe.slice(start);
                 return this;
             };
-            Pipeline.prototype.itemAt = function (indices) {
+            Pipeline.prototype.itemAt = function () {
+                var indices = [];
+                for (var _i = 0; _i < (arguments.length - 0); _i++) {
+                    indices[_i] = arguments[_i + 0];
+                }
                 var endPipeArray = [], idx = Utils.flatten(indices);
                 for(var i = 0, l = idx.length; i < l; i++) {
                     if(idx[i] > -1 && idx[i] < this.endPipe.length) {
@@ -1810,6 +1814,7 @@ var Helios;
                     push.call(outputArray, Utils.toObjArray(this.pipeline[i]));
                 }
                 this.pipeline.length = 0;
+                this.graph.setPathEnabled(false);
                 return outputArray;
             };
             return Pipeline;
@@ -2220,7 +2225,7 @@ var Helios;
             return result;
         };
         Utils.pluck = function pluck(objs, prop) {
-            var o, i = objs.length, tempObj, tempProp, result = [], isElement = false, isEmbedded = false;
+            var o, i = objs.length, tempObj, tempProp = prop, result = [], isElement = false, isEmbedded = false;
             if(!!i) {
                 isElement = !!objs[0].obj;
             }
@@ -2397,6 +2402,10 @@ try  {
                 r = r[params[i].method].apply(r, params[i].parameters);
             }
             return r;
+        },
+        setPathEnabled: function (bool) {
+            g.setPathEnabled(bool);
+            return g.pathEnabled;
         }
     });
 } catch (exception) {

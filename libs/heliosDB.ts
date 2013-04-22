@@ -1887,12 +1887,12 @@ module Helios {
 
             //[i..j] -> range
             range(start:number, end?:number):Pipeline {
-                this.endPipe = !!end ? this.endPipe.slice(start, end) : this.endPipe.slice(start);
+                this.endPipe = !!end ? this.endPipe.slice(start, end + 1) : this.endPipe.slice(start);
                 return this;
             }
 
             //[i] -> get indexes
-            itemAt(indices:number[]):Pipeline {
+            itemAt(...indices:number[]):Pipeline {
                 var endPipeArray:any[] = [],
                     idx:number[] = Utils.flatten(indices);
 
@@ -2597,6 +2597,7 @@ module Helios {
                     push.call(outputArray, Utils.toObjArray(this.pipeline[i]));
                 }
                 this.pipeline.length = 0;
+                this.graph.setPathEnabled(false);
                 return outputArray;
             }
 
@@ -3148,7 +3149,7 @@ module Helios {
                 i = props.length,
                 result = {},
                 tempObj,
-                tempProp;
+                tempProp:string;
 
             while (i) {
                 i -= 1;
@@ -3171,7 +3172,7 @@ module Helios {
             var o,
                 i = objs.length,
                 tempObj:{},
-                tempProp:string,
+                tempProp:string = prop,
                 result = [],
                 isElement:bool = false,
                 isEmbedded:bool = false;
@@ -3403,6 +3404,10 @@ try{
                 r = r[params[i].method].apply(r, params[i].parameters);
             }
             return r;
+        },
+        setPathEnabled: function (bool) {
+            g.setPathEnabled(bool);
+            return g.pathEnabled;
         }
     });
 } catch (exception){

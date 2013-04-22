@@ -78,10 +78,18 @@ module Helios {
 
 	export class Pipeline {
 		
-		private messages:{}[];
+		private messages:{method:string; parameters:any[];}[];
 		private db:any;
 
-		//then:(success?:()=>any,error?:()=>any) => any;
+		private noEmitArray:string[] = ['id','label','getProperty','count','stringify','hash','path'];
+
+        id:()=>any[];
+        label:()=>any[];
+        getProperty:(prop:string)=>any[];
+        count:()=>number;
+        stringify:()=>string;
+        hash:()=>{};
+	    path:()=>any[];
 
 		out:(...labels: string[]) => Pipeline;
 		in:(...labels:string[])=>Pipeline;
@@ -93,17 +101,17 @@ module Helios {
         outE:(...labels:string[])=>Pipeline;
         outV:()=>Pipeline;
 
-        id:()=>any[];
-        label:()=>any[];
-        getProperty:(prop:string)=>any[];
-        count:()=>number;
-        stringify:()=>string;
-        hash:()=>{};
-        emit:()=>any;
+        where:(...comparables:{}[])=> Pipeline;
+        
+        itemAt:(...indices:number[])=> Pipeline;
+	    range:(start:number, end?:number)=> Pipeline;
+	    dedup:()=> Pipeline;
 
-        path:()=>any[];
+	    as:(name:string)=> Pipeline;
+	    except:(dataSet:{}[])=>Pipeline;
+	    retain:(dataSet:{}[])=>Pipeline;
 
-        step:(func:() => any[], ...args:any[])=>Pipeline;
+        //step:(func:() => any[], ...args:any[])=>Pipeline;
 
         // cap(...labels:string[])=>Pipeline;
         // gather(...labels:string[])=>Pipeline;        
@@ -117,8 +125,8 @@ module Helios {
         // transform(...labels:string[])=>Pipeline;
 
 		constructor(method:string, args:any[], public helios:any){
+			
 			this.messages = [{method:method, parameters:args}];
-
 			this.db = helios.db;
 
 			this.out = this.add('out');
@@ -137,11 +145,18 @@ module Helios {
 	        this.count = this.add('count');
 	        this.stringify = this.add('stringify');
 	        this.hash = this.add('hash');
-	        //this.emit = this.add('emit', true);
+	        this.where = this.add('where');
 
+	        this.itemAt = this.add('itemAt');
+	        this.range = this.add('range');
+	        this.dedup = this.add('dedup');
+
+	        this.as = this.add('as');
+	        this.except = this.add('except');
+	        this.retain = this.add('retain');
 	        this.path = this.add('path');
 
-	        this.step = this.add('step');
+	        //this.step = this.add('step');
 
 
 		}
@@ -154,7 +169,20 @@ module Helios {
 		}
 
 		then(success?:()=>any, error?:()=>any):void{
-			this.messages.push({method:'emit', parameters:[]});
+			var ctx = this;
+			var lastMethod = this.messages.slice(-1)[0].method;
+
+			//if the lastMethod == 'path' the turn on trace
+			if(lastMethod == 'path'){
+				this.db.invoke("setPathEnabled", true)
+					.then(function(val){
+						ctx.db.invoke("run", ctx.messages).then(success, error).end();
+					}).end();
+				return;
+			}
+			if(this.noEmitArray.indexOf(lastMethod) == -1) {
+				this.messages.push({method:'emit', parameters:[]});
+			}
 			this.db.invoke("run", this.messages).then(success, error).end();
 		}
 
