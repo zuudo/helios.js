@@ -1,8 +1,7 @@
 module Helios {
 
-    declare var Q;
     declare var Q_COMM;
-    declare var UUID;
+
     export class GraphDatabase {
 
     	private worker:any;
