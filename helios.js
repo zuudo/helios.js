@@ -132,6 +132,15 @@ var Helios;
     var Pipeline = (function () {
         function Pipeline(method, args, helios) {
             this.helios = helios;
+            this.noEmitArray = [
+                'id', 
+                'label', 
+                'getProperty', 
+                'count', 
+                'stringify', 
+                'hash', 
+                'path'
+            ];
             this.messages = [
                 {
                     method: method,
@@ -154,8 +163,14 @@ var Helios;
             this.count = this.add('count');
             this.stringify = this.add('stringify');
             this.hash = this.add('hash');
+            this.where = this.add('where');
+            this.itemAt = this.add('itemAt');
+            this.range = this.add('range');
+            this.dedup = this.add('dedup');
+            this.as = this.add('as');
+            this.except = this.add('except');
+            this.retain = this.add('retain');
             this.path = this.add('path');
-            this.step = this.add('step');
         }
         Pipeline.prototype.add = function (func) {
             return function () {
@@ -171,10 +186,20 @@ var Helios;
             };
         };
         Pipeline.prototype.then = function (success, error) {
-            this.messages.push({
-                method: 'emit',
-                parameters: []
-            });
+            var ctx = this;
+            var lastMethod = this.messages.slice(-1)[0].method;
+            if(lastMethod == 'path') {
+                this.db.invoke("setPathEnabled", true).then(function (val) {
+                    ctx.db.invoke("run", ctx.messages).then(success, error).end();
+                }).end();
+                return;
+            }
+            if(this.noEmitArray.indexOf(lastMethod) == -1) {
+                this.messages.push({
+                    method: 'emit',
+                    parameters: []
+                });
+            }
             this.db.invoke("run", this.messages).then(success, error).end();
         };
         return Pipeline;
