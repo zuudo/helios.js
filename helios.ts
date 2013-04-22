@@ -47,16 +47,18 @@ module Helios {
 			this.worker.postMessage({async:false, message:[{method:'deleteEIndex', parameters:[idxName]}]});
         }
 
-		loadGraphSON(jsonData:string):bool{
+		loadGraphSON(jsonData:string):void{
 			this.db.invoke("run", [{method:'loadGraphSON', parameters:[jsonData]}]).then(function (message) {
                 console.log(message);
             })
             .end();
-            return true;
 		}
 
-		loadGraphML(xmlData:string):any{
-			this.worker.postMessage({async:false, message:[{method:'loadGraphML', parameters:[xmlData]}]});
+		loadGraphML(xmlData:string):void{
+			this.db.invoke("run", [{method:'loadGraphML', parameters:[xmlData]}]).then(function (message) {
+                console.log(message);
+            })
+            .end();
 		}
 
 		v(...ids:string[]):Pipeline; 

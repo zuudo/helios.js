@@ -99,20 +99,18 @@ var Helios;
             ]).then(function (message) {
                 console.log(message);
             }).end();
-            return true;
         };
         GraphDatabase.prototype.loadGraphML = function (xmlData) {
-            this.worker.postMessage({
-                async: false,
-                message: [
-                    {
-                        method: 'loadGraphML',
-                        parameters: [
-                            xmlData
-                        ]
-                    }
-                ]
-            });
+            this.db.invoke("run", [
+                {
+                    method: 'loadGraphML',
+                    parameters: [
+                        xmlData
+                    ]
+                }
+            ]).then(function (message) {
+                console.log(message);
+            }).end();
         };
         GraphDatabase.prototype.v = function () {
             var args = [];

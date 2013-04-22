@@ -1,5 +1,5 @@
-// Testacular configuration
-// Generated on Mon Feb 11 2013 21:00:20 GMT+1100 (EST)
+// Karma configuration
+// Generated on Mon Apr 22 2013 16:54:40 GMT+1000 (EST)
 
 
 // base path, that will be used to resolve files and exclude
@@ -11,19 +11,16 @@ files = [
   MOCHA,
   MOCHA_ADAPTER,
   'tests/chai.js',
-  'q.js',
-  'sax.js',
-  'moment.min.js',
-  'heliosDB.js',
+  'libs/sax.js',
+  'libs/moment.min.js',
+  'libs/heliosDB.js',
   'tests/*.js'
-
 ];
 
 
 // list of files to exclude
 exclude = [
-  
-  'tests/testacular.conf.js'
+  'tests/karma.conf.js'
 ];
 
 
@@ -33,7 +30,7 @@ reporters = ['progress'];
 
 
 // web server port
-port = 8088;
+port = 9876;
 
 
 // cli runner port
@@ -61,11 +58,11 @@ autoWatch = true;
 // - Safari (only Mac)
 // - PhantomJS
 // - IE (only Windows)
-browsers = ['Chrome'/*, 'Firefox'*/];
+browsers = ['Chrome'];
 
 
 // If browser does not capture in given timeout [ms], kill it
-captureTimeout = 5000;
+captureTimeout = 60000;
 
 
 // Continuous Integration mode
