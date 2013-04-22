@@ -1,45 +1,6 @@
 "use strict"
 /// <reference path="moment.d.ts" />
 declare var Q_COMM;
-    
-// if(!!self.importScripts) {
-//     importScripts('sax.js', 'moment.min.js', "q.js", "uuid.js", "q-comm.js");
-//     var i, l, g, r;
-//     g = new Helios.GraphDatabase();
-//     Q_COMM.Connection(this, {
-//         init: function (params) {
-//             //g = !!params ? new Helios.GraphDatabase(params) : new Helios.GraphDatabase();
-//             return g;//'Database created';
-//         },
-//         run: function (params) {
-//             for(i=0, l=params.length;i<l;i++){
-//                 r = g[params[i].method].apply(g, params[i].parameters);
-//             }
-//             return g;
-//         }
-//     });
-//     // var g, r;
-//     // self.onmessage = (e) => {
-//     //     var msg;
-//     //     switch(e.data.src) {
-//     //         case 'db':
-//     //             msg = e.data.message[0];
-//     //             //delay return --> testing only
-//     //             for(var i=0;i<3000000000;i++){}
-//     //             g = !!msg.parameters ? new Helios.GraphDatabase(msg.parameters[0]) : new Helios.GraphDatabase();
-//     //             self.postMessage({result:"Database created"});
-//     //             break;
-            
-//     //         default:
-//     //             msg = e.data.message.message;
-//     //             for(var i=0,l=msg.length;i<l;i++){
-//     //                 r = g[msg[i].method].apply(g, msg[i].parameters);
-//     //             }
-//     //             self.postMessage({id:e.data.id, result:r});
-//     //             break;
-//     //     }
-//     // }
-// };
 
 module Helios {
     export interface IBase {
@@ -3428,7 +3389,7 @@ module Helios {
 }
 
 try{
-    importScripts('sax.js', 'moment.min.js', "q.js", "uuid.js", "q-comm.js");
+    importScripts('sax.js', 'moment.min.js', 'q.min.js', 'uuid.js', 'q-comm.js');
     var i, l, g, r;
     Q_COMM.Connection(this, {
         init: function (params) {

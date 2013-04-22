@@ -2384,7 +2384,7 @@ var Helios;
     })();    
 })(Helios || (Helios = {}));
 try  {
-    importScripts('sax.js', 'moment.min.js', "q.js", "uuid.js", "q-comm.js");
+    importScripts('sax.js', 'moment.min.js', 'q.min.js', 'uuid.js', 'q-comm.js');
     var i, l, g, r;
     Q_COMM.Connection(this, {
         init: function (params) {
