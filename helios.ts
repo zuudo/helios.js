@@ -81,13 +81,14 @@ module Helios {
 		private messages:{method:string; parameters:any[];}[];
 		private db:any;
 
-		private noEmitArray:string[] = ['id','label','getProperty','count','stringify','hash','path'];
+		private noEmitArray:string[] = ['id','label','getProperty','count','stringify','hash','path', 'map'];
 
         id:()=>any[];
         label:()=>any[];
         getProperty:(prop:string)=>any[];
         count:()=>number;
         stringify:()=>string;
+        map:(...labels:string[])=>{}[];
         hash:()=>{};
 	    path:()=>any[];
 
@@ -108,10 +109,13 @@ module Helios {
 	    dedup:()=> Pipeline;
 
 	    as:(name:string)=> Pipeline;
+	    back:()=>Pipeline;
+	    traceOn:()=>Pipeline;
+	    traceOff:()=>Pipeline;
 	    except:(dataSet:{}[])=>Pipeline;
 	    retain:(dataSet:{}[])=>Pipeline;
 
-        //step:(func:() => any[], ...args:any[])=>Pipeline;
+        transform:(func:string)=>Pipeline;
 
         // cap(...labels:string[])=>Pipeline;
         // gather(...labels:string[])=>Pipeline;        
@@ -144,14 +148,20 @@ module Helios {
 	        this.getProperty = this.add('getProperty');
 	        this.count = this.add('count');
 	        this.stringify = this.add('stringify');
+	        this.map = this.add('map');
 	        this.hash = this.add('hash');
 	        this.where = this.add('where');
 
 	        this.itemAt = this.add('itemAt');
 	        this.range = this.add('range');
 	        this.dedup = this.add('dedup');
+	        this.transform = this.add('transform');
 
 	        this.as = this.add('as');
+	        this.back = this.add('back');
+	        this.traceOn = this.add('traceOn');
+	        this.traceOff = this.add('traceOff');
+
 	        this.except = this.add('except');
 	        this.retain = this.add('retain');
 	        this.path = this.add('path');
@@ -169,17 +179,7 @@ module Helios {
 		}
 
 		then(success?:()=>any, error?:()=>any):void{
-			var ctx = this;
 			var lastMethod = this.messages.slice(-1)[0].method;
-
-			//if the lastMethod == 'path' the turn on trace
-			if(lastMethod == 'path'){
-				this.db.invoke("setPathEnabled", true)
-					.then(function(val){
-						ctx.db.invoke("run", ctx.messages).then(success, error).end();
-					}).end();
-				return;
-			}
 			if(this.noEmitArray.indexOf(lastMethod) == -1) {
 				this.messages.push({method:'emit', parameters:[]});
 			}

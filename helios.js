@@ -139,7 +139,8 @@ var Helios;
                 'count', 
                 'stringify', 
                 'hash', 
-                'path'
+                'path', 
+                'map'
             ];
             this.messages = [
                 {
@@ -162,12 +163,17 @@ var Helios;
             this.getProperty = this.add('getProperty');
             this.count = this.add('count');
             this.stringify = this.add('stringify');
+            this.map = this.add('map');
             this.hash = this.add('hash');
             this.where = this.add('where');
             this.itemAt = this.add('itemAt');
             this.range = this.add('range');
             this.dedup = this.add('dedup');
+            this.transform = this.add('transform');
             this.as = this.add('as');
+            this.back = this.add('back');
+            this.traceOn = this.add('traceOn');
+            this.traceOff = this.add('traceOff');
             this.except = this.add('except');
             this.retain = this.add('retain');
             this.path = this.add('path');
@@ -186,14 +192,7 @@ var Helios;
             };
         };
         Pipeline.prototype.then = function (success, error) {
-            var ctx = this;
             var lastMethod = this.messages.slice(-1)[0].method;
-            if(lastMethod == 'path') {
-                this.db.invoke("setPathEnabled", true).then(function (val) {
-                    ctx.db.invoke("run", ctx.messages).then(success, error).end();
-                }).end();
-                return;
-            }
             if(this.noEmitArray.indexOf(lastMethod) == -1) {
                 this.messages.push({
                     method: 'emit',
