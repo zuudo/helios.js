@@ -1134,7 +1134,7 @@ module Helios {
                         }
                         if (isTracingPath) {
                             pipe = [];
-                            pipe.push.apply(next);
+                            pipe.push.apply(pipe, next);
                             pipe.push(edge.inV);
                             pipes.push(pipe);
                         } else {
@@ -1221,7 +1221,7 @@ module Helios {
                         }
                         if (isTracingPath) {
                             pipe = [];
-                            pipe.push.apply(next);
+                            pipe.push.apply(pipe, next);
                             pipe.push(edge.outV);
                             pipes.push(pipe);
                         } else {
@@ -1421,7 +1421,7 @@ module Helios {
                         }
                         if (isTracingPath) {
                             pipe = [];
-                            pipe.push.apply(next);
+                            pipe.push.apply(pipe, next);
                             pipe.push(edge);
                             pipes.push(pipe);
                         } else {
@@ -1513,7 +1513,7 @@ module Helios {
                         }
                         if (isTracingPath) {
                             pipe = [];
-                            pipe.push.apply(next);
+                            pipe.push.apply(pipe, next);
                             pipe.push(edge);
                             pipes.push(pipe);
                         } else {
@@ -1924,8 +1924,6 @@ module Helios {
             except(dataSet:{}[]):Pipeline {
                 var exclIds = Utils.pluck(Utils.flatten(dataSet), this.graph.meta.id);
                 var ids = Utils.pluck(this.endPipe, this.graph.meta.id);
-                //TODO:Check this
-//                var endPipeIds = Utils.difference(ids, exclIds, false);
                 var endPipeIds = Utils.difference(ids, exclIds);
 
                 this.endPipe = Utils.materializeElementArray(endPipeIds, this.graph, this.endPipe[0].Type);
@@ -1938,8 +1936,6 @@ module Helios {
 
                 var intersectIds = Utils.pluck(Utils.flatten(dataSet), this.graph.meta.id);
                 var ids = Utils.pluck(this.endPipe, this.graph.meta.id);
-//                var endPipeIds = Utils.intersection(ids, intersectIds, false);
-                                                                     //TODO:Check this
                 var endPipeIds = Utils.intersection(ids, intersectIds);
                 this.endPipe = Utils.materializeElementArray(endPipeIds, this.graph, this.endPipe[0].Type);
 
@@ -2438,12 +2434,12 @@ module Helios {
             }
 
 
-            step(func:string/*() => any[], ...args:any[]*/):Pipeline {
+            transform(func:string):Pipeline {
                 var endPipeArray:any[] = [];
                 var customFunc = new Function("it","use strict; "+func+" return it;");
                 Utils.each(this.endPipe, function (element) {
                     var t = customFunc(element.obj);
-                    endPipeArray.push(customFunc.call(element.obj, element.obj)/*, args*/);
+                    endPipeArray.push(customFunc.call(element.obj, element.obj));
                 });
                 this.endPipe = endPipeArray;
                 return this;
@@ -2584,17 +2580,59 @@ module Helios {
                 return Utils.toHash(this.endPipe);
             }
 
-            path():any[] {
+            map(...props:string[]):any[] {
+                var tempObjArray:any[] = [],
+                    tempArr:any[] = [],
+                    outputArray:any[] = [];
+
+                //reset steps
+                this.steps = { currentStep: 0 };
+
+                if(!!props.length){
+                    
+                    tempObjArray = this.emit().results;
+                    for(var j = 0, l = tempObjArray.length; j < l; j++){
+                        push.call(outputArray, Utils.pick(tempObjArray[j], props))
+                    }
+                    tempObjArray = [];
+                } else {
+                    outputArray = this.emit().results;
+                }
+                return outputArray;
+            }
+
+            path(...props:string[]):any[] {
+                var tempObjArray:{}[] = [],
+                    tempArr:any[] = [],
+                    tempObj:{}={},
+                    outputArray:any[] = [],
+                    len:number = 0;
+
+
                 if (!this.graph.pathEnabled) {
                     throw Error('Not tracing path');
                     return;
                 }
                 //reset steps
                 this.steps = { currentStep: 0 };
-                var outputArray = [];
-                var len = this.pipeline.length;
-                for (var i = 0; i < len; i++) {
-                    push.call(outputArray, Utils.toObjArray(this.pipeline[i]));
+                len = this.pipeline.length;
+
+                if(!!props.length){
+                    for (var i = 0; i < len; i++) {
+                        tempObjArray = Utils.toObjArray(this.pipeline[i]);
+                        for(var j = 0, l = tempObjArray.length; j < l; j++){
+                            push.call(tempArr, Utils.pick(tempObjArray[j], props))
+                        }
+                        push.call(outputArray, tempArr);
+                        tempObjArray = [];
+                        tempArr = [];
+                    }
+                } else {
+
+                    for (var i = 0; i < len; i++) {
+                        
+                        push.call(outputArray, Utils.toObjArray(this.pipeline[i]));
+                    }
                 }
                 this.pipeline.length = 0;
                 this.graph.setPathEnabled(false);
@@ -3385,7 +3423,6 @@ module Helios {
             }
             return val;
         }
-
     }
 }
 
@@ -3399,15 +3436,16 @@ try{
             return 'Database created';
         },
         run: function (params) {
+            var lastMethod = params.slice(-1)[0].method;
             r = g;
+            if(lastMethod == 'path'){
+                r.setPathEnabled(true);
+            }
+
             for(i=0, l=params.length;i<l;i++){
                 r = r[params[i].method].apply(r, params[i].parameters);
             }
             return r;
-        },
-        setPathEnabled: function (bool) {
-            g.setPathEnabled(bool);
-            return g.pathEnabled;
         }
     });
 } catch (exception){

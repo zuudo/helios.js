@@ -701,7 +701,7 @@ var Helios;
                         }
                         if(isTracingPath) {
                             pipe = [];
-                            pipe.push.apply(next);
+                            pipe.push.apply(pipe, next);
                             pipe.push(edge.inV);
                             pipes.push(pipe);
                         } else {
@@ -773,7 +773,7 @@ var Helios;
                         }
                         if(isTracingPath) {
                             pipe = [];
-                            pipe.push.apply(next);
+                            pipe.push.apply(pipe, next);
                             pipe.push(edge.outV);
                             pipes.push(pipe);
                         } else {
@@ -916,7 +916,7 @@ var Helios;
                         }
                         if(isTracingPath) {
                             pipe = [];
-                            pipe.push.apply(next);
+                            pipe.push.apply(pipe, next);
                             pipe.push(edge);
                             pipes.push(pipe);
                         } else {
@@ -988,7 +988,7 @@ var Helios;
                         }
                         if(isTracingPath) {
                             pipe = [];
-                            pipe.push.apply(next);
+                            pipe.push.apply(pipe, next);
                             pipe.push(edge);
                             pipes.push(pipe);
                         } else {
@@ -1697,7 +1697,7 @@ var Helios;
                 this.endPipe = [];
                 return outputObj;
             };
-            Pipeline.prototype.step = function (func) {
+            Pipeline.prototype.transform = function (func) {
                 var endPipeArray = [];
                 var customFunc = new Function("it", "use strict; " + func + " return it;");
                 Utils.each(this.endPipe, function (element) {
@@ -1800,7 +1800,33 @@ var Helios;
                 };
                 return Utils.toHash(this.endPipe);
             };
+            Pipeline.prototype.map = function () {
+                var props = [];
+                for (var _i = 0; _i < (arguments.length - 0); _i++) {
+                    props[_i] = arguments[_i + 0];
+                }
+                var tempObjArray = [], tempArr = [], outputArray = [];
+                this.steps = {
+                    currentStep: 0
+                };
+                if(!!props.length) {
+                    tempObjArray = this.emit().results;
+                    for(var j = 0, l = tempObjArray.length; j < l; j++) {
+                        push.call(outputArray, Utils.pick(tempObjArray[j], props));
+                    }
+                    tempObjArray = [];
+                } else {
+                    outputArray = this.emit().results;
+                }
+                return outputArray;
+            };
             Pipeline.prototype.path = function () {
+                var props = [];
+                for (var _i = 0; _i < (arguments.length - 0); _i++) {
+                    props[_i] = arguments[_i + 0];
+                }
+                var tempObjArray = [], tempArr = [], tempObj = {
+                }, outputArray = [], len = 0;
                 if(!this.graph.pathEnabled) {
                     throw Error('Not tracing path');
                     return;
@@ -1808,10 +1834,21 @@ var Helios;
                 this.steps = {
                     currentStep: 0
                 };
-                var outputArray = [];
-                var len = this.pipeline.length;
-                for(var i = 0; i < len; i++) {
-                    push.call(outputArray, Utils.toObjArray(this.pipeline[i]));
+                len = this.pipeline.length;
+                if(!!props.length) {
+                    for(var i = 0; i < len; i++) {
+                        tempObjArray = Utils.toObjArray(this.pipeline[i]);
+                        for(var j = 0, l = tempObjArray.length; j < l; j++) {
+                            push.call(tempArr, Utils.pick(tempObjArray[j], props));
+                        }
+                        push.call(outputArray, tempArr);
+                        tempObjArray = [];
+                        tempArr = [];
+                    }
+                } else {
+                    for(var i = 0; i < len; i++) {
+                        push.call(outputArray, Utils.toObjArray(this.pipeline[i]));
+                    }
                 }
                 this.pipeline.length = 0;
                 this.graph.setPathEnabled(false);
@@ -2397,15 +2434,15 @@ try  {
             return 'Database created';
         },
         run: function (params) {
+            var lastMethod = params.slice(-1)[0].method;
             r = g;
+            if(lastMethod == 'path') {
+                r.setPathEnabled(true);
+            }
             for(i = 0 , l = params.length; i < l; i++) {
                 r = r[params[i].method].apply(r, params[i].parameters);
             }
             return r;
-        },
-        setPathEnabled: function (bool) {
-            g.setPathEnabled(bool);
-            return g.pathEnabled;
         }
     });
 } catch (exception) {
