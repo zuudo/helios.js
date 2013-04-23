@@ -171,18 +171,21 @@ var Helios;
             this.dedup = this.add('dedup');
             this.transform = this.add('transform');
             this.as = this.add('as');
-            this.back = this.add('back');
-            this.traceOn = this.add('traceOn');
-            this.traceOff = this.add('traceOff');
+            this.back = this.add('back', true);
             this.except = this.add('except');
             this.retain = this.add('retain');
-            this.path = this.add('path');
+            this.path = this.add('path', true);
         }
-        Pipeline.prototype.add = function (func) {
+        Pipeline.prototype.add = function (func, setPath) {
             return function () {
                 var args = [];
                 for (var _i = 0; _i < (arguments.length - 0); _i++) {
                     args[_i] = arguments[_i + 0];
+                }
+                if(setPath) {
+                    this.db.invoke("setTraceEnabled", true).fail(function (err) {
+                        console.log(err.message);
+                    }).end();
                 }
                 this.messages.push({
                     method: func,

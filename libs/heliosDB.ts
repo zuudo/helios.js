@@ -109,7 +109,7 @@ module Helios {
 
     export interface IConfiguration {
 
-        pathEnabled:bool;
+        traceEnabled:bool;
 
         date:{
             format:any;// = "DD/MM/YYYY"; //can be array
@@ -150,7 +150,7 @@ module Helios {
 
         _:Mogwai.Pipeline;
 
-        pathEnabled:bool = false;
+        traceEnabled:bool = false;
         date:{
             format:any;//can be array
         } = {
@@ -227,12 +227,12 @@ module Helios {
 //            this = undefined;
 //        }
 
-       setPathEnabled(turnOn:bool):bool {
-          return this.pathEnabled = turnOn;
+       setTraceEnabled(turnOn:bool):bool {
+          return this.traceEnabled = turnOn;
        }
 
        getPathEnabled():bool {
-           return this.pathEnabled;
+           return this.traceEnabled;
        }
 
 //        getConfiguration():Configuration {
@@ -328,8 +328,8 @@ module Helios {
         }
 
         tracePath(enabled:bool):bool {
-            this.pathEnabled = enabled;
-            return this.pathEnabled;
+            this.traceEnabled = enabled;
+            return this.traceEnabled;
         }
 
 
@@ -1007,10 +1007,10 @@ module Helios {
                 var pipe:{}[];
 
                 this.endPipe = [];
-                this.pipeline = this.graph.pathEnabled ? [] : undefined;
+                this.pipeline = this.graph.traceEnabled ? [] : undefined;
 
                 Utils.each(elements, function (element) {
-                    if (this.graph.pathEnabled) {
+                    if (this.graph.traceEnabled) {
                         pipe = [];
                         pipe.push(element);
                         this.pipeline.push(pipe);
@@ -1083,9 +1083,7 @@ module Helios {
                     iter:any[] = [],
                     endPipeArray:any[] = [],
                     hasArgs:bool = !!labels.length,
-                    isTracing:bool = !!this.tracing,
-                    traceArray:any[] = isTracing ? [] : undefined,
-                    isTracingPath:bool = !!this.graph.pathEnabled,
+                    isTracingPath:bool = !!this.graph.traceEnabled,
                     pipes:any[],
                     pipe:IElement[];
 
@@ -1119,19 +1117,9 @@ module Helios {
                         }
                     }
 
-                    if (Utils.isEmpty(vertex.outE) || (hasArgs && Utils.isEmpty(Utils.pick(vertex.outE, labels)))) {
-                        if (isTracing) {
-                            Utils.stopTrace(this.traceObj, vertex);
-                        }
-                        return;
-                    }
-
                     value = hasArgs ? Utils.pick(vertex.outE, labels) : vertex.outE;
                     Utils.each(Utils.flatten(Utils.values(value)), function (edge) {
                         endPipeArray.push(edge.inV);
-                        if (isTracing) {
-                            traceArray.push(edge.inV.obj[this.graph.meta.id]);
-                        }
                         if (isTracingPath) {
                             pipe = [];
                             pipe.push.apply(pipe, next);
@@ -1142,15 +1130,8 @@ module Helios {
                         }
                     }, this);
 
-                    if (isTracing) {
-                        Utils.setTrace(this.traceObj, vertex, traceArray);
-                        traceArray = [];
-                    }
                 }, this);
 
-                if (isTracing) {
-                    Utils.finalizeTrace(this.traceObj);
-                }
                 if (isTracingPath) {
                     this.pipeline = pipes;
                 } else {
@@ -1169,9 +1150,7 @@ module Helios {
                     iter:any[] = [],
                     endPipeArray:any[] = [],
                     hasArgs:bool = !!labels.length,
-                    isTracing:bool = !!this.tracing,
-                    traceArray:any[] = isTracing ? [] : undefined,
-                    isTracingPath:bool = !!this.graph.pathEnabled,
+                    isTracingPath:bool = !!this.graph.traceEnabled,
                     pipes:any[],
                     pipe:IElement[];
 
@@ -1189,9 +1168,7 @@ module Helios {
                     iter = this.endPipe;
                 }
 
-                //iter = isTracingPath ? this.pipeline : this.endPipe;
                 Utils.each(iter, function (next) {
-                    //vertex = isTracingPath ? slice.call(next, -1)[0] : next;
 
                     if (isTracingPath) {
                         vertex = slice.call(next, -1)[0];
@@ -1207,18 +1184,9 @@ module Helios {
                         }
                     }
 
-                    if (Utils.isEmpty(vertex.inE) || (hasArgs && Utils.isEmpty(Utils.pick(vertex.inE, labels)))) {
-                        if (isTracing) {
-                            Utils.stopTrace(this.traceObj, vertex);
-                        }
-                        return;
-                    }
                     value = hasArgs ? Utils.pick(vertex.inE, labels) : vertex.inE;
                     Utils.each(Utils.flatten(Utils.values(value)), function (edge) {
                         endPipeArray.push(edge.outV);
-                        if (isTracing) {
-                            traceArray.push(edge.outV.obj[this.graph.meta.id]);
-                        }
                         if (isTracingPath) {
                             pipe = [];
                             pipe.push.apply(pipe, next);
@@ -1228,17 +1196,8 @@ module Helios {
                             push.call(this.traversed[vertex.obj[this.graph.meta.id]], edge.outV);
                         }
                     }, this);
-
-                    if (isTracing) {
-                        Utils.setTrace(this.traceObj, vertex, traceArray);
-                        traceArray = [];
-                    }
-
                 }, this);
 
-                if (isTracing) {
-                    Utils.finalizeTrace(this.traceObj);
-                }
                 if (isTracingPath) {
                     this.pipeline = pipes;
                 } else {
@@ -1246,7 +1205,6 @@ module Helios {
                 }
                 this.endPipe = endPipeArray;
                 return this;
-
             }
 
             /***************************************************************************************************
@@ -1263,25 +1221,21 @@ module Helios {
                 var edge:Edge,
                     iter:any[],
                     endPipeArray:any[] = [],
-                    isTracing:bool = !!this.tracing,
-                    isTracingPath:bool = !!this.graph.pathEnabled,
+                    isTracingPath:bool = !!this.graph.traceEnabled,
                     pipes:any[] = isTracingPath ? [] : undefined,
                     pipe:IElement[];
-                this.steps[++this.steps.currentStep] = {   func: 'outV'  };
+                
+                this.steps[++this.steps.currentStep] = { func:'outV' };
 
                 if (!!this.endPipe.length && this.endPipe[0].Type !== 'Edge') {
                     throw new TypeError('Step ' + this.steps.currentStep + ' only accepts incoming ' + this.endPipe[0].Type + 's');
                 }
 
-                this.traversed = isTracing ? {} : undefined;
                 iter = isTracingPath ? this.pipeline : this.endPipe;
                 Utils.each(iter, function (next) {
                     edge = isTracingPath ? slice.call(next, -1)[0] : next;
                     endPipeArray.push(edge.outV);
-                    if (isTracing && !(this.traversed.hasOwnProperty(edge.obj[this.graph.meta.id]))) {
-                        Utils.setTrace(this.traceObj, edge, [edge.outV.obj[this.graph.meta.id]]);
-                        this.traversed[edge.obj[this.graph.meta.id]] = true;
-                    }
+                    
                     if (isTracingPath) {
                         pipe = [];
                         pipe.push.apply(pipe, next);
@@ -1290,10 +1244,6 @@ module Helios {
                     }
                 }, this);
 
-                if (isTracing) {
-                    Utils.finalizeTrace(this.traceObj);
-                    this.traversed = undefined;
-                }
                 this.pipeline = isTracingPath ? pipes : undefined;
                 this.endPipe = endPipeArray;
                 return this;
@@ -1313,28 +1263,22 @@ module Helios {
                 var edge:Edge,
                     iter:any[] = [],
                     endPipeArray:any[] = [],
-                    isTracing:bool = !!this.tracing,
-                    isTracingPath:bool = !!this.graph.pathEnabled,
+                    isTracingPath:bool = !!this.graph.traceEnabled,
                     pipes:any[] = isTracingPath ? [] : undefined,
                     pipe:IElement[];
                 ;
 
-                this.steps[++this.steps.currentStep] = {   func: 'inV'  };
+                this.steps[++this.steps.currentStep] = { func:'inV' };
 
                 if (!!this.endPipe.length && this.endPipe[0].Type !== 'Edge') {
                     throw new TypeError('Step ' + this.steps.currentStep + ' only accepts incoming ' + this.endPipe[0].Type + 's');
                 }
 
-                this.traversed = isTracing ? {} : undefined;
                 iter = isTracingPath ? this.pipeline : this.endPipe;
                 Utils.each(iter, function (next) {
                     edge = isTracingPath ? slice.call(next, -1)[0] : next;
                     endPipeArray.push(edge.inV);
-                    //push.call(endPipeArray, edge.inV);
-                    if (isTracing && !(this.traversed.hasOwnProperty(edge.obj[this.graph.meta.id]))) {
-                        Utils.setTrace(this.traceObj, edge, [edge.inV.obj[this.graph.meta.id]]);
-                        this.traversed[edge.obj[this.graph.meta.id]] = true;
-                    }
+                    
                     if (isTracingPath) {
                         pipe = [];
                         pipe.push.apply(pipe, next);
@@ -1342,11 +1286,6 @@ module Helios {
                         pipes.push(pipe);
                     }
                 }, this);
-
-                if (isTracing) {
-                    Utils.finalizeTrace(this.traceObj);
-                    this.traversed = undefined;
-                }
 
                 this.pipeline = isTracingPath ? pipes : undefined;
                 this.endPipe = endPipeArray;
@@ -1372,9 +1311,7 @@ module Helios {
                     iter:any[] = [],
                     endPipeArray:any[] = [],
                     hasArgs:bool = !!labels.length,
-                    isTracing:bool = !!this.tracing,
-                    traceArray:any[] = isTracing ? [] : undefined,
-                    isTracingPath:bool = !!this.graph.pathEnabled,
+                    isTracingPath:bool = !!this.graph.traceEnabled,
                     pipes:any[] = isTracingPath ? [] : undefined,
                     pipe:IElement[];
 
@@ -1407,18 +1344,9 @@ module Helios {
                         }
                     }
 
-                    if (Utils.isEmpty(vertex.outE) || (hasArgs && Utils.isEmpty(Utils.pick(vertex.outE, labels)))) {
-                        if (isTracing) {
-                            Utils.stopTrace(this.traceObj, vertex);
-                        }
-                        return;
-                    }
                     value = hasArgs ? Utils.pick(vertex.outE, labels) : vertex.outE;
                     Utils.each(Utils.flatten(Utils.values(value)), function (edge) {
                         endPipeArray.push(edge);
-                        if (isTracing) {
-                            traceArray.push(edge.obj[this.graph.meta.id]);
-                        }
                         if (isTracingPath) {
                             pipe = [];
                             pipe.push.apply(pipe, next);
@@ -1428,15 +1356,8 @@ module Helios {
                             push.call(this.traversed[vertex.obj[this.graph.meta.id]], edge);
                         }
                     }, this);
-                    if (isTracing) {
-                        Utils.setTrace(this.traceObj, vertex, traceArray);
-                        traceArray = [];
-                    }
                 }, this);
 
-                if (isTracing) {
-                    Utils.finalizeTrace(this.traceObj);
-                }
                 if (isTracingPath) {
                     this.pipeline = pipes;
                 } else {
@@ -1464,9 +1385,7 @@ module Helios {
                     iter:any[] = [],
                     endPipeArray:any[] = [],
                     hasArgs:bool = !!labels.length,
-                    isTracing:bool = !!this.tracing,
-                    traceArray:any[] = isTracing ? [] : undefined,
-                    isTracingPath:bool = !!this.graph.pathEnabled,
+                    isTracingPath:bool = !!this.graph.traceEnabled,
                     pipes:any[] = isTracingPath ? [] : undefined,
                     pipe:IElement[];
 
@@ -1475,7 +1394,6 @@ module Helios {
                 }
 
                 this.steps[++this.steps.currentStep] = { func: 'inE', args: labels };
-
 
                 if (isTracingPath) {
                     iter = this.pipeline;
@@ -1499,18 +1417,10 @@ module Helios {
                         }
                     }
 
-                    if (Utils.isEmpty(vertex.inE) || (hasArgs && Utils.isEmpty(Utils.pick(vertex.inE, labels)))) {
-                        if (isTracing) {
-                            Utils.stopTrace(this.traceObj, vertex);
-                        }
-                        return;
-                    }
                     value = hasArgs ? Utils.pick(vertex.inE, labels) : vertex.inE;
                     Utils.each(Utils.flatten(Utils.values(value)), function (edge) {
                         endPipeArray.push(edge);
-                        if (isTracing) {
-                            traceArray.push(edge.obj[this.graph.meta.id]);
-                        }
+                        
                         if (isTracingPath) {
                             pipe = [];
                             pipe.push.apply(pipe, next);
@@ -1520,15 +1430,9 @@ module Helios {
                             push.call(this.traversed[vertex.obj[this.graph.meta.id]], edge);
                         }
                     }, this);
-                    if (isTracing) {
-                        Utils.setTrace(this.traceObj, vertex, traceArray);
-                        traceArray = [];
-                    }
+                    
                 }, this);
 
-                if (isTracing) {
-                    Utils.finalizeTrace(this.traceObj);
-                }
                 if (isTracingPath) {
                     this.pipeline = pipes;
                 } else {
@@ -1556,9 +1460,7 @@ module Helios {
                     iter:any[] = [],
                     endPipeArray:any[] = [],
                     hasArgs:bool = !!labels.length,
-                    isTracing:bool = !!this.tracing,
-                    traceArray:any[] = isTracing ? [] : undefined,
-                    isTracingPath:bool = !!this.graph.pathEnabled,
+                    isTracingPath:bool = !!this.graph.traceEnabled,
                     pipes:any[] = isTracingPath ? [] : undefined,
                     pipe:IElement[];
 
@@ -1567,7 +1469,6 @@ module Helios {
                 if (!!this.endPipe.length && this.endPipe[0].Type !== 'Vertex') {
                     throw new TypeError('Only accepts incoming ' + this.endPipe[0].Type + 's');
                 }
-
 
                 if (isTracingPath) {
                     iter = this.pipeline;
@@ -1591,58 +1492,34 @@ module Helios {
                         }
                     }
 
-                    if (Utils.isEmpty(vertex.outE) || (hasArgs && Utils.isEmpty(Utils.pick(vertex.outE, labels)))) {
-                        if (isTracing) {
-                            Utils.stopTrace(this.traceObj, vertex);
+                    
+                    value = hasArgs ? Utils.pick(vertex.outE, labels) : vertex.outE;
+                    Utils.each(Utils.flatten(Utils.values(value)), function (edge) {
+                        endPipeArray.push(edge.inV);
+                        if (isTracingPath) {
+                            pipe = [];
+                            pipe.push.apply(pipe, next);
+                            pipe.push(edge.inV);
+                            pipes.push(pipe);
+                        } else {
+                            push.call(this.traversed[vertex.obj[this.graph.meta.id]], edge.inV);
                         }
-                    } else {
-                        value = hasArgs ? Utils.pick(vertex.outE, labels) : vertex.outE;
-                        Utils.each(Utils.flatten(Utils.values(value)), function (edge) {
-                            endPipeArray.push(edge.inV);
-                            if (isTracing) {
-                                traceArray.push(edge.inV.obj[this.graph.meta.id]);
-                            }
-                            if (isTracingPath) {
-                                pipe = [];
-                                pipe.push.apply(pipe, next);
-                                pipe.push(edge.inV);
-                                pipes.push(pipe);
-                            } else {
-                                push.call(this.traversed[vertex.obj[this.graph.meta.id]], edge.inV);
-                            }
-                        }, this);
-                    }
-
-                    if (Utils.isEmpty(vertex.inE) || (hasArgs && Utils.isEmpty(Utils.pick(vertex.inE, labels)))) {
-                        if (isTracing) {
-                            Utils.stopTrace(this.traceObj, vertex);
+                    }, this);
+                    
+                    value = hasArgs ? Utils.pick(vertex.inE, labels) : vertex.inE;
+                    Utils.each(Utils.flatten(Utils.values(value)), function (edge) {
+                        endPipeArray.push(edge.outV);
+                        if (isTracingPath) {
+                            pipe = [];
+                            pipe.push.apply(pipe, next);
+                            pipe.push(edge.outV);
+                            pipes.push(pipe);
+                        } else {
+                            push.call(this.traversed[vertex.obj[this.graph.meta.id]], edge.outV);
                         }
-                    } else {
-                        value = hasArgs ? Utils.pick(vertex.inE, labels) : vertex.inE;
-                        Utils.each(Utils.flatten(Utils.values(value)), function (edge) {
-                            endPipeArray.push(edge.outV);
-                            if (isTracing) {
-                                traceArray.push(edge.outV.obj[this.graph.meta.id]);
-                            }
-                            if (isTracingPath) {
-                                pipe = [];
-                                pipe.push.apply(pipe, next);
-                                pipe.push(edge.outV);
-                                pipes.push(pipe);
-                            } else {
-                                push.call(this.traversed[vertex.obj[this.graph.meta.id]], edge.outV);
-                            }
-                        }, this);
-                    }
-                    if (isTracing) {
-                        Utils.setTrace(this.traceObj, vertex, traceArray);
-                        traceArray = [];
-                    }
+                    }, this);
                 }, this);
 
-                if (isTracing) {
-                    Utils.finalizeTrace(this.traceObj);
-                }
                 if (isTracingPath) {
                     this.pipeline = pipes;
                 } else {
@@ -1666,8 +1543,7 @@ module Helios {
                 var edge:Edge,
                     iter:any[] = [],
                     endPipeArray:any[] = [],
-                    isTracing:bool = !!this.tracing,
-                    isTracingPath:bool = !!this.graph.pathEnabled,
+                    isTracingPath:bool = !!this.graph.traceEnabled,
                     pipes:any[] = isTracingPath ? [] : undefined,
                     pipe:IElement[];
                 ;
@@ -1678,15 +1554,11 @@ module Helios {
                     throw new TypeError('Only accepts incoming ' + this.endPipe[0].Type + 's');
                 }
 
-                this.traversed = isTracing ? {} : undefined;
                 iter = isTracingPath ? this.pipeline : this.endPipe;
                 Utils.each(iter, function (next) {
                     edge = isTracingPath ? slice.call(next, -1)[0] : next;
                     endPipeArray.push.apply(endPipeArray, [edge.outV, edge.inV]);
-                    if (isTracing && !(this.traversed.hasOwnProperty(edge.obj[this.graph.meta.id]))) {
-                        Utils.setTrace(this.traceObj, edge, [edge.outV.obj[this.graph.meta.id], edge.inV.obj[this.graph.meta.id]]);
-                        this.traversed[edge.obj[this.graph.meta.id]] = true;
-                    }
+
                     if (isTracingPath) {
                         pipe = [];
                         pipe.push.apply(pipe, next);
@@ -1698,11 +1570,6 @@ module Helios {
                         pipes.push(pipe);
                     }
                 }, this);
-
-                if (isTracing) {
-                    Utils.finalizeTrace(this.traceObj);
-                    this.traversed = undefined;
-                }
 
                 this.pipeline = isTracingPath ? pipes : undefined;
                 this.endPipe = endPipeArray;
@@ -1729,9 +1596,7 @@ module Helios {
                     iter:any[] = [],
                     endPipeArray:any[] = [],
                     hasArgs:bool = !!labels.length,
-                    isTracing:bool = !!this.tracing,
-                    traceArray:any[] = isTracing ? [] : undefined,
-                    isTracingPath:bool = !!this.graph.pathEnabled,
+                    isTracingPath:bool = !!this.graph.traceEnabled,
                     pipes:any[] = isTracingPath ? [] : undefined,
                     pipe:IElement[];
 
@@ -1763,58 +1628,35 @@ module Helios {
                         }
                     }
 
-                    if (Utils.isEmpty(vertex.outE) || (hasArgs && Utils.isEmpty(Utils.pick(vertex.outE, labels)))) {
-                        if (isTracing && (Utils.isEmpty(vertex.inE) || (hasArgs && Utils.isEmpty(Utils.pick(vertex.inE, labels))))) {
-                            Utils.stopTrace(this.traceObj, vertex);
-                        }
-                    } else {
-                        value = hasArgs ? Utils.pick(vertex.outE, labels) : vertex.outE;
-                        Utils.each(Utils.flatten(Utils.values(value)), function (edge) {
-                            endPipeArray.push(edge);
-                            if (isTracing) {
-                                traceArray.push(edge.obj[this.graph.meta.id]);
-                            }
-                            if (isTracingPath) {
-                                pipe = [];
-                                pipe.push.apply(pipe, next);
-                                pipe.push(edge);
-                                pipes.push(pipe);
-                            } else {
-                                push.call(this.traversed[vertex.obj[this.graph.meta.id]], edge);
-                            }
-                        }, this);
-                    }
+                    value = hasArgs ? Utils.pick(vertex.outE, labels) : vertex.outE;
+                    Utils.each(Utils.flatten(Utils.values(value)), function (edge) {
+                        endPipeArray.push(edge);
 
-                    if (Utils.isEmpty(vertex.inE) || (hasArgs && Utils.isEmpty(Utils.pick(vertex.inE, labels)))) {
-                        if (isTracing && (Utils.isEmpty(vertex.outE) || (hasArgs && Utils.isEmpty(Utils.pick(vertex.outE, labels))))) {
-                            Utils.stopTrace(this.traceObj, vertex);
+                        if (isTracingPath) {
+                            pipe = [];
+                            pipe.push.apply(pipe, next);
+                            pipe.push(edge);
+                            pipes.push(pipe);
+                        } else {
+                            push.call(this.traversed[vertex.obj[this.graph.meta.id]], edge);
                         }
-                    } else {
-                        value = hasArgs ? Utils.pick(vertex.inE,labels) : vertex.inE;
-                        Utils.each(Utils.flatten(Utils.values(value)), function (edge) {
-                            endPipeArray.push(edge);
-                            if (isTracing) {
-                                traceArray.push(edge.obj[this.graph.meta.id]);
-                            }
-                            if (isTracingPath) {
-                                pipe = [];
-                                pipe.push.apply(pipe, next);
-                                pipe.push(edge);
-                                pipes.push(pipe);
-                            } else {
-                                push.call(this.traversed[vertex.obj[this.graph.meta.id]], edge);
-                            }
-                        }, this);
-                    }
-                    if (isTracing) {
-                        Utils.setTrace(this.traceObj, vertex, traceArray);
-                        traceArray = [];
-                    }
+                    }, this);
+                
+                    value = hasArgs ? Utils.pick(vertex.inE,labels) : vertex.inE;
+                    Utils.each(Utils.flatten(Utils.values(value)), function (edge) {
+                        endPipeArray.push(edge);
+                        if (isTracingPath) {
+                            pipe = [];
+                            pipe.push.apply(pipe, next);
+                            pipe.push(edge);
+                            pipes.push(pipe);
+                        } else {
+                            push.call(this.traversed[vertex.obj[this.graph.meta.id]], edge);
+                        }
+                    }, this);
+                
                 }, this);
 
-                if (isTracing) {
-                    Utils.finalizeTrace(this.traceObj);
-                }
                 if (isTracingPath) {
                     this.pipeline = pipes;
                 } else {
@@ -1951,9 +1793,7 @@ module Helios {
                     nextIter:any[] = [],
                     comparables:{}[] = [],
                     endPipeArray:any[] = [],
-                    isTracing:bool = !!this.tracing,
-                    traceArray:any[] = isTracing ? [] : undefined,
-                    isTracingPath:bool = !!this.graph.pathEnabled,
+                    isTracingPath:bool = !!this.graph.traceEnabled,
                     pipes:any[] = isTracingPath ? [] : undefined,
                     funcObj:{},
                     tempObj:{},
@@ -1981,8 +1821,6 @@ module Helios {
                                     if (!Compare[prop].call(null, element.obj, propVals)) {
                                         if (i < l) {
                                             nextIter.push(next);
-                                        } else {
-                                            Utils.stopTrace(this.traceObj, element);
                                         }
                                         return;
                                     }
@@ -1996,8 +1834,6 @@ module Helios {
                                     if (Utils.isObject(tempObj[tempProp]) || !tempObj.hasOwnProperty(tempProp)) {
                                         if (i < l) {
                                             nextIter.push(next);
-                                        } else {
-                                            Utils.stopTrace(this.traceObj, element);
                                         }
                                         return;
                                     }
@@ -2014,8 +1850,6 @@ module Helios {
                                     if (!isIn) {
                                         if (i < l) {
                                             nextIter.push(next);
-                                        } else {
-                                            Utils.stopTrace(this.traceObj, element);
                                         }
                                         return;
                                     }
@@ -2043,9 +1877,7 @@ module Helios {
                 var element:IElement,
                     iter:any[] = [],
                     endPipeArray:any[] = [],
-                    isTracing:bool = !!this.tracing,
-                    traceArray:any[] = isTracing ? [] : undefined,
-                    isTracingPath:bool = !!this.graph.pathEnabled,
+                    isTracingPath:bool = !!this.graph.traceEnabled,
                     pipes:any[] = isTracingPath ? [] : undefined;
 
                 iter = isTracingPath ? this.pipeline : this.endPipe;
@@ -2057,10 +1889,6 @@ module Helios {
                         if (isTracingPath) {
                             pipes.push(next);
                         }
-                    } else {
-                        if (isTracing) {
-                            Utils.stopTrace(this.traceObj, element);
-                        }
                     }
                 }, this);
 
@@ -2071,154 +1899,130 @@ module Helios {
                 return this;
             }
 
-            //Should this be a step?
-            //order -> select first
-            min(arg:string):Pipeline {
-                var element:IElement,
-                    iter:any[] = [],
-                    endPipeArray:IElement[] = [],
-                    isTracing:bool = !!this.tracing,
-                    traceArray:any[] = isTracing ? [] : undefined,
-                    isTracingPath:bool = !!this.graph.pathEnabled,
-                    pipes:any[] = isTracingPath ? [] : undefined,
-                    comp:number,
-                    newComp:number,
-                    tempObj:{},
-                    tempProp:string,
-                    isEmbedded:bool = arg.indexOf(".") > -1;
+            // //Should this be a step?
+            // //order -> select first
+            // min(arg:string):Pipeline {
+            //     var element:IElement,
+            //         iter:any[] = [],
+            //         endPipeArray:IElement[] = [],
+            //         isTracingPath:bool = !!this.graph.traceEnabled,
+            //         pipes:any[] = isTracingPath ? [] : undefined,
+            //         comp:number,
+            //         newComp:number,
+            //         tempObj:{},
+            //         tempProp:string,
+            //         isEmbedded:bool = arg.indexOf(".") > -1;
 
-                iter = isTracingPath ? this.pipeline : this.endPipe;
+            //     iter = isTracingPath ? this.pipeline : this.endPipe;
 
-                tempProp = isEmbedded ? arg.split(".").slice(-1)[0] : arg;
+            //     tempProp = isEmbedded ? arg.split(".").slice(-1)[0] : arg;
 
-                Utils.each(iter, function (next) {
-                    element = isTracingPath ? slice.call(next, -1)[0] : next;
+            //     Utils.each(iter, function (next) {
+            //         element = isTracingPath ? slice.call(next, -1)[0] : next;
 
-                    tempObj = isEmbedded ? Utils.embeddedObject(element.obj, arg) : element.obj;
+            //         tempObj = isEmbedded ? Utils.embeddedObject(element.obj, arg) : element.obj;
 
-                    if (tempObj.hasOwnProperty(tempProp) && !Utils.isArray(tempObj[tempProp])) {
-                        if (!isNaN(Utils.parseNumber(tempObj[tempProp], this.graph))) {
-                            newComp = Utils.parseNumber(tempObj[tempProp], this.graph);
-                        } else {
-                            if (isTracing) {
-                                Utils.stopTrace(this.traceObj, element);
-                            }
-                            return;
-                        }
+            //         if (tempObj.hasOwnProperty(tempProp) && !Utils.isArray(tempObj[tempProp])) {
+            //             if (!isNaN(Utils.parseNumber(tempObj[tempProp], this.graph))) {
+            //                 newComp = Utils.parseNumber(tempObj[tempProp], this.graph);
+            //             } else {
+                            
+            //                 return;
+            //             }
 
-                        if (!!comp) {
-                            if (newComp < comp) {
-                                endPipeArray = [element];
-                                if (isTracingPath) {
-                                    pipes = [];
-                                    pipes.push(next);
-                                }
-                                comp = newComp;
-                            } else if (newComp == comp) {
-                                endPipeArray.push(element);
-                                if (isTracingPath) {
-                                    pipes.push(next);
-                                }
-                            } else {
-                                if (isTracing) {
-                                    Utils.stopTrace(this.traceObj, element);
-                                }
-                            }
-                        } else {
-                            comp = newComp;
-                            endPipeArray.push(element);
-                            if (isTracingPath) {
-                                pipes.push(next);
-                            }
-                        }
-                    } else {
-                        if (isTracing) {
-                            Utils.stopTrace(this.traceObj, element);
-                        }
-                    }
+            //             if (!!comp) {
+            //                 if (newComp < comp) {
+            //                     endPipeArray = [element];
+            //                     if (isTracingPath) {
+            //                         pipes = [];
+            //                         pipes.push(next);
+            //                     }
+            //                     comp = newComp;
+            //                 } else if (newComp == comp) {
+            //                     endPipeArray.push(element);
+            //                     if (isTracingPath) {
+            //                         pipes.push(next);
+            //                     }
+            //                 }
+            //             } else {
+            //                 comp = newComp;
+            //                 endPipeArray.push(element);
+            //                 if (isTracingPath) {
+            //                     pipes.push(next);
+            //                 }
+            //             }
+            //         }
 
-                }, this);
+            //     }, this);
 
-                if (isTracingPath) {
-                    this.pipeline = pipes;
-                }
-                this.endPipe = endPipeArray;
-                return this;
-            }
+            //     if (isTracingPath) {
+            //         this.pipeline = pipes;
+            //     }
+            //     this.endPipe = endPipeArray;
+            //     return this;
+            // }
 
-            //order -> select first
-            max(arg:string):Pipeline {
-                var element:IElement,
-                    iter:any[] = [],
-                    endPipeArray:IElement[] = [],
-                    isTracing:bool = !!this.tracing,
-                    traceArray:any[] = isTracing ? [] : undefined,
-                    isTracingPath:bool = !!this.graph.pathEnabled,
-                    pipes:any[] = isTracingPath ? [] : undefined,
-                    comp:number,
-                    newComp:number,
-                    tempObj:{},
-                    tempProp:string,
-                    isEmbedded:bool = arg.indexOf(".") > -1;
+            // //order -> select first
+            // max(arg:string):Pipeline {
+            //     var element:IElement,
+            //         iter:any[] = [],
+            //         endPipeArray:IElement[] = [],
+            //         isTracingPath:bool = !!this.graph.traceEnabled,
+            //         pipes:any[] = isTracingPath ? [] : undefined,
+            //         comp:number,
+            //         newComp:number,
+            //         tempObj:{},
+            //         tempProp:string,
+            //         isEmbedded:bool = arg.indexOf(".") > -1;
 
-                iter = isTracingPath ? this.pipeline : this.endPipe;
+            //     iter = isTracingPath ? this.pipeline : this.endPipe;
 
-                tempProp = isEmbedded ? arg.split(".").slice(-1)[0] : arg;
+            //     tempProp = isEmbedded ? arg.split(".").slice(-1)[0] : arg;
 
-                Utils.each(iter, function (next) {
-                    element = isTracingPath ? slice.call(next, -1)[0] : next;
+            //     Utils.each(iter, function (next) {
+            //         element = isTracingPath ? slice.call(next, -1)[0] : next;
 
-                    tempObj = isEmbedded ? Utils.embeddedObject(element.obj, arg) : element.obj;
+            //         tempObj = isEmbedded ? Utils.embeddedObject(element.obj, arg) : element.obj;
 
-                    if (tempObj.hasOwnProperty(tempProp) && !Utils.isArray(tempObj[tempProp])) {
-                        if (!isNaN(Utils.parseNumber(tempObj[tempProp], this.graph))) {
-                            newComp = Utils.parseNumber(tempObj[tempProp], this.graph);
-                        } else {
-                            if (isTracing) {
-                                Utils.stopTrace(this.traceObj, element);
-                            }
-                            return;
-                        }
+            //         if (tempObj.hasOwnProperty(tempProp) && !Utils.isArray(tempObj[tempProp])) {
+            //             if (!isNaN(Utils.parseNumber(tempObj[tempProp], this.graph))) {
+            //                 newComp = Utils.parseNumber(tempObj[tempProp], this.graph);
+            //             } else {
+                            
+            //                 return;
+            //             }
 
-                        if (!!comp) {
-                            if (newComp > comp) {
-                                endPipeArray = [element];
-                                if (isTracingPath) {
-                                    pipes = [];
-                                    pipes.push(next);
-                                }
-                                comp = newComp;
-                            } else if (newComp == comp) {
-                                endPipeArray.push(element);
-                                if (isTracingPath) {
-                                    pipes.push(next);
-                                }
-                            } else {
-                                if (isTracing) {
-                                    Utils.stopTrace(this.traceObj, element);
-                                }
-                            }
-                        } else {
-                            comp = newComp;
-                            endPipeArray.push(element);
-                            if (isTracingPath) {
-                                pipes.push(next);
-                            }
-                        }
-                    } else {
-                        if (isTracing) {
-                            Utils.stopTrace(this.traceObj, element);
-                        }
-                    }
+            //             if (!!comp) {
+            //                 if (newComp > comp) {
+            //                     endPipeArray = [element];
+            //                     if (isTracingPath) {
+            //                         pipes = [];
+            //                         pipes.push(next);
+            //                     }
+            //                     comp = newComp;
+            //                 } else if (newComp == comp) {
+            //                     endPipeArray.push(element);
+            //                     if (isTracingPath) {
+            //                         pipes.push(next);
+            //                     }
+            //                 }
+            //             } else {
+            //                 comp = newComp;
+            //                 endPipeArray.push(element);
+            //                 if (isTracingPath) {
+            //                     pipes.push(next);
+            //                 }
+            //             }
+            //         }
 
-                }, this);
+            //     }, this);
 
-                if (isTracingPath) {
-                    this.pipeline = pipes;
-                }
-                this.endPipe = endPipeArray;
-                return this;
-            }
+            //     if (isTracingPath) {
+            //         this.pipeline = pipes;
+            //     }
+            //     this.endPipe = endPipeArray;
+            //     return this;
+            // }
 
             //used for loop() to refer back to a point...I think
             as(name:string):Pipeline {
@@ -2231,29 +2035,29 @@ module Helios {
                 return this;
             }
 
-            traceOn():Pipeline {
+            // traceOn():Pipeline {
 
-                this.tracing = true;
-                this.traceObj = {};
-                if (!!this.endPipe.length) {
-                    Utils.each(this.endPipe, function (element) {
-                        if (this.traceObj[element.obj[this.graph.meta.id]]) {
-                            this.traceObj[element.obj[this.graph.meta.id]].count += 1;
-                            return;
-                        }
-                        this.traceObj[element.obj[this.graph.meta.id]] = { count: 1, element: element,
-                            tracing: [element.obj[this.graph.meta.id]],
-                            bin: [] };
-                    }, this);
-                }
-                return this;
-            }
+            //     this.tracing = true;
+            //     this.traceObj = {};
+            //     if (!!this.endPipe.length) {
+            //         Utils.each(this.endPipe, function (element) {
+            //             if (this.traceObj[element.obj[this.graph.meta.id]]) {
+            //                 this.traceObj[element.obj[this.graph.meta.id]].count += 1;
+            //                 return;
+            //             }
+            //             this.traceObj[element.obj[this.graph.meta.id]] = { count: 1, element: element,
+            //                 tracing: [element.obj[this.graph.meta.id]],
+            //                 bin: [] };
+            //         }, this);
+            //     }
+            //     return this;
+            // }
 
-            traceOff():Pipeline {
-                this.tracing = false;
-                this.traceObj = undefined;
-                return this;
-            }
+            // traceOff():Pipeline {
+            //     this.tracing = false;
+            //     this.traceObj = undefined;
+            //     return this;
+            // }
 
 
             back():Pipeline {
@@ -2275,7 +2079,6 @@ module Helios {
                     }
                 }
                 this.endPipe = array;
-                this.traceOn();
                 return this;
             }
 
@@ -2316,7 +2119,7 @@ module Helios {
              ****************************************************************************************************/
             group(args:string[]):{} {
 
-                var isTracingPath:bool = !!this.graph.pathEnabled,
+                var isTracingPath:bool = !!this.graph.traceEnabled,
                     props:string[] = [],
                     tempObj:{},
                     tempProp:string,
@@ -2362,7 +2165,7 @@ module Helios {
 
             sum(args:string[]):{} {
 
-                var isTracingPath:bool = !!this.graph.pathEnabled,
+                var isTracingPath:bool = !!this.graph.traceEnabled,
                     props:string[] = [],
                     tempObj:{},
                     tempProp:string,
@@ -2483,8 +2286,7 @@ module Helios {
                     endPipeArray:IElement[] = [],
                     element:IElement,
                     iter:any[] = [],
-                    isTracing:bool = !!this.tracing,
-                    isTracingPath:bool = !!this.graph.pathEnabled,
+                    isTracingPath:bool = !!this.graph.traceEnabled,
                     pipes:any[] = isTracingPath ? [] : undefined,
                     hasFunction:bool = !!func && typeof func == "function",
                     callFunc:() => void = function () {
@@ -2496,8 +2298,6 @@ module Helios {
                                 if (isTracingPath) {
                                     pipes.push(next);
                                 }
-                            } else if (isTracing) {
-                                Utils.stopTrace(this.traceObj, element);
                             }
                         }, this);
                     };
@@ -2609,7 +2409,7 @@ module Helios {
                     len:number = 0;
 
 
-                if (!this.graph.pathEnabled) {
+                if (!this.graph.traceEnabled) {
                     throw Error('Not tracing path');
                     return;
                 }
@@ -2635,7 +2435,6 @@ module Helios {
                     }
                 }
                 this.pipeline.length = 0;
-                this.graph.setPathEnabled(false);
                 return outputArray;
             }
 
@@ -2938,62 +2737,62 @@ module Helios {
             ',': /[^0-9-,]+/g
         };
 
-        //This should be moved into Pipeline
-        static setTrace(trace:{}, element:IElement, ...ids:any[]):void {
-            var o:{};
-            var newIds = flatten(ids),
-                id:any = element.obj[element.graph.meta.id];
+        // //This should be moved into Pipeline
+        // static setTrace(trace:{}, element:IElement, ...ids:any[]):void {
+        //     var o:{};
+        //     var newIds = flatten(ids),
+        //         id:any = element.obj[element.graph.meta.id];
 
-            o = trace;
-            for (var k in o) {
-                if (o.hasOwnProperty(k) && !!o[k].tracing) {
-                    var obj = o[k];
+        //     o = trace;
+        //     for (var k in o) {
+        //         if (o.hasOwnProperty(k) && !!o[k].tracing) {
+        //             var obj = o[k];
 
-                    var ind = indexOf.call(obj.tracing, id);
-                    if (!!newIds.length && ind > -1) {
-                        push.apply(obj.bin, newIds);
-                    }
-                }
-            }
-        }
+        //             var ind = indexOf.call(obj.tracing, id);
+        //             if (!!newIds.length && ind > -1) {
+        //                 push.apply(obj.bin, newIds);
+        //             }
+        //         }
+        //     }
+        // }
 
-        //This should be moved into Pipeline
-        static stopTrace(trace:{}, element:IElement):void {
-            var o:{} = trace,
-                id:any = element.obj[element.graph.meta.id];
+        // //This should be moved into Pipeline
+        // static stopTrace(trace:{}, element:IElement):void {
+        //     var o:{} = trace,
+        //         id:any = element.obj[element.graph.meta.id];
 
-            for (var k in o) {
-                if (o.hasOwnProperty(k) && ("tracing" in o[k])) {
-                    var obj = o[k];
-                    var ind = indexOf.call(obj.tracing, id);
+        //     for (var k in o) {
+        //         if (o.hasOwnProperty(k) && ("tracing" in o[k])) {
+        //             var obj = o[k];
+        //             var ind = indexOf.call(obj.tracing, id);
 
-                    while (ind > -1) {
-                        obj.tracing.splice(ind, 1);
-                        ind = indexOf.call(obj.tracing, id);
-                    }
-                    if (!obj.tracing.length) {
-                        delete o[k];
-                    }
-                }
-            }
-        }
+        //             while (ind > -1) {
+        //                 obj.tracing.splice(ind, 1);
+        //                 ind = indexOf.call(obj.tracing, id);
+        //             }
+        //             if (!obj.tracing.length) {
+        //                 delete o[k];
+        //             }
+        //         }
+        //     }
+        // }
 
 
-        //This should be moved into Pipeline
-        static finalizeTrace(trace:{}):void {
+        // //This should be moved into Pipeline
+        // static finalizeTrace(trace:{}):void {
 
-            for (var k in trace) {
-                if (trace.hasOwnProperty(k) && (trace[k].hasOwnProperty("tracing"))) {
-                    var obj = trace[k];
-                    if (!obj.bin.length) {
-                        delete trace[k];
-                    } else {
-                        obj.tracing = Utils.unique(obj.bin);
-                        obj.bin = [];
-                    }
-                }
-            }
-        }
+        //     for (var k in trace) {
+        //         if (trace.hasOwnProperty(k) && (trace[k].hasOwnProperty("tracing"))) {
+        //             var obj = trace[k];
+        //             if (!obj.bin.length) {
+        //                 delete trace[k];
+        //             } else {
+        //                 obj.tracing = Utils.unique(obj.bin);
+        //                 obj.bin = [];
+        //             }
+        //         }
+        //     }
+        // }
 
         static  toArray(o) {
             var k, r = [];
@@ -3436,16 +3235,17 @@ try{
             return 'Database created';
         },
         run: function (params) {
-            var lastMethod = params.slice(-1)[0].method;
             r = g;
-            if(lastMethod == 'path'){
-                r.setPathEnabled(true);
-            }
-
             for(i=0, l=params.length;i<l;i++){
                 r = r[params[i].method].apply(r, params[i].parameters);
             }
+            if(g.traceEnabled){
+                g.setTraceEnabled(false);
+            }
             return r;
+        },
+        setTraceEnabled: function (param) {
+            g.setTraceEnabled(param);
         }
     });
 } catch (exception){

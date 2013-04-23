@@ -158,21 +158,19 @@ module Helios {
 	        this.transform = this.add('transform');
 
 	        this.as = this.add('as');
-	        this.back = this.add('back');
-	        this.traceOn = this.add('traceOn');
-	        this.traceOff = this.add('traceOff');
+	        this.back = this.add('back', true);
 
 	        this.except = this.add('except');
 	        this.retain = this.add('retain');
-	        this.path = this.add('path');
-
-	        //this.step = this.add('step');
-
+	        this.path = this.add('path', true);
 
 		}
 
-		add(func:string):()=>any{
+		add(func:string, setPath?:bool):()=>any{
 			return function(...args:string[]):any{
+				if(setPath){
+					this.db.invoke("setTraceEnabled", true).fail(function(err){console.log(err.message);}).end();
+				}
                 this.messages.push({method:func, parameters:args});
                 return this;
             }
