@@ -1123,8 +1123,8 @@ var Helios;
                         array.push(tempObj[tempProp]);
                     }
                 });
-                this.endPipe = [];
-                return array;
+                this.endPipe = array;
+                return this.emit();
             };
             Pipeline.prototype.order = function (order) {
                 var endPipeArray = [], isElement = !!this.endPipe.length && Utils.isElement(this.endPipe[0]), type;
@@ -1277,6 +1277,11 @@ var Helios;
                     args[_i] = arguments[_i + 1];
                 }
                 var element, iter = [], endPipeArray = [], tracing = !!this.graph.traceEnabled, pipes = tracing ? [] : undefined;
+                this.steps[++this.steps.currentStep] = {
+                    func: 'filter',
+                    args: args,
+                    'exclFromPath': true
+                };
                 iter = tracing ? this.pipeline : this.endPipe;
                 Utils.each(iter, function (next) {
                     element = tracing ? slice.call(next, -1)[0] : next;
@@ -1388,14 +1393,13 @@ var Helios;
                         push.call(outputArray, Utils.toPathArray(this.pipeline[i], this.steps));
                     }
                 }
-                this.steps = {
-                    currentStep: 0
-                };
-                this.pipeline.length = 0;
-                return outputArray;
+                this.endPipe = outputArray;
+                return this.emit();
             };
             Pipeline.prototype.count = function () {
-                return this.endPipe.length;
+                var cnt = this.endPipe.length;
+                this.endPipe = cnt;
+                return this.emit();
             };
             Pipeline.prototype.group = function (args) {
                 var tracing = !!this.graph.traceEnabled, props = [], tempObj, tempProp, groupObj = {
@@ -1507,13 +1511,13 @@ var Helios;
             };
             Pipeline.prototype.transform = function (func) {
                 var endPipeArray = [];
-                var customFunc = new Function("it", "use strict; " + func + " return it;");
+                var customFunc = new Function("it", func + " return it;");
                 Utils.each(this.endPipe, function (element) {
                     var t = customFunc(element.obj);
                     endPipeArray.push(customFunc.call(element.obj, element.obj));
                 });
                 this.endPipe = endPipeArray;
-                return this;
+                return this.emit();
             };
             Pipeline.prototype.store = function (x, func) {
                 var args = [];
@@ -1580,49 +1584,44 @@ var Helios;
                 return this;
             };
             Pipeline.prototype.emit = function () {
-                this.steps = {
-                    currentStep: 0
-                };
+                var result = undefined;
                 if(!!this.endPipe.length) {
                     if(!this.endPipe[0] || !Utils.isElement(this.endPipe[0])) {
-                        return {
-                            results: this.endPipe
-                        };
+                        result = this.endPipe;
+                    } else {
+                        result = Utils.toObjArray(this.endPipe);
                     }
-                    return {
-                        results: Utils.toObjArray(this.endPipe)
-                    };
+                } else {
+                    result = this.endPipe;
                 }
-                return {
-                    results: []
-                };
-            };
-            Pipeline.prototype.stringify = function () {
-                return JSON.stringify(this.emit().results);
-            };
-            Pipeline.prototype.hash = function () {
+                this.endPipe = undefined;
+                this.pipeline = undefined;
                 this.steps = {
                     currentStep: 0
                 };
-                return Utils.toHash(this.endPipe);
+                return result;
+            };
+            Pipeline.prototype.stringify = function () {
+                return JSON.stringify(this.emit());
+            };
+            Pipeline.prototype.hash = function () {
+                this.endPipe = Utils.toHash(this.endPipe);
+                return this.emit();
             };
             Pipeline.prototype.map = function () {
                 var props = [];
                 for (var _i = 0; _i < (arguments.length - 0); _i++) {
                     props[_i] = arguments[_i + 0];
                 }
-                var tempObjArray = [], tempArr = [], outputArray = [];
-                this.steps = {
-                    currentStep: 0
-                };
+                var tempObjArray = [], outputArray = [];
                 if(!!props.length) {
-                    tempObjArray = this.emit().results;
+                    tempObjArray = this.emit();
                     for(var j = 0, l = tempObjArray.length; j < l; j++) {
                         push.call(outputArray, Utils.pick(tempObjArray[j], props));
                     }
                     tempObjArray = [];
                 } else {
-                    outputArray = this.emit().results;
+                    outputArray = this.emit();
                 }
                 return outputArray;
             };
@@ -2180,16 +2179,6 @@ var Helios;
 try  {
     importScripts('sax.js', 'moment.min.js', 'q.min.js', 'uuid.js', 'q-comm.js');
     var i, l, g, r;
-    var noEmitArray = [
-        'id', 
-        'label', 
-        'property', 
-        'count', 
-        'stringify', 
-        'hash', 
-        'path', 
-        'map'
-    ];
     Q_COMM.Connection(this, {
         init: function (params) {
             g = !!params ? new Helios.GraphDatabase(params) : new Helios.GraphDatabase();

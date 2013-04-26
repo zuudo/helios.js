@@ -144,7 +144,7 @@ module Helios {
 
 	        this.id = this.add('id', false);
 	        this.label = this.add('label', false);
-	        this.property = this.add('property');
+	        this.property = this.add('property', false);
 	        this.count = this.add('count', false);
 	        this.stringify = this.add('stringify', false);
 	        this.map = this.add('map', false);
