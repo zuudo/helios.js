@@ -132,16 +132,6 @@ var Helios;
     var Pipeline = (function () {
         function Pipeline(method, args, helios) {
             this.helios = helios;
-            this.noEmitArray = [
-                'id', 
-                'label', 
-                'getProperty', 
-                'count', 
-                'stringify', 
-                'hash', 
-                'path', 
-                'map'
-            ];
             this.messages = [
                 {
                     method: method,
@@ -149,59 +139,60 @@ var Helios;
                 }
             ];
             this.db = helios.db;
-            this.out = this.add('out');
-            this.in = this.add('in');
-            this.both = this.add('both');
-            this.bothE = this.add('bothE');
-            this.bothV = this.add('bothV');
-            this.inE = this.add('inE');
-            this.inV = this.add('inV');
-            this.outE = this.add('outE');
-            this.outV = this.add('outV');
-            this.id = this.add('id');
-            this.label = this.add('label');
-            this.getProperty = this.add('getProperty');
-            this.count = this.add('count');
-            this.stringify = this.add('stringify');
-            this.map = this.add('map');
-            this.hash = this.add('hash');
-            this.where = this.add('where');
-            this.itemAt = this.add('itemAt');
-            this.range = this.add('range');
-            this.dedup = this.add('dedup');
-            this.transform = this.add('transform');
-            this.as = this.add('as');
+            this.out = this.add('out', true);
+            this.in = this.add('in', true);
+            this.both = this.add('both', true);
+            this.bothE = this.add('bothE', true);
+            this.bothV = this.add('bothV', true);
+            this.inE = this.add('inE', true);
+            this.inV = this.add('inV', true);
+            this.outE = this.add('outE', true);
+            this.outV = this.add('outV', true);
+            this.id = this.add('id', false);
+            this.label = this.add('label', false);
+            this.property = this.add('property');
+            this.count = this.add('count', false);
+            this.stringify = this.add('stringify', false);
+            this.map = this.add('map', false);
+            this.hash = this.add('hash', false);
+            this.where = this.add('where', true);
+            this.index = this.add('index', true);
+            this.range = this.add('range', true);
+            this.dedup = this.add('dedup', true);
+            this.transform = this.add('transform', false);
+            this.as = this.add('as', true);
             this.back = this.add('back', true);
-            this.except = this.add('except');
-            this.retain = this.add('retain');
-            this.path = this.add('path', true);
+            this.optional = this.add('optional', true);
+            this.except = this.add('except', true);
+            this.retain = this.add('retain', true);
+            this.path = this.add('path', false);
         }
-        Pipeline.prototype.add = function (func, setPath) {
+        Pipeline.prototype.add = function (func, callEmit) {
+            if (typeof callEmit === "undefined") { callEmit = true; }
             return function () {
                 var args = [];
                 for (var _i = 0; _i < (arguments.length - 0); _i++) {
                     args[_i] = arguments[_i + 0];
                 }
-                if(setPath) {
-                    this.db.invoke("setTraceEnabled", true).fail(function (err) {
+                if(func == 'back' || func == 'path') {
+                    this.db.invoke("pathTrace", true).fail(function (err) {
+                        console.log(err.message);
+                    }).end();
+                }
+                if(func == 'optional') {
+                    this.db.invoke("optionalTrace", true).fail(function (err) {
                         console.log(err.message);
                     }).end();
                 }
                 this.messages.push({
                     method: func,
-                    parameters: args
+                    parameters: args,
+                    emit: callEmit
                 });
                 return this;
             };
         };
         Pipeline.prototype.then = function (success, error) {
-            var lastMethod = this.messages.slice(-1)[0].method;
-            if(this.noEmitArray.indexOf(lastMethod) == -1) {
-                this.messages.push({
-                    method: 'emit',
-                    parameters: []
-                });
-            }
             this.db.invoke("run", this.messages).then(success, error).end();
         };
         return Pipeline;

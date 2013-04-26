@@ -41,7 +41,7 @@ describe('Simple Transform', function() {
 
     describe('key', function() {
         it("should return name property = lop", function(){
-            var result = g.v(3).getProperty('name');
+            var result = g.v(3).property('name');
             expect(result).to.eql(['lop']);
         });
     });
@@ -469,25 +469,25 @@ describe('Simple Transform', function() {
 
 describe('Filter', function() {
 
-    describe('itemAt => [i]', function() {
+    describe('index => [i]', function() {
         it("should return the second item", function(){
-            var result = g.v().itemAt(1).emit().results;
+            var result = g.v().index(1).emit().results;
             expect(result).to.be.an('array').with.deep.property('[0]._id', 2);
         });
 
         it("should return the second and third item", function(){
-            var result = g.v().itemAt(1,2).emit().results;
+            var result = g.v().index(1,2).emit().results;
             expect(result.length).to.be.equal(2);
             expect(result).to.be.an('array').with.deep.property('[0]._id', 2);
             expect(result).to.be.an('array').with.deep.property('[1]._id', 3);
         });
         it("should return the second item passing in array", function(){
-            var result = g.v().itemAt([1]).emit().results;
+            var result = g.v().index([1]).emit().results;
             expect(result).to.be.an('array').with.deep.property('[0]._id', 2);
         });
 
         it("should return the second  and third item passing in array", function(){
-            var result = g.v().itemAt([1,2]).emit().results;
+            var result = g.v().index([1,2]).emit().results;
             expect(result.length).to.be.equal(2);
             expect(result).to.be.an('array').with.deep.property('[0]._id', 2);
             expect(result).to.be.an('array').with.deep.property('[1]._id', 3);
