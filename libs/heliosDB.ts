@@ -1017,9 +1017,8 @@ module Helios {
             }
 
 
-            id():any {
+            id():Pipeline {
                 return this.property(this.graph.meta.id);
-                //return this.emit();
             }
 
             /***************************************************************************************************
@@ -1032,9 +1031,8 @@ module Helios {
              var result = g.e(70).label(); >> ["knows"]
 
              ***************************************************************************************************/
-            label():any {
+            label():Pipeline {
                 return this.property(this.graph.meta.label);
-                //return this.emit();
             }
 
             out(...labels:string[]):Pipeline {
@@ -1662,7 +1660,7 @@ module Helios {
                 });
 
                 this.endPipe = array;
-                return this.emit();
+                return this;
             }
 
             //Needs to be optimized
@@ -2142,10 +2140,10 @@ module Helios {
              var result = g.V().count();
 
              ****************************************************************************************************/
-            count():number {
+            count():Pipeline {
                 var cnt:number = this.endPipe.length;
                 this.endPipe = cnt;
-                return this.emit();
+                return this;
             }
 
             /***************************************************************************************************
@@ -2287,15 +2285,16 @@ module Helios {
             }
 
 
-            transform(func:string):any {
-                var endPipeArray:any[] = [];
-                var customFunc = new Function("it",func+" return it;");
+            transform(func:string):Pipeline {
+                var endPipeArray:any[] = [],
+                    itObj:any,
+                    customFunc = new Function("it","it="+func + "; return it;");
                 Utils.each(this.endPipe, function (element) {
-                    var t = customFunc(element.obj);
-                    endPipeArray.push(customFunc.call(element.obj, element.obj));
+                    itObj = Utils.isElement(element) ? element.obj : element;
+                    endPipeArray.push(customFunc.call(itObj, itObj));
                 });
                 this.endPipe = endPipeArray;
-                return this.emit();
+                return this;
             }
 
             store(x:any[], func?:() => any[], ...args:any[]):Pipeline {
