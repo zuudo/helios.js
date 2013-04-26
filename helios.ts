@@ -19,32 +19,38 @@ module Helios {
   		}
 
 		setConfiguration(options:{}):any{
-			this.worker.postMessage({async:false, message:[{method:'setConfiguration', parameters:[options]}]});
+			this.db.invoke("run", [{method:'setConfiguration', parameters:[options]}]).then(function (message) {
+                console.log(message);
+            })
+            .end()        
 		}
 
-		setPathEnabled(turnOn:bool):any {
-			this.worker.postMessage({async:false, message:[{method:'setPathEnabled', parameters:[turnOn]}]});
-       }
-
-// //need to look at this
-//        getPathEnabled():bool {
-//            return this.pathEnabled;
-//        }
-
 		createVIndex(idxName:string):any {
-			this.worker.postMessage({async:false, message:[{method:'createVIndex', parameters:[idxName]}]});
+			this.db.invoke("run", [{method:'createVIndex', parameters:[idxName]}]).then(function (message) {
+                console.log(message);
+            })
+            .end()        
         }
 
         createEIndex(idxName:string):any {
-			this.worker.postMessage({async:false, message:[{method:'createEIndex', parameters:[idxName]}]});
+			this.db.invoke("run", [{method:'createEIndex', parameters:[idxName]}]).then(function (message) {
+                console.log(message);
+            })
+            .end()        
         }
 
         deleteVIndex(idxName:string):any {
-			this.worker.postMessage({async:false, message:[{method:'deleteVIndex', parameters:[idxName]}]});
+			this.db.invoke("run", [{method:'deleteVIndex', parameters:[idxName]}]).then(function (message) {
+                console.log(message);
+            })
+            .end()        
         }
 
         deleteEIndex(idxName:string):any {
-			this.worker.postMessage({async:false, message:[{method:'deleteEIndex', parameters:[idxName]}]});
+			this.db.invoke("run", [{method:'deleteEIndex', parameters:[idxName]}]).then(function (message) {
+                console.log(message);
+            })
+            .end();
         }
 
 		loadGraphSON(jsonData:string):void{
@@ -81,8 +87,6 @@ module Helios {
 		private messages:{method:string; parameters:any[];}[];
 		private db:any;
 
-//		private noEmitArray:string[] = ['id','label','getProperty','count','stringify','hash','path', 'map'];
-
         id:()=>any[];
         label:()=>any[];
         property:(prop:string)=>any[];
@@ -116,16 +120,12 @@ module Helios {
 
         transform:(func:string)=>Pipeline;
 
-        // cap(...labels:string[])=>Pipeline;
         // gather(...labels:string[])=>Pipeline;        
-        // map(...labels:string[])=>Pipeline;
         // memoize(...labels:string[])=>Pipeline;
         // order(...labels:string[])=>Pipeline;
         
-        // path(...labels:string[])=>Pipeline;
         // scatter(...labels:string[])=>Pipeline;
         // select(...labels:string[])=>Pipeline;
-        // transform(...labels:string[])=>Pipeline;
 
 		constructor(method:string, args:any[], public helios:any){
 			
@@ -168,26 +168,16 @@ module Helios {
 
 		add(func:string, callEmit:bool = true):()=>any{
 			return function(...args:string[]):any{
-				if(func == 'back' || func == 'path'){
-					this.db.invoke("pathTrace", true).fail(function(err){console.log(err.message);}).end();
+				if(func == 'back' || func == 'path' || func == 'optional'){
+					this.db.invoke("startTrace", true).fail(function(err){console.log(err.message);}).end();
 				} 
-				if (func == 'optional'){
-					this.db.invoke("optionalTrace", true).fail(function(err){console.log(err.message);}).end();	
-				}
-				
                 this.messages.push({method:func, parameters:args, emit:callEmit});
                 return this;
             }
 		}
 
 		then(success?:()=>any, error?:()=>any):void{
-			// var lastMethod = this.messages.slice(-1)[0].method;
-			// if(this.noEmitArray.indexOf(lastMethod) == -1) {
-			// 	this.messages.push({method:'emit', parameters:[]});
-			// }
 			this.db.invoke("run", this.messages).then(success, error).end();
 		}
-
 	}
-    
 }

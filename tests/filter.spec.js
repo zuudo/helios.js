@@ -62,11 +62,60 @@ describe('Filter', function() {
 
     describe('g.v(1).out.out.in.in.back(3)', function() {
         it("should return v[4]", function(){
+            g.startTrace(true);
             var result = g.v(1).out().out().in().in().back(3).emit().results;
+            g.startTrace(false);
             expect(result.length).to.be.equal(1);
             expect(result).to.be.an('array').with.deep.property('[0]._id', 4);
         });
     });
 
+    describe('g.v(1).out.out.back(1)', function() {
+        it("should return array len = 1 of arrays with v[4]", function(){
+            g.startTrace(true);
+            var result = g.v(1).out().out().back(1).emit().results;
+            g.startTrace(false);
+            expect(result.length).to.be.equal(1);
+            expect(result).to.be.an('array').with.deep.property('[0]._id', 4);
+        });
+    });
 
+    describe('g.v(1).out.out.back(1).path', function() {
+        it("should return array len = 1 of arrays with v[1], v[4]", function(){
+            g.startTrace(true);
+            var result = g.v(1).out().out().back(1).path();
+            g.startTrace(false);
+            expect(result.length).to.be.equal(1);
+            expect(result[0]).to.be.an('array').with.deep.property('[0]._id', 1);
+            expect(result[0]).to.be.an('array').with.deep.property('[1]._id', 4);
+        });
+    });
+
+    describe('g.v(1).out.out.optional(1)', function() {
+        it("should return array len = 3 of arrays with v[2], v[3], v[4]", function(){
+            g.startTrace(true);
+            var result = g.v(1).out().out().optional(1).emit().results;
+            g.startTrace(false);
+            expect(result.length).to.be.equal(3);
+            expect(result).to.be.an('array').with.deep.property('[0]._id', 2);
+            expect(result).to.be.an('array').with.deep.property('[1]._id', 4);
+            expect(result).to.be.an('array').with.deep.property('[2]._id', 3);
+        });
+    });
+
+    describe('g.v(1).out.out.optional(1).path', function() {
+        it("should return array len = 3 of arrays with v[1] @ [0]", function(){
+            g.startTrace(true);
+            var result = g.v(1).out().out().optional(1).path();
+            g.startTrace(false);
+            expect(result.length).to.be.equal(3);
+            expect(result[0].length).to.be.equal(2);
+            expect(result[0]).to.be.an('array').with.deep.property('[0]._id', 1);
+            expect(result[0]).to.be.an('array').with.deep.property('[1]._id', 2);
+            expect(result[1]).to.be.an('array').with.deep.property('[0]._id', 1);
+            expect(result[1]).to.be.an('array').with.deep.property('[1]._id', 4);
+            expect(result[2]).to.be.an('array').with.deep.property('[0]._id', 1);
+            expect(result[2]).to.be.an('array').with.deep.property('[1]._id', 3);
+        });
+    });
 });
