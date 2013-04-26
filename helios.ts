@@ -127,6 +127,8 @@ module Helios {
         transform:(func:string)=>Pipeline;
         filter:(func:string)=>Pipeline;
 
+        loop:(stepBack:any, iterations:number, func?:string)=>Pipeline;
+
         // gather(...labels:string[])=>Pipeline;        
         // memoize(...labels:string[])=>Pipeline;
         // order(...labels:string[])=>Pipeline;
@@ -167,6 +169,7 @@ module Helios {
 	        this.as = this.add('as');
 	        this.back = this.add('back');
 	        this.optional = this.add('optional');
+	        this.loop = this.add('loop');
 
 	        this.except = this.add('except');
 	        this.retain = this.add('retain');

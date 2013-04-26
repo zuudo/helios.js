@@ -1344,6 +1344,7 @@ var Helios;
                         throw Error('Unknown named position');
                     }
                 } else {
+                    x = this.steps.looped ? x + this.steps.looped : x;
                     backTo = this.steps.currentStep - x;
                 }
                 this.pipeline = Utils.uniqueRow(this.pipeline, backTo);
@@ -1566,54 +1567,59 @@ var Helios;
                 }
                 return this;
             };
-            Pipeline.prototype.loop = function (loopFor, stepBack, func) {
-                var args = [];
-                for (var _i = 0; _i < (arguments.length - 3); _i++) {
-                    args[_i] = arguments[_i + 3];
+            Pipeline.prototype.loop = function (stepBack, iterations, func) {
+                var element, iter = [], endPipeArray = [], tracing = !!this.graph.traceEnabled, pipes = tracing ? [] : undefined, pipe, tempPipeline = [], backTo, currentStep = this.steps.currentStep, loopFor = iterations - 1, step, i, j, l, customFunc = func ? new Function("it", "it=" + func + "; return it;") : undefined;
+                this.steps.looped = this.steps.looped + (iterations - 1) || iterations - 1;
+                if(Utils.isString(stepBack)) {
+                    if(stepBack in this.asHash) {
+                        backTo = this.asHash[stepBack].step;
+                    } else {
+                        throw Error('Unknown named position');
+                    }
+                } else {
+                    backTo = this.steps.currentStep - (stepBack - 1);
                 }
-                var i, stepFrom = 0, stepTo = this.steps.currentStep, endPipeArray = [], element, iter = [], tracing = !!this.graph.traceEnabled, pipes = tracing ? [] : undefined, hasFunction = !!func && typeof func == "function", callFunc = function () {
+                if(func) {
                     iter = tracing ? this.pipeline : this.endPipe;
                     Utils.each(iter, function (next) {
                         element = tracing ? slice.call(next, -1)[0] : next;
-                        if(func.apply(element.obj, args)) {
+                        if(customFunc.call(element.obj, element.obj)) {
                             endPipeArray.push(element);
                             if(tracing) {
-                                pipes.push(next);
+                                pipe = [];
+                                pipe.push.apply(pipe, next);
+                                pipes.push(pipe);
                             }
                         }
-                    }, this);
-                };
-                if(!!loopFor && typeof loopFor == "function") {
-                    hasFunction = true;
-                    func = loopFor;
-                    loopFor = 1;
-                } else {
-                    if(!!stepBack && typeof stepBack == "function") {
-                        hasFunction = true;
-                        func = stepBack;
-                        stepBack = 0;
-                    }
+                    });
                 }
-                stepFrom = Utils.isString(stepBack) ? this.asHash[stepBack].step : this.steps.currentStep - stepBack;
-                if(stepFrom < 2) {
-                    throw Error('Cannot go loop back to step ' + stepFrom);
-                }
-                while(!!loopFor) {
-                    for(i = stepFrom; i <= stepTo; i++) {
-                        if(hasFunction) {
-                            callFunc.call(this);
-                        }
-                        this[this.steps[i].func].apply(this, this.steps[i].args);
-                    }
+                while(loopFor) {
                     --loopFor;
-                }
-                if(hasFunction) {
-                    callFunc.call(this);
-                    if(tracing) {
-                        this.pipeline = pipes;
+                    for(i = backTo; i < currentStep + 1; i++) {
+                        step = this.steps[i];
+                        this[step.func].apply(this, step.args);
+                        if(func) {
+                            iter = tracing ? this.pipeline : this.endPipe;
+                            Utils.each(iter, function (next) {
+                                element = tracing ? slice.call(next, -1)[0] : next;
+                                if(customFunc.call(element.obj, element.obj)) {
+                                    endPipeArray.push(element);
+                                    if(tracing) {
+                                        pipe = [];
+                                        pipe.push.apply(pipe, next);
+                                        pipes.push(pipe);
+                                    }
+                                }
+                            });
+                            if(tracing) {
+                                this.pipeline = pipes;
+                                this.steps[this.steps.currentStep].elements = [];
+                                push.apply(this.steps[this.steps.currentStep].elements, this.pipeline);
+                            }
+                        }
                     }
-                    this.endPipe = endPipeArray;
                 }
+                this.endPipe = endPipeArray;
                 return this;
             };
             Pipeline.prototype.emit = function () {

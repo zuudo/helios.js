@@ -196,5 +196,17 @@ describe('Filter', function() {
             expect(result[0]).to.be.an('array').with.deep.property('[0]._id', 1);
             expect(result[0]).to.be.an('array').with.deep.property('[1]._id', 2);
         });
-    });    
+    });
+
+    describe("g.V().as('x').outE('knows').inV().where({'age':{$gt:30}}).back('x').property('age')", function() {
+        it("should return array with 29", function(){
+            g.startTrace(true);
+            var result = g.v().as('x').outE('knows').inV().where({'age':{$gt:30}}).back('x').property('age').emit();
+            g.startTrace(false);
+            expect(result.length).to.be.equal(1);
+            expect(result).to.be.an('array').with.deep.property('[0]', 29);
+        });
+    });
+
+    
 });
