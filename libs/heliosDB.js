@@ -1124,7 +1124,7 @@ var Helios;
                     }
                 });
                 this.endPipe = array;
-                return this.emit();
+                return this;
             };
             Pipeline.prototype.order = function (order) {
                 var endPipeArray = [], isElement = !!this.endPipe.length && Utils.isElement(this.endPipe[0]), type;
@@ -1399,7 +1399,7 @@ var Helios;
             Pipeline.prototype.count = function () {
                 var cnt = this.endPipe.length;
                 this.endPipe = cnt;
-                return this.emit();
+                return this;
             };
             Pipeline.prototype.group = function (args) {
                 var tracing = !!this.graph.traceEnabled, props = [], tempObj, tempProp, groupObj = {
@@ -1510,14 +1510,13 @@ var Helios;
                 return outputObj;
             };
             Pipeline.prototype.transform = function (func) {
-                var endPipeArray = [];
-                var customFunc = new Function("it", func + " return it;");
+                var endPipeArray = [], itObj, customFunc = new Function("it", "it=" + func + "; return it;");
                 Utils.each(this.endPipe, function (element) {
-                    var t = customFunc(element.obj);
-                    endPipeArray.push(customFunc.call(element.obj, element.obj));
+                    itObj = Utils.isElement(element) ? element.obj : element;
+                    endPipeArray.push(customFunc.call(itObj, itObj));
                 });
                 this.endPipe = endPipeArray;
-                return this.emit();
+                return this;
             };
             Pipeline.prototype.store = function (x, func) {
                 var args = [];
