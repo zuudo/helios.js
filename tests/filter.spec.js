@@ -83,7 +83,7 @@ describe('Filter', function() {
     describe('g.v(1).out.out.back(1).path', function() {
         it("should return array len = 1 of arrays with v[1], v[4]", function(){
             g.startTrace(true);
-            var result = g.v(1).out().out().back(1).path();
+            var result = g.v(1).out().out().back(1).path().emit();
             g.startTrace(false);
             expect(result.length).to.be.equal(1);
             expect(result[0]).to.be.an('array').with.deep.property('[0]._id', 1);
@@ -106,7 +106,7 @@ describe('Filter', function() {
     describe('g.v(1).out.out.optional(1).path', function() {
         it("should return array len = 3 of arrays with v[1] @ [0]", function(){
             g.startTrace(true);
-            var result = g.v(1).out().out().optional(1).path();
+            var result = g.v(1).out().out().optional(1).path().emit();
             g.startTrace(false);
             expect(result.length).to.be.equal(3);
             expect(result[0].length).to.be.equal(2);
@@ -142,7 +142,7 @@ describe('Filter', function() {
     describe('g.v(1).out.as("x").out.back("x").path', function() {
         it("should return array len = 1 of arrays with v[1], v[4]", function(){
             g.startTrace(true);
-            var result = g.v(1).out().as('x').out().back('x').path();
+            var result = g.v(1).out().as('x').out().back('x').path().emit();
             g.startTrace(false);
             expect(result.length).to.be.equal(1);
             expect(result[0]).to.be.an('array').with.deep.property('[0]._id', 1);
@@ -165,7 +165,7 @@ describe('Filter', function() {
     describe('g.v(1).out.as("x").out.optional("x").path', function() {
         it("should return array len = 3 of arrays with v[1] @ [0]", function(){
             g.startTrace(true);
-            var result = g.v(1).out().as('x').out().optional('x').path();
+            var result = g.v(1).out().as('x').out().optional('x').path().emit();
             g.startTrace(false);
             expect(result.length).to.be.equal(3);
             expect(result[0].length).to.be.equal(2);
@@ -181,7 +181,7 @@ describe('Filter', function() {
     describe('g.V().out.has("name","vadas").out.back(1).path', function() {
         it("should return empty array", function(){
             g.startTrace(true);
-            var result = g.v(1).out().where({'name':{$eq:'vadas'}}).out().back(1).path();
+            var result = g.v(1).out().where({'name':{$eq:'vadas'}}).out().back(1).path().emit();
             g.startTrace(false);
             expect(result).to.be.empty;
         });
@@ -190,7 +190,7 @@ describe('Filter', function() {
     describe('g.V().out.has("name","vadas").out.optional(1).path', function() {
         it("should return array len = 1 of arrays with v[1],v[4]", function(){
             g.startTrace(true);
-            var result = g.v().out().where({'name':{$eq:'vadas'}}).out().optional(1).path();
+            var result = g.v().out().where({'name':{$eq:'vadas'}}).out().optional(1).path().emit();
             g.startTrace(false);
             expect(result.length).to.be.equal(1);
             expect(result[0]).to.be.an('array').with.deep.property('[0]._id', 1);

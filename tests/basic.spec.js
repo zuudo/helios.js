@@ -27,21 +27,21 @@ describe('Simple Transform', function() {
 
     describe('id', function() {
         it("should return all ids", function(){
-            var result = g.v().id();
+            var result = g.v().id().emit();
             expect(result).to.eql([1,2,3,4,5,6]);
         });
     });
   
     describe('label', function() {
         it("should return created", function(){
-            var result = g.v(6).outE().label();
+            var result = g.v(6).outE().label().emit();
             expect(result).to.eql(['created']);
         });
     });
 
     describe('key', function() {
         it("should return name property = lop", function(){
-            var result = g.v(3).property('name');
+            var result = g.v(3).property('name').emit();
             expect(result).to.eql(['lop']);
         });
     });
@@ -459,7 +459,7 @@ describe('Simple Transform', function() {
      describe('hash', function() {
           
         it("should contain JSON object with keys 1 & 4", function(){
-            var result = g.v(1, 4).hash();
+            var result = g.v(1, 4).hash().emit();
             expect(result).to.be.an('object');
             expect(result).to.include.keys('1','4');
         });

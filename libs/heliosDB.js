@@ -1115,14 +1115,31 @@ var Helios;
                 return this;
             };
             Pipeline.prototype.property = function (prop) {
-                var array = [], tempObj, tempProp, isEmbedded = prop.indexOf(".") > -1;
+                var element, iter = [], endPipeArray = [], tracing = !!this.graph.traceEnabled, pipes = tracing ? [] : undefined, pipe, array = [], tempObj, tempProp, isEmbedded = prop.indexOf(".") > -1;
                 tempProp = isEmbedded ? prop.split(".").slice(-1)[0] : prop;
-                Utils.each(this.endPipe, function (element) {
+                this.steps[++this.steps.currentStep] = {
+                    func: 'filter',
+                    args: prop
+                };
+                iter = tracing ? this.pipeline : this.endPipe;
+                Utils.each(iter, function (next) {
+                    element = tracing ? slice.call(next, -1)[0] : next;
                     tempObj = isEmbedded ? Utils.embeddedObject(element.obj, prop) : element.obj;
                     if(!Utils.isObject(tempObj[tempProp]) && tempObj.hasOwnProperty(tempProp)) {
                         array.push(tempObj[tempProp]);
+                        if(tracing) {
+                            pipe = [];
+                            pipe.push.apply(pipe, next);
+                            pipe.push(tempObj[tempProp]);
+                            pipes.push(pipe);
+                        }
                     }
                 });
+                if(tracing) {
+                    this.pipeline = pipes;
+                    this.steps[this.steps.currentStep].elements = [];
+                    push.apply(this.steps[this.steps.currentStep].elements, this.pipeline);
+                }
                 this.endPipe = array;
                 return this;
             };
@@ -1272,23 +1289,22 @@ var Helios;
                 return this;
             };
             Pipeline.prototype.filter = function (func) {
-                var args = [];
-                for (var _i = 0; _i < (arguments.length - 1); _i++) {
-                    args[_i] = arguments[_i + 1];
-                }
-                var element, iter = [], endPipeArray = [], tracing = !!this.graph.traceEnabled, pipes = tracing ? [] : undefined;
+                var element, iter = [], endPipeArray = [], tracing = !!this.graph.traceEnabled, pipes = tracing ? [] : undefined, pipe, itObj, customFunc = new Function("it", "it=" + func + "; return it;");
                 this.steps[++this.steps.currentStep] = {
                     func: 'filter',
-                    args: args,
+                    args: [],
                     'exclFromPath': true
                 };
                 iter = tracing ? this.pipeline : this.endPipe;
                 Utils.each(iter, function (next) {
                     element = tracing ? slice.call(next, -1)[0] : next;
-                    if(func.apply(element.obj, args)) {
+                    if(customFunc.call(element.obj, element.obj)) {
                         endPipeArray.push(element);
                         if(tracing) {
-                            pipes.push(next);
+                            pipe = [];
+                            pipe.push.apply(pipe, next);
+                            pipe.push(element);
+                            pipes.push(pipe);
                         }
                     }
                 }, this);
@@ -1394,7 +1410,7 @@ var Helios;
                     }
                 }
                 this.endPipe = outputArray;
-                return this.emit();
+                return this;
             };
             Pipeline.prototype.count = function () {
                 var cnt = this.endPipe.length;
@@ -1510,11 +1526,29 @@ var Helios;
                 return outputObj;
             };
             Pipeline.prototype.transform = function (func) {
-                var endPipeArray = [], itObj, customFunc = new Function("it", "it=" + func + "; return it;");
-                Utils.each(this.endPipe, function (element) {
+                var element, iter = [], endPipeArray = [], tracing = !!this.graph.traceEnabled, pipes = tracing ? [] : undefined, pipe, itObj, customFunc = new Function("it", "it=" + func + "; return it;"), funcOut;
+                this.steps[++this.steps.currentStep] = {
+                    func: 'transform',
+                    args: func
+                };
+                iter = tracing ? this.pipeline : this.endPipe;
+                Utils.each(iter, function (next) {
+                    element = tracing ? slice.call(next, -1)[0] : next;
                     itObj = Utils.isElement(element) ? element.obj : element;
-                    endPipeArray.push(customFunc.call(itObj, itObj));
+                    funcOut = customFunc.call(itObj, itObj);
+                    endPipeArray.push(funcOut);
+                    if(tracing) {
+                        pipe = [];
+                        pipe.push.apply(pipe, next);
+                        pipe.push(funcOut);
+                        pipes.push(pipe);
+                    }
                 });
+                if(tracing) {
+                    this.pipeline = pipes;
+                    this.steps[this.steps.currentStep].elements = [];
+                    push.apply(this.steps[this.steps.currentStep].elements, this.pipeline);
+                }
                 this.endPipe = endPipeArray;
                 return this;
             };
@@ -1593,6 +1627,8 @@ var Helios;
                 } else {
                     result = this.endPipe;
                 }
+                this.traversed = undefined;
+                this.asHash = undefined;
                 this.endPipe = undefined;
                 this.pipeline = undefined;
                 this.steps = {
@@ -1601,11 +1637,12 @@ var Helios;
                 return result;
             };
             Pipeline.prototype.stringify = function () {
-                return JSON.stringify(this.emit());
+                this.endPipe = JSON.stringify(Utils.toObjArray(this.endPipe));
+                return this;
             };
             Pipeline.prototype.hash = function () {
                 this.endPipe = Utils.toHash(this.endPipe);
-                return this.emit();
+                return this;
             };
             Pipeline.prototype.map = function () {
                 var props = [];
@@ -1614,15 +1651,16 @@ var Helios;
                 }
                 var tempObjArray = [], outputArray = [];
                 if(!!props.length) {
-                    tempObjArray = this.emit();
+                    tempObjArray = Utils.toObjArray(this.endPipe);
                     for(var j = 0, l = tempObjArray.length; j < l; j++) {
                         push.call(outputArray, Utils.pick(tempObjArray[j], props));
                     }
                     tempObjArray = [];
                 } else {
-                    outputArray = this.emit();
+                    outputArray = Utils.toObjArray(this.endPipe);
                 }
-                return outputArray;
+                this.endPipe = outputArray;
+                return this;
             };
             return Pipeline;
         })();
@@ -2045,7 +2083,7 @@ var Helios;
             var i, l = array.length, result = [];
             for(i = 0; i < l; i += 1) {
                 if(!steps[i + 1].exclFromPath) {
-                    result.push(array[i].obj);
+                    result.push(Utils.isElement(array[i]) ? array[i].obj : array[i]);
                 }
             }
             return result;
@@ -2183,15 +2221,19 @@ try  {
             g = !!params ? new Helios.GraphDatabase(params) : new Helios.GraphDatabase();
             return 'Database created';
         },
+        dbCommand: function (params) {
+            r = g;
+            for(i = 0 , l = params.length; i < l; i++) {
+                r = r[params[i].method].apply(r, params[i].parameters);
+            }
+            return r;
+        },
         run: function (params) {
             r = g;
-            var lastMessage = params.slice(-1)[0];
-            if(lastMessage.emit) {
-                params.push({
-                    method: 'emit',
-                    parameters: []
-                });
-            }
+            params.push({
+                method: 'emit',
+                parameters: []
+            });
             for(i = 0 , l = params.length; i < l; i++) {
                 r = r[params[i].method].apply(r, params[i].parameters);
             }
