@@ -11,82 +11,64 @@ var Helios;
             }).end();
         }
         GraphDatabase.prototype.setConfiguration = function (options) {
-            this.worker.postMessage({
-                async: false,
-                message: [
-                    {
-                        method: 'setConfiguration',
-                        parameters: [
-                            options
-                        ]
-                    }
-                ]
-            });
-        };
-        GraphDatabase.prototype.setPathEnabled = function (turnOn) {
-            this.worker.postMessage({
-                async: false,
-                message: [
-                    {
-                        method: 'setPathEnabled',
-                        parameters: [
-                            turnOn
-                        ]
-                    }
-                ]
-            });
+            this.db.invoke("run", [
+                {
+                    method: 'setConfiguration',
+                    parameters: [
+                        options
+                    ]
+                }
+            ]).then(function (message) {
+                console.log(message);
+            }).end();
         };
         GraphDatabase.prototype.createVIndex = function (idxName) {
-            this.worker.postMessage({
-                async: false,
-                message: [
-                    {
-                        method: 'createVIndex',
-                        parameters: [
-                            idxName
-                        ]
-                    }
-                ]
-            });
+            this.db.invoke("run", [
+                {
+                    method: 'createVIndex',
+                    parameters: [
+                        idxName
+                    ]
+                }
+            ]).then(function (message) {
+                console.log(message);
+            }).end();
         };
         GraphDatabase.prototype.createEIndex = function (idxName) {
-            this.worker.postMessage({
-                async: false,
-                message: [
-                    {
-                        method: 'createEIndex',
-                        parameters: [
-                            idxName
-                        ]
-                    }
-                ]
-            });
+            this.db.invoke("run", [
+                {
+                    method: 'createEIndex',
+                    parameters: [
+                        idxName
+                    ]
+                }
+            ]).then(function (message) {
+                console.log(message);
+            }).end();
         };
         GraphDatabase.prototype.deleteVIndex = function (idxName) {
-            this.worker.postMessage({
-                async: false,
-                message: [
-                    {
-                        method: 'deleteVIndex',
-                        parameters: [
-                            idxName
-                        ]
-                    }
-                ]
-            });
+            this.db.invoke("run", [
+                {
+                    method: 'deleteVIndex',
+                    parameters: [
+                        idxName
+                    ]
+                }
+            ]).then(function (message) {
+                console.log(message);
+            }).end();
         };
         GraphDatabase.prototype.deleteEIndex = function (idxName) {
-            this.worker.postMessage({
-                async: false,
-                message: [
-                    {
-                        method: 'deleteEIndex',
-                        parameters: [
-                            idxName
-                        ]
-                    }
-                ]
-            });
+            this.db.invoke("run", [
+                {
+                    method: 'deleteEIndex',
+                    parameters: [
+                        idxName
+                    ]
+                }
+            ]).then(function (message) {
+                console.log(message);
+            }).end();
         };
         GraphDatabase.prototype.loadGraphSON = function (jsonData) {
             this.db.invoke("run", [
@@ -174,13 +156,8 @@ var Helios;
                 for (var _i = 0; _i < (arguments.length - 0); _i++) {
                     args[_i] = arguments[_i + 0];
                 }
-                if(func == 'back' || func == 'path') {
-                    this.db.invoke("pathTrace", true).fail(function (err) {
-                        console.log(err.message);
-                    }).end();
-                }
-                if(func == 'optional') {
-                    this.db.invoke("optionalTrace", true).fail(function (err) {
+                if(func == 'back' || func == 'path' || func == 'optional') {
+                    this.db.invoke("startTrace", true).fail(function (err) {
                         console.log(err.message);
                     }).end();
                 }
