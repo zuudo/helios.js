@@ -978,6 +978,7 @@ module Helios {
             private traversed:{};
             private steps:{
                 currentStep:number;
+                looped?:number;
             };
 
             private asHash:{}; //requires Cleanup
@@ -2024,7 +2025,6 @@ module Helios {
             //     return this;
             // }
 
-            //used for loop() to refer back to a point...I think
             as(name:string):Pipeline {
                 this.asHash = this.asHash || {};
                 //Will not overwrite existing stored name
@@ -2060,6 +2060,7 @@ module Helios {
                         throw Error('Unknown named position');
                     }
                 } else {
+                    x = this.steps.looped ? x + this.steps.looped : x;
                     backTo = this.steps.currentStep - x;
                 }
 
@@ -2364,69 +2365,81 @@ module Helios {
 //
 //             *****************************************************************************************************/
 
-            //Need to test back() and path() functions with the loop() escpecially when there is a function involved
-            //loop(loopFor:number, stepBack:number, func?:() => any[], ...args:any[]):Pipeline;
-
-            loop(loopFor:number, stepBack?:string, func?:() => any[], ...args:any[]):Pipeline;
-
-            //loop(loopFor:any = 1, stepBack:any = 0, func?:() => any[], ...args:any[]):Pipeline {
-            loop(loopFor:any, stepBack:any, func?:() => any[], ...args:any[]):Pipeline {
-                var i:number,
-                    stepFrom:number = 0,
-                    stepTo:number = this.steps.currentStep,
-                    endPipeArray:IElement[] = [],
-                    element:IElement,
+            loop(stepBack:number, iterations:number, func?:string):Pipeline;
+            loop(stepBack:string, iterations:number, func?:string):Pipeline;
+            loop(stepBack:any, iterations:number, func?:string):Pipeline {
+                    
+                var element:IElement,
                     iter:any[] = [],
+                    endPipeArray:any[] = [],
                     tracing:bool = !!this.graph.traceEnabled,
                     pipes:any[] = tracing ? [] : undefined,
-                    hasFunction:bool = !!func && typeof func == "function",
-                    callFunc:() => void = function () {
-                        iter = tracing ? this.pipeline : this.endPipe;
-                        Utils.each(iter, function (next) {
-                            element = tracing ? slice.call(next, -1)[0] : next;
-                            if (func.apply(element.obj, args)) {
-                                endPipeArray.push(element);
-                                if (tracing) {
-                                    pipes.push(next);
-                                }
-                            }
-                        }, this);
-                    };
+                    pipe:any[],
+                    tempPipeline:any[]=[],
+                    backTo:number,
+                    currentStep:number = this.steps.currentStep,
+                    loopFor:number = iterations - 1,
+                    step:{ func:string; args:any; },
+                    i:number,
+                    j:number,
+                    l:number,
+                    customFunc = func ? new Function("it","it="+func + "; return it;"):undefined;
 
-                if (!!loopFor && typeof loopFor == "function") {
-                    hasFunction = true;
-                    func = loopFor;
-                    loopFor = 1;
+                    this.steps.looped = this.steps.looped + (iterations - 1) || iterations - 1;
+
+                if(Utils.isString(stepBack)){
+                    if(stepBack in this.asHash){
+                        backTo = this.asHash[stepBack].step;    
+                    } else {
+                        throw Error('Unknown named position');
+                    }
                 } else {
-                    if (!!stepBack && typeof stepBack == "function") {
-                        hasFunction = true;
-                        func = stepBack;
-                        stepBack = 0;
-                    }
+                    backTo = this.steps.currentStep - (stepBack - 1);
                 }
+                if(func){
+                    iter = tracing ? this.pipeline : this.endPipe;
 
-                stepFrom = Utils.isString(stepBack) ? this.asHash[stepBack].step : this.steps.currentStep - stepBack;
-
-                if (stepFrom < 2) {
-                    throw Error('Cannot go loop back to step ' + stepFrom);
-                }
-
-                while (!!loopFor) {
-                    for (i = stepFrom; i <= stepTo; i++) {
-                        if (hasFunction) {
-                            callFunc.call(this);
+                    Utils.each(iter, function (next) {
+                        element = tracing ? slice.call(next, -1)[0] : next;
+                        if (customFunc.call(element.obj, element.obj)) {
+                            endPipeArray.push(element);
+                            if (tracing) {
+                                pipe = [];
+                                pipe.push.apply(pipe, next);
+                                pipes.push(pipe);
+                            }
                         }
-                        this[this.steps[i].func].apply(this, this.steps[i].args);
-                    }
+                    });
+                }
+                while(loopFor){
                     --loopFor;
-                }
-                if (hasFunction) {
-                    callFunc.call(this);
-                    if (tracing) {
-                        this.pipeline = pipes;
+                    for(i=backTo; i < currentStep + 1; i++){
+                        step = this.steps[i];
+                        this[step.func].apply(this, step.args);
+
+                        if(func){
+                            iter = tracing ? this.pipeline : this.endPipe;
+                            Utils.each(iter, function (next) {
+                                element = tracing ? slice.call(next, -1)[0] : next;
+                                if (customFunc.call(element.obj, element.obj)) {
+                                    endPipeArray.push(element);
+                                    if (tracing) {
+                                        pipe = [];
+                                        pipe.push.apply(pipe, next);
+                                        pipes.push(pipe);
+                                    }
+                                }
+                            });
+                            if (tracing) {
+                                this.pipeline = pipes;
+                                this.steps[this.steps.currentStep].elements = [];
+                                push.apply(this.steps[this.steps.currentStep].elements, this.pipeline);
+                            }                            
+                        }
                     }
-                    this.endPipe = endPipeArray;
                 }
+                
+                this.endPipe = endPipeArray;
                 return this;
             }
             
