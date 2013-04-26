@@ -1889,7 +1889,7 @@ module Helios {
                     propVals:any[] = [],
                     isIn:bool;
 
-                this.steps[++this.steps.currentStep] = { func: 'where', args: args };
+                this.steps[++this.steps.currentStep] = { func: 'where', args: args, 'exclFromPath':true };
                 iter = isTracingPath ? this.pipeline : this.endPipe;
 
                 comparables = Utils.flatten(args);
@@ -1944,6 +1944,7 @@ module Helios {
                         }
                         endPipeArray.push(element);
                         if (isTracingPath) {
+                            push.call(next,element);
                             pipes.push(next);
                         }
                     }, this);
@@ -2199,13 +2200,12 @@ module Helios {
                     throw Error('Tracing is off');
                     return;
                 }
-                //reset steps
-                this.steps = { currentStep: 0 };
+                
                 len = this.pipeline.length;
 
                 if(!!props.length){
                     for (var i = 0; i < len; i++) {
-                        tempObjArray = Utils.toObjArray(this.pipeline[i]);
+                        tempObjArray = Utils.toPathArray(this.pipeline[i], this.steps);
                         for(var j = 0, l = tempObjArray.length; j < l; j++){
                             push.call(tempArr, Utils.pick(tempObjArray[j], props))
                         }
@@ -2214,13 +2214,13 @@ module Helios {
                         tempArr = [];
                     }
                 } else {
-
                     for (var i = 0; i < len; i++) {
-                        
-                        push.call(outputArray, Utils.toObjArray(this.pipeline[i]));
+                        push.call(outputArray, Utils.toPathArray(this.pipeline[i], this.steps));
                     }
                 }
                 
+                //reset steps
+                this.steps = { currentStep: 0 };
                 this.pipeline.length = 0;
                 return outputArray;
             }
@@ -3118,11 +3118,22 @@ module Helios {
             return result;
         }
 
-        static  toObjArray(array:any[]):{}[] {
+        static toObjArray(array:any[]):{}[] {
             var i, l = array.length, result:{}[] = [];
 
             for (i = 0; i < l; i += 1) {
                 result.push(array[i].obj);
+            }
+            return result;
+        }
+
+        static toPathArray(array:any[], steps:{}):{}[] {
+            var i, l = array.length, result:{}[] = [];
+
+            for (i = 0; i < l; i += 1) {
+                if(!steps[i+1].exclFromPath){
+                    result.push(array[i].obj);
+                }
             }
             return result;
         }
