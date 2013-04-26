@@ -7,10 +7,16 @@ module Helios {
     	private worker:any;
     	private db:any;
 
+		V:(...ids:string[])=>Pipeline;
+		E:(...ids:string[])=>Pipeline;
+
         constructor(options?:any) {
 
     		this.worker = new Worker('./libs/heliosDB.js');
 			this.db = Q_COMM.Connection(this.worker, null, {max: 1024});
+
+			this.V = this.v;
+			this.E = this.e;
 
             this.db.invoke("init", options)
             .then(function (message) {
@@ -19,49 +25,49 @@ module Helios {
   		}
 
 		setConfiguration(options:{}):any{
-			this.db.invoke("run", [{method:'setConfiguration', parameters:[options]}]).then(function (message) {
+			this.db.invoke("dbCommand", [{method:'setConfiguration', parameters:[options]}]).then(function (message) {
                 console.log(message);
             })
             .end()        
 		}
 
 		createVIndex(idxName:string):any {
-			this.db.invoke("run", [{method:'createVIndex', parameters:[idxName]}]).then(function (message) {
+			this.db.invoke("dbCommand", [{method:'createVIndex', parameters:[idxName]}]).then(function (message) {
                 console.log(message);
             })
             .end()        
         }
 
         createEIndex(idxName:string):any {
-			this.db.invoke("run", [{method:'createEIndex', parameters:[idxName]}]).then(function (message) {
+			this.db.invoke("dbCommand", [{method:'createEIndex', parameters:[idxName]}]).then(function (message) {
                 console.log(message);
             })
             .end()        
         }
 
         deleteVIndex(idxName:string):any {
-			this.db.invoke("run", [{method:'deleteVIndex', parameters:[idxName]}]).then(function (message) {
+			this.db.invoke("dbCommand", [{method:'deleteVIndex', parameters:[idxName]}]).then(function (message) {
                 console.log(message);
             })
             .end()        
         }
 
         deleteEIndex(idxName:string):any {
-			this.db.invoke("run", [{method:'deleteEIndex', parameters:[idxName]}]).then(function (message) {
+			this.db.invoke("dbCommand", [{method:'deleteEIndex', parameters:[idxName]}]).then(function (message) {
                 console.log(message);
             })
             .end();
         }
 
 		loadGraphSON(jsonData:string):void{
-			this.db.invoke("run", [{method:'loadGraphSON', parameters:[jsonData]}]).then(function (message) {
+			this.db.invoke("dbCommand", [{method:'loadGraphSON', parameters:[jsonData]}]).then(function (message) {
                 console.log(message);
             })
             .end();
 		}
 
 		loadGraphML(xmlData:string):void{
-			this.db.invoke("run", [{method:'loadGraphML', parameters:[xmlData]}]).then(function (message) {
+			this.db.invoke("dbCommand", [{method:'loadGraphML', parameters:[xmlData]}]).then(function (message) {
                 console.log(message);
             })
             .end();
@@ -119,6 +125,7 @@ module Helios {
 	    retain:(dataSet:{}[])=>Pipeline;
 
         transform:(func:string)=>Pipeline;
+        filter:(func:string)=>Pipeline;
 
         // gather(...labels:string[])=>Pipeline;        
         // memoize(...labels:string[])=>Pipeline;
@@ -132,46 +139,46 @@ module Helios {
 			this.messages = [{method:method, parameters:args}];
 			this.db = helios.db;
 
-			this.out = this.add('out', true);
-			this.in = this.add('in', true);
-			this.both = this.add('both', true);
-	        this.bothE = this.add('bothE', true);
-	        this.bothV = this.add('bothV', true);
-	        this.inE = this.add('inE', true);
-	        this.inV = this.add('inV', true);
-	        this.outE = this.add('outE', true);
-	        this.outV = this.add('outV', true);
+			this.out = this.add('out');
+			this.in = this.add('in');
+			this.both = this.add('both');
+	        this.bothE = this.add('bothE');
+	        this.bothV = this.add('bothV');
+	        this.inE = this.add('inE');
+	        this.inV = this.add('inV');
+	        this.outE = this.add('outE');
+	        this.outV = this.add('outV');
 
-	        this.id = this.add('id', true);
-	        this.label = this.add('label', true);
-	        this.property = this.add('property', true);
-	        this.count = this.add('count', true);
-	        this.stringify = this.add('stringify', false);
-	        this.map = this.add('map', false);
-	        this.hash = this.add('hash', false);
-	        this.where = this.add('where', true);
+	        this.id = this.add('id');
+	        this.label = this.add('label');
+	        this.property = this.add('property');
+	        this.count = this.add('count');
+	        this.stringify = this.add('stringify');
+	        this.map = this.add('map');
+	        this.hash = this.add('hash');
+	        this.where = this.add('where');
 
-	        this.index = this.add('index', true);
-	        this.range = this.add('range', true);
-	        this.dedup = this.add('dedup', true);
-	        this.transform = this.add('transform', true);
+	        this.index = this.add('index');
+	        this.range = this.add('range');
+	        this.dedup = this.add('dedup');
+	        this.transform = this.add('transform');
+	        this.filter = this.add('filter');
 
-	        this.as = this.add('as', true);
-	        this.back = this.add('back', true);
-	        this.optional = this.add('optional', true);
+	        this.as = this.add('as');
+	        this.back = this.add('back');
+	        this.optional = this.add('optional');
 
-	        this.except = this.add('except', true);
-	        this.retain = this.add('retain', true);
-	        this.path = this.add('path', false);
-
+	        this.except = this.add('except');
+	        this.retain = this.add('retain');
+	        this.path = this.add('path');
 		}
 
-		add(func:string, callEmit:bool = true):()=>any{
+		add(func:string):()=>any{
 			return function(...args:string[]):any{
 				if(func == 'back' || func == 'path' || func == 'optional'){
 					this.db.invoke("startTrace", true).fail(function(err){console.log(err.message);}).end();
 				} 
-                this.messages.push({method:func, parameters:args, emit:callEmit});
+                this.messages.push({method:func, parameters:args});
                 return this;
             }
 		}

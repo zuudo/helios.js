@@ -1204,7 +1204,6 @@ module Helios {
                     }
                 }, this);
 
-                //this.pipeline = tracing ? pipes : undefined;
                 if (tracing) {
                     this.pipeline = pipes;
                     this.steps[this.steps.currentStep].elements = [];
@@ -1251,7 +1250,6 @@ module Helios {
                     }
                 }, this);
 
-                //this.pipeline = tracing ? pipes : undefined;
                 if (tracing) {
                     this.pipeline = pipes;
                     this.steps[this.steps.currentStep].elements = [];
@@ -1542,7 +1540,6 @@ module Helios {
                     }
                 }, this);
 
-//                this.pipeline = tracing ? pipes : undefined;
                 if (tracing) {
                     this.pipeline = pipes;
                     this.steps[this.steps.currentStep].elements = [];
@@ -1551,8 +1548,6 @@ module Helios {
                 this.endPipe = endPipeArray;
                 return this;
             }
-
-            /* MOVE TRAVERSED TO LOCAL VARIABLE*/
 
             /***************************************************************************************************
 
@@ -1645,20 +1640,41 @@ module Helios {
 
             property(prop:string):any {
 
-                var array:any[] = [],
+                var element:IElement,
+                    iter:any[] = [],
+                    endPipeArray:any[] = [],
+                    tracing:bool = !!this.graph.traceEnabled,
+                    pipes:any[] = tracing ? [] : undefined,
+                    pipe:any[],
+                    array:any[] = [],
                     tempObj:{},
                     tempProp:string,
                     isEmbedded:bool = prop.indexOf(".") > -1;
 
                 tempProp = isEmbedded ? prop.split(".").slice(-1)[0] : prop;
 
-                Utils.each(this.endPipe, function (element) {
+                this.steps[++this.steps.currentStep] = { func: 'filter', args: prop };
+                iter = tracing ? this.pipeline : this.endPipe;
+
+                Utils.each(iter, function (next) {
+                    element = tracing ? slice.call(next, -1)[0] : next;
                     tempObj = isEmbedded ? Utils.embeddedObject(element.obj, prop) : element.obj;
                     if (!Utils.isObject(tempObj[tempProp]) && tempObj.hasOwnProperty(tempProp)) {
                         array.push(tempObj[tempProp]);
+                        if (tracing) {
+                            pipe = [];
+                            pipe.push.apply(pipe, next);
+                            pipe.push(tempObj[tempProp]);
+                            pipes.push(pipe);
+                        }
                     }
                 });
 
+                if (tracing) {
+                    this.pipeline = pipes;
+                    this.steps[this.steps.currentStep].elements = [];
+                    push.apply(this.steps[this.steps.currentStep].elements, this.pipeline);
+                }
                 this.endPipe = array;
                 return this;
             }
@@ -1734,30 +1750,24 @@ module Helios {
 
              ****************************************************************************************************/
             dedup():Pipeline {
-
                 this.endPipe = Utils.uniqueElement(this.endPipe);
                 return this;
             }
-
 
             except(dataSet:{}[]):Pipeline {
                 var exclIds = Utils.pluck(Utils.flatten(dataSet), this.graph.meta.id);
                 var ids = Utils.pluck(this.endPipe, this.graph.meta.id);
                 var endPipeIds = Utils.difference(ids, exclIds);
-
                 this.endPipe = Utils.materializeElementArray(endPipeIds, this.graph, this.endPipe[0].Type);
-
                 return this;
             }
 
             //retain
             retain(dataSet:{}[]):Pipeline {
-
                 var intersectIds = Utils.pluck(Utils.flatten(dataSet), this.graph.meta.id);
                 var ids = Utils.pluck(this.endPipe, this.graph.meta.id);
                 var endPipeIds = Utils.intersection(ids, intersectIds);
                 this.endPipe = Utils.materializeElementArray(endPipeIds, this.graph, this.endPipe[0].Type);
-
                 return this;
             }
 
@@ -1852,22 +1862,29 @@ module Helios {
             }
 
 
-            filter(func:()=>any[], ...args:any[]):Pipeline {
+            filter(func:string):Pipeline {
+
                 var element:IElement,
                     iter:any[] = [],
                     endPipeArray:any[] = [],
                     tracing:bool = !!this.graph.traceEnabled,
-                    pipes:any[] = tracing ? [] : undefined;
+                    pipes:any[] = tracing ? [] : undefined,
+                    pipe:any[],
+                    itObj:any,
+                    customFunc = new Function("it","it="+func + "; return it;");
 
-                this.steps[++this.steps.currentStep] = { func: 'filter', args: args, 'exclFromPath':true };
+                this.steps[++this.steps.currentStep] = { func: 'filter', args: [], 'exclFromPath':true };
                 iter = tracing ? this.pipeline : this.endPipe;
 
                 Utils.each(iter, function (next) {
                     element = tracing ? slice.call(next, -1)[0] : next;
-                    if (func.apply(element.obj, args)) {
+                    if (customFunc.call(element.obj, element.obj)) {
                         endPipeArray.push(element);
                         if (tracing) {
-                            pipes.push(next);
+                            pipe = [];
+                            pipe.push.apply(pipe, next);
+                            pipe.push(element);
+                            pipes.push(pipe);
                         }
                     }
                 }, this);
@@ -2093,7 +2110,7 @@ module Helios {
             }
 
 
-            path(...props:string[]):any[] {
+            path(...props:string[]):Pipeline {
                 var tempObjArray:{}[] = [],
                     tempArr:any[] = [],
                     tempObj:{}={},
@@ -2124,7 +2141,7 @@ module Helios {
                 }
                 
                 this.endPipe = outputArray;
-                return this.emit();
+                return this;
             }
 
 
@@ -2286,13 +2303,38 @@ module Helios {
 
 
             transform(func:string):Pipeline {
-                var endPipeArray:any[] = [],
+                var element:IElement,
+                    iter:any[] = [],
+                    endPipeArray:any[] = [],
+                    tracing:bool = !!this.graph.traceEnabled,
+                    pipes:any[] = tracing ? [] : undefined,
+                    pipe:any[],
                     itObj:any,
-                    customFunc = new Function("it","it="+func + "; return it;");
-                Utils.each(this.endPipe, function (element) {
+                    customFunc = new Function("it","it="+func + "; return it;"),
+                    funcOut:any;
+
+                this.steps[++this.steps.currentStep] = { func: 'transform', args: func};
+                iter = tracing ? this.pipeline : this.endPipe;
+
+                Utils.each(iter, function (next) {
+                    element = tracing ? slice.call(next, -1)[0] : next;
                     itObj = Utils.isElement(element) ? element.obj : element;
-                    endPipeArray.push(customFunc.call(itObj, itObj));
+                    funcOut = customFunc.call(itObj, itObj);
+                    endPipeArray.push(funcOut);
+                    if (tracing) {
+                        pipe = [];
+                        pipe.push.apply(pipe, next);
+                        pipe.push(funcOut);
+                        pipes.push(pipe);
+                    }
                 });
+
+                if (tracing) {
+                    this.pipeline = pipes;
+                    this.steps[this.steps.currentStep].elements = [];
+                    push.apply(this.steps[this.steps.currentStep].elements, this.pipeline);
+                }
+
                 this.endPipe = endPipeArray;
                 return this;
             }
@@ -2387,8 +2429,6 @@ module Helios {
                 }
                 return this;
             }
-
-
             
             emit():any {
                 var result:any = undefined;
@@ -2397,17 +2437,18 @@ module Helios {
                     if (!this.endPipe[0] || !Utils.isElement(this.endPipe[0])) {
                         result = this.endPipe;
                     } else {
-                        result = Utils.toObjArray(this.endPipe);                    
+                        result = Utils.toObjArray(this.endPipe);
                     }
                 } else {
                     result = this.endPipe;
                 }
 
                 //reset
+                this.traversed = undefined;
+                this.asHash = undefined;
                 this.endPipe = undefined;
                 this.pipeline = undefined;
                 this.steps = { currentStep: 0 };
-
                 return result;
             }
 
@@ -2424,29 +2465,31 @@ module Helios {
             //  var result = g.V().stringify();
 
             //  **************************************************************************************************
-            stringify():string {
-                return JSON.stringify(this.emit());
+            stringify():Pipeline {
+                this.endPipe = JSON.stringify(Utils.toObjArray(this.endPipe));
+                return this;
             }
 
-            hash():{} {
+            hash():Pipeline {
                 this.endPipe = Utils.toHash(this.endPipe);
-                return this.emit();
+                return this;
             }
 
-            map(...props:string[]):any[] {
+            map(...props:string[]):Pipeline {
                 var tempObjArray:any[] = [],
                     outputArray:any[] = [];
 
                 if(!!props.length){
-                    tempObjArray = this.emit();
+                    tempObjArray = Utils.toObjArray(this.endPipe);
                     for(var j = 0, l = tempObjArray.length; j < l; j++){
                         push.call(outputArray, Utils.pick(tempObjArray[j], props))
                     }
                     tempObjArray = [];
                 } else {
-                    outputArray = this.emit();
+                    outputArray = Utils.toObjArray(this.endPipe);
                 }
-                return outputArray;
+                this.endPipe = outputArray;
+                return this;
             }
         }
 
@@ -3036,7 +3079,7 @@ module Helios {
 
             for (i = 0; i < l; i += 1) {
                 if(!steps[i+1].exclFromPath){
-                    result.push(array[i].obj);
+                    result.push(Utils.isElement(array[i]) ? array[i].obj : array[i]);
                 }
             }
             return result;
@@ -3208,7 +3251,6 @@ module Helios {
 }
 
 
-
 try{
     importScripts('sax.js', 'moment.min.js', 'q.min.js', 'uuid.js', 'q-comm.js');
     var i, l, g, r;
@@ -3217,12 +3259,16 @@ try{
             g = !!params ? new Helios.GraphDatabase(params) : new Helios.GraphDatabase();
             return 'Database created';
         },
+        dbCommand: function (params) {
+            r = g;
+            for(i=0, l=params.length;i<l;i++){
+                r = r[params[i].method].apply(r, params[i].parameters);
+            }
+            return r;
+        },
         run: function (params) {
             r = g;
-            var lastMessage = params.slice(-1)[0]; 
-            if(lastMessage.emit){
-                params.push({method:'emit', parameters:[]});
-            }
+            params.push({method:'emit', parameters:[]});
             for(i=0, l=params.length;i<l;i++){
                 r = r[params[i].method].apply(r, params[i].parameters);
             }

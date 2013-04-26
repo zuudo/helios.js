@@ -6,12 +6,14 @@ var Helios;
             this.db = Q_COMM.Connection(this.worker, null, {
                 max: 1024
             });
+            this.V = this.v;
+            this.E = this.e;
             this.db.invoke("init", options).then(function (message) {
                 console.log(message);
             }).end();
         }
         GraphDatabase.prototype.setConfiguration = function (options) {
-            this.db.invoke("run", [
+            this.db.invoke("dbCommand", [
                 {
                     method: 'setConfiguration',
                     parameters: [
@@ -23,7 +25,7 @@ var Helios;
             }).end();
         };
         GraphDatabase.prototype.createVIndex = function (idxName) {
-            this.db.invoke("run", [
+            this.db.invoke("dbCommand", [
                 {
                     method: 'createVIndex',
                     parameters: [
@@ -35,7 +37,7 @@ var Helios;
             }).end();
         };
         GraphDatabase.prototype.createEIndex = function (idxName) {
-            this.db.invoke("run", [
+            this.db.invoke("dbCommand", [
                 {
                     method: 'createEIndex',
                     parameters: [
@@ -47,7 +49,7 @@ var Helios;
             }).end();
         };
         GraphDatabase.prototype.deleteVIndex = function (idxName) {
-            this.db.invoke("run", [
+            this.db.invoke("dbCommand", [
                 {
                     method: 'deleteVIndex',
                     parameters: [
@@ -59,7 +61,7 @@ var Helios;
             }).end();
         };
         GraphDatabase.prototype.deleteEIndex = function (idxName) {
-            this.db.invoke("run", [
+            this.db.invoke("dbCommand", [
                 {
                     method: 'deleteEIndex',
                     parameters: [
@@ -71,7 +73,7 @@ var Helios;
             }).end();
         };
         GraphDatabase.prototype.loadGraphSON = function (jsonData) {
-            this.db.invoke("run", [
+            this.db.invoke("dbCommand", [
                 {
                     method: 'loadGraphSON',
                     parameters: [
@@ -83,7 +85,7 @@ var Helios;
             }).end();
         };
         GraphDatabase.prototype.loadGraphML = function (xmlData) {
-            this.db.invoke("run", [
+            this.db.invoke("dbCommand", [
                 {
                     method: 'loadGraphML',
                     parameters: [
@@ -121,36 +123,36 @@ var Helios;
                 }
             ];
             this.db = helios.db;
-            this.out = this.add('out', true);
-            this.in = this.add('in', true);
-            this.both = this.add('both', true);
-            this.bothE = this.add('bothE', true);
-            this.bothV = this.add('bothV', true);
-            this.inE = this.add('inE', true);
-            this.inV = this.add('inV', true);
-            this.outE = this.add('outE', true);
-            this.outV = this.add('outV', true);
-            this.id = this.add('id', true);
-            this.label = this.add('label', true);
-            this.property = this.add('property', true);
-            this.count = this.add('count', true);
-            this.stringify = this.add('stringify', false);
-            this.map = this.add('map', false);
-            this.hash = this.add('hash', false);
-            this.where = this.add('where', true);
-            this.index = this.add('index', true);
-            this.range = this.add('range', true);
-            this.dedup = this.add('dedup', true);
-            this.transform = this.add('transform', true);
-            this.as = this.add('as', true);
-            this.back = this.add('back', true);
-            this.optional = this.add('optional', true);
-            this.except = this.add('except', true);
-            this.retain = this.add('retain', true);
-            this.path = this.add('path', false);
+            this.out = this.add('out');
+            this.in = this.add('in');
+            this.both = this.add('both');
+            this.bothE = this.add('bothE');
+            this.bothV = this.add('bothV');
+            this.inE = this.add('inE');
+            this.inV = this.add('inV');
+            this.outE = this.add('outE');
+            this.outV = this.add('outV');
+            this.id = this.add('id');
+            this.label = this.add('label');
+            this.property = this.add('property');
+            this.count = this.add('count');
+            this.stringify = this.add('stringify');
+            this.map = this.add('map');
+            this.hash = this.add('hash');
+            this.where = this.add('where');
+            this.index = this.add('index');
+            this.range = this.add('range');
+            this.dedup = this.add('dedup');
+            this.transform = this.add('transform');
+            this.filter = this.add('filter');
+            this.as = this.add('as');
+            this.back = this.add('back');
+            this.optional = this.add('optional');
+            this.except = this.add('except');
+            this.retain = this.add('retain');
+            this.path = this.add('path');
         }
-        Pipeline.prototype.add = function (func, callEmit) {
-            if (typeof callEmit === "undefined") { callEmit = true; }
+        Pipeline.prototype.add = function (func) {
             return function () {
                 var args = [];
                 for (var _i = 0; _i < (arguments.length - 0); _i++) {
@@ -163,8 +165,7 @@ var Helios;
                 }
                 this.messages.push({
                     method: func,
-                    parameters: args,
-                    emit: callEmit
+                    parameters: args
                 });
                 return this;
             };
