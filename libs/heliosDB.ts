@@ -981,7 +981,7 @@ module Helios {
             };
 
             private asHash:{}; //requires Cleanup
-            private endPipe:any[]; //requires Cleanup
+            private endPipe:any; //requires Cleanup
 
             constructor(public graph:GraphDatabase, elements?:any) {
                 if (!!elements) {
@@ -1017,8 +1017,9 @@ module Helios {
             }
 
 
-            id():any[] {
+            id():any {
                 return this.property(this.graph.meta.id);
+                //return this.emit();
             }
 
             /***************************************************************************************************
@@ -1031,8 +1032,9 @@ module Helios {
              var result = g.e(70).label(); >> ["knows"]
 
              ***************************************************************************************************/
-            label():any[] {
+            label():any {
                 return this.property(this.graph.meta.label);
+                //return this.emit();
             }
 
             out(...labels:string[]):Pipeline {
@@ -1643,7 +1645,7 @@ module Helios {
                 return this;
             }
 
-            property(prop:string):any[] {
+            property(prop:string):any {
 
                 var array:any[] = [],
                     tempObj:{},
@@ -1659,8 +1661,8 @@ module Helios {
                     }
                 });
 
-                this.endPipe = [];
-                return array;
+                this.endPipe = array;
+                return this.emit();
             }
 
             //Needs to be optimized
@@ -1859,6 +1861,7 @@ module Helios {
                     tracing:bool = !!this.graph.traceEnabled,
                     pipes:any[] = tracing ? [] : undefined;
 
+                this.steps[++this.steps.currentStep] = { func: 'filter', args: args, 'exclFromPath':true };
                 iter = tracing ? this.pipeline : this.endPipe;
 
                 Utils.each(iter, function (next) {
@@ -2122,10 +2125,8 @@ module Helios {
                     }
                 }
                 
-                //reset steps
-                this.steps = { currentStep: 0 };
-                this.pipeline.length = 0;
-                return outputArray;
+                this.endPipe = outputArray;
+                return this.emit();
             }
 
 
@@ -2142,7 +2143,9 @@ module Helios {
 
              ****************************************************************************************************/
             count():number {
-                return this.endPipe.length;
+                var cnt:number = this.endPipe.length;
+                this.endPipe = cnt;
+                return this.emit();
             }
 
             /***************************************************************************************************
@@ -2284,15 +2287,15 @@ module Helios {
             }
 
 
-            transform(func:string):Pipeline {
+            transform(func:string):any {
                 var endPipeArray:any[] = [];
-                var customFunc = new Function("it","use strict; "+func+" return it;");
+                var customFunc = new Function("it",func+" return it;");
                 Utils.each(this.endPipe, function (element) {
                     var t = customFunc(element.obj);
                     endPipeArray.push(customFunc.call(element.obj, element.obj));
                 });
                 this.endPipe = endPipeArray;
-                return this;
+                return this.emit();
             }
 
             store(x:any[], func?:() => any[], ...args:any[]):Pipeline {
@@ -2388,20 +2391,25 @@ module Helios {
 
 
             
-            emit():{ results:any[]; } {
-
-                //reset steps
-                this.steps = { currentStep: 0 };
-
+            emit():any {
+                var result:any = undefined;
+                
                 if (!!this.endPipe.length) {
                     if (!this.endPipe[0] || !Utils.isElement(this.endPipe[0])) {
-                        return {results: this.endPipe};
-                    }                    
-                    return {results: Utils.toObjArray(this.endPipe)};
+                        result = this.endPipe;
+                    } else {
+                        result = Utils.toObjArray(this.endPipe);                    
+                    }
+                } else {
+                    result = this.endPipe;
                 }
 
+                //reset
+                this.endPipe = undefined;
+                this.pipeline = undefined;
+                this.steps = { currentStep: 0 };
 
-                return {results: []};
+                return result;
             }
 
             // **************************************************************************************************
@@ -2418,32 +2426,26 @@ module Helios {
 
             //  **************************************************************************************************
             stringify():string {
-                return JSON.stringify(this.emit().results);
+                return JSON.stringify(this.emit());
             }
 
             hash():{} {
-                //reset steps
-                this.steps = { currentStep: 0 };
-                return Utils.toHash(this.endPipe);
+                this.endPipe = Utils.toHash(this.endPipe);
+                return this.emit();
             }
 
             map(...props:string[]):any[] {
                 var tempObjArray:any[] = [],
-                    tempArr:any[] = [],
                     outputArray:any[] = [];
 
-                //reset steps
-                this.steps = { currentStep: 0 };
-
                 if(!!props.length){
-                    
-                    tempObjArray = this.emit().results;
+                    tempObjArray = this.emit();
                     for(var j = 0, l = tempObjArray.length; j < l; j++){
                         push.call(outputArray, Utils.pick(tempObjArray[j], props))
                     }
                     tempObjArray = [];
                 } else {
-                    outputArray = this.emit().results;
+                    outputArray = this.emit();
                 }
                 return outputArray;
             }
@@ -3211,10 +3213,8 @@ module Helios {
 try{
     importScripts('sax.js', 'moment.min.js', 'q.min.js', 'uuid.js', 'q-comm.js');
     var i, l, g, r;
-    var noEmitArray = ['id','label','property','count','stringify','hash','path', 'map'];
     Q_COMM.Connection(this, {
         init: function (params) {
-            //for(var i=0;i<3000000000;i++){}
             g = !!params ? new Helios.GraphDatabase(params) : new Helios.GraphDatabase();
             return 'Database created';
         },

@@ -118,4 +118,83 @@ describe('Filter', function() {
             expect(result[2]).to.be.an('array').with.deep.property('[1]._id', 3);
         });
     });
+
+    describe('g.v(1).out.as("x").out.in.in.back("x")', function() {
+        it("should return v[4]", function(){
+            g.startTrace(true);
+            var result = g.v(1).out().as('x').out().in().in().back('x').emit().results;
+            g.startTrace(false);
+            expect(result.length).to.be.equal(1);
+            expect(result).to.be.an('array').with.deep.property('[0]._id', 4);
+        });
+    });
+
+    describe('g.v(1).out.as("x").out.back("x")', function() {
+        it("should return array len = 1 of arrays with v[4]", function(){
+            g.startTrace(true);
+            var result = g.v(1).out().as('x').out().back('x').emit().results;
+            g.startTrace(false);
+            expect(result.length).to.be.equal(1);
+            expect(result).to.be.an('array').with.deep.property('[0]._id', 4);
+        });
+    });
+
+    describe('g.v(1).out.as("x").out.back("x").path', function() {
+        it("should return array len = 1 of arrays with v[1], v[4]", function(){
+            g.startTrace(true);
+            var result = g.v(1).out().as('x').out().back('x').path();
+            g.startTrace(false);
+            expect(result.length).to.be.equal(1);
+            expect(result[0]).to.be.an('array').with.deep.property('[0]._id', 1);
+            expect(result[0]).to.be.an('array').with.deep.property('[1]._id', 4);
+        });
+    });
+
+    describe('g.v(1).out.as("x").out.optional("x")', function() {
+        it("should return array len = 3 of arrays with v[2], v[3], v[4]", function(){
+            g.startTrace(true);
+            var result = g.v(1).out().as('x').out().optional('x').emit().results;
+            g.startTrace(false);
+            expect(result.length).to.be.equal(3);
+            expect(result).to.be.an('array').with.deep.property('[0]._id', 2);
+            expect(result).to.be.an('array').with.deep.property('[1]._id', 4);
+            expect(result).to.be.an('array').with.deep.property('[2]._id', 3);
+        });
+    });
+
+    describe('g.v(1).out.as("x").out.optional("x").path', function() {
+        it("should return array len = 3 of arrays with v[1] @ [0]", function(){
+            g.startTrace(true);
+            var result = g.v(1).out().as('x').out().optional('x').path();
+            g.startTrace(false);
+            expect(result.length).to.be.equal(3);
+            expect(result[0].length).to.be.equal(2);
+            expect(result[0]).to.be.an('array').with.deep.property('[0]._id', 1);
+            expect(result[0]).to.be.an('array').with.deep.property('[1]._id', 2);
+            expect(result[1]).to.be.an('array').with.deep.property('[0]._id', 1);
+            expect(result[1]).to.be.an('array').with.deep.property('[1]._id', 4);
+            expect(result[2]).to.be.an('array').with.deep.property('[0]._id', 1);
+            expect(result[2]).to.be.an('array').with.deep.property('[1]._id', 3);
+        });
+    });
+
+    describe('g.V().out.has("name","vadas").out.back(1).path', function() {
+        it("should return empty array", function(){
+            g.startTrace(true);
+            var result = g.v(1).out().where({'name':{$eq:'vadas'}}).out().back(1).path();
+            g.startTrace(false);
+            expect(result).to.be.empty;
+        });
+    });
+
+    describe('g.V().out.has("name","vadas").out.optional(1).path', function() {
+        it("should return array len = 1 of arrays with v[1],v[4]", function(){
+            g.startTrace(true);
+            var result = g.v().out().where({'name':{$eq:'vadas'}}).out().optional(1).path();
+            g.startTrace(false);
+            expect(result.length).to.be.equal(1);
+            expect(result[0]).to.be.an('array').with.deep.property('[0]._id', 1);
+            expect(result[0]).to.be.an('array').with.deep.property('[1]._id', 2);
+        });
+    });    
 });
