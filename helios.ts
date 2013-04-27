@@ -126,6 +126,7 @@ module Helios {
 
         transform:(func:string)=>Pipeline;
         filter:(func:string)=>Pipeline;
+        ifThenElse:(ifFunc:string, thenFunc:string, elseFunc:string)=>Pipeline;
 
         loop:(stepBack:any, iterations:number, func?:string)=>Pipeline;
 
@@ -169,6 +170,7 @@ module Helios {
 	        this.as = this.add('as');
 	        this.back = this.add('back');
 	        this.optional = this.add('optional');
+	        this.ifThenElse = this.add('ifThenElse');
 	        this.loop = this.add('loop');
 
 	        this.except = this.add('except');
