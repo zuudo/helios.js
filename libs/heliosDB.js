@@ -1289,7 +1289,7 @@ var Helios;
                 return this;
             };
             Pipeline.prototype.filter = function (func) {
-                var element, iter = [], endPipeArray = [], tracing = !!this.graph.traceEnabled, pipes = tracing ? [] : undefined, pipe, itObj, customFunc = new Function("it", "it=" + func + "; return it;");
+                var element, iter = [], endPipeArray = [], tracing = !!this.graph.traceEnabled, pipes = tracing ? [] : undefined, pipe, customFunc = new Function("it", "it=" + func + "; return it;");
                 this.steps[++this.steps.currentStep] = {
                     func: 'filter',
                     args: [],
@@ -1306,6 +1306,37 @@ var Helios;
                             pipe.push(element);
                             pipes.push(pipe);
                         }
+                    }
+                }, this);
+                if(tracing) {
+                    this.pipeline = pipes;
+                    this.steps[this.steps.currentStep].elements = [];
+                    push.apply(this.steps[this.steps.currentStep].elements, this.pipeline);
+                }
+                this.endPipe = endPipeArray;
+                return this;
+            };
+            Pipeline.prototype.ifThenElse = function (ifC, thenC, elseC) {
+                var element, iter = [], endPipeArray = [], tracing = !!this.graph.traceEnabled, pipes = tracing ? [] : undefined, pipe, itObj, funcOut, ifFunc = new Function("it", "it=" + ifC + "; return it;"), thenFunc = new Function("it", "it=" + thenC + "; return it;"), elseFunc = new Function("it", "it=" + elseC + "; return it;");
+                this.steps[++this.steps.currentStep] = {
+                    func: 'ifThenElse',
+                    args: []
+                };
+                iter = tracing ? this.pipeline : this.endPipe;
+                Utils.each(iter, function (next) {
+                    element = tracing ? slice.call(next, -1)[0] : next;
+                    itObj = Utils.isElement(element) ? element.obj : element;
+                    if(ifFunc.call(itObj, itObj)) {
+                        funcOut = thenFunc.call(itObj, itObj);
+                    } else {
+                        funcOut = elseFunc.call(itObj, itObj);
+                    }
+                    endPipeArray.push(funcOut);
+                    if(tracing) {
+                        pipe = [];
+                        pipe.push.apply(pipe, next);
+                        pipe.push(funcOut);
+                        pipes.push(pipe);
                     }
                 }, this);
                 if(tracing) {

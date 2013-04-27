@@ -148,6 +148,7 @@ var Helios;
             this.as = this.add('as');
             this.back = this.add('back');
             this.optional = this.add('optional');
+            this.ifThenElse = this.add('ifThenElse');
             this.loop = this.add('loop');
             this.except = this.add('except');
             this.retain = this.add('retain');
