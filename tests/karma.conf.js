@@ -11,9 +11,9 @@ files = [
   MOCHA,
   MOCHA_ADAPTER,
   'tests/chai.js',
-  'libs/sax.js',
-  'libs/moment.min.js',
-  'libs/heliosDB.js',
+  'lib/sax.js',
+  'lib/moment.min.js',
+  'lib/heliosDB.js',
   'tests/*.js'
 ];
 
@@ -26,7 +26,7 @@ exclude = [
 
 // test results reporter to use
 // possible values: 'dots', 'progress', 'junit'
-reporters = ['progress'];
+reporters = ['dots'];
 
 
 // web server port

@@ -12,7 +12,7 @@ module Helios {
 
         constructor(options?:any) {
 
-    		this.worker = new Worker('./libs/heliosDB.js');
+    		this.worker = new Worker('./lib/heliosDB.js');
 			this.db = Q_COMM.Connection(this.worker, null, {max: 1024});
 
 			this.V = this.v;
