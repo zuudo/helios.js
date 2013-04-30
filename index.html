@@ -52,8 +52,12 @@
 </p>
 
 <h2>Your First Query</h2>
+<p>To get started create a graph database and load some data.</p>
+<pre><code>var g = new Helios.GraphDatabase();
+g.loadGraphSON('https://github.com/entrendipity/helios.js/blob/master/tests/data/graph-example-1.json');</code></pre>
 
-
+<p>Then travese the graph.</p>
+<pre><code>g.V().out('knows').then(function(result){console.log(JSON.stringify(result))});</code></pre>
 <!-- <h2 id='transform'>Transform</h2 id='transform'>
 <p>Transform steps take an object and emit a transformation of it.
 
