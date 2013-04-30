@@ -101,7 +101,6 @@ module Helios {
         map:(...labels:string[])=>{}[];
         hash:()=>{};
 	    path:()=>any[];
-
 		out:(...labels: string[]) => Pipeline;
 		in:(...labels:string[])=>Pipeline;
 		both:(...labels:string[])=>Pipeline;
@@ -111,33 +110,20 @@ module Helios {
         inV:()=>Pipeline;
         outE:(...labels:string[])=>Pipeline;
         outV:()=>Pipeline;
-
         where:(...comparables:{}[])=> Pipeline;
-        
         index:(...indices:number[])=> Pipeline;
 	    range:(start:number, end?:number)=> Pipeline;
 	    dedup:()=> Pipeline;
-
 	    as:(name:string)=> Pipeline;
 	    back:(x:any)=>Pipeline;
 	    optional:(x:any)=>Pipeline;
 	    select:(list?:string[], ...func:string[])=>Pipeline;
-
 	    except:(dataSet:{}[])=>Pipeline;
 	    retain:(dataSet:{}[])=>Pipeline;
-
         transform:(func:string)=>Pipeline;
         filter:(func:string)=>Pipeline;
         ifThenElse:(ifFunc:string, thenFunc:string, elseFunc:string)=>Pipeline;
-
         loop:(stepBack:any, iterations:number, func?:string)=>Pipeline;
-
-        // gather(...labels:string[])=>Pipeline;        
-        // memoize(...labels:string[])=>Pipeline;
-        // order(...labels:string[])=>Pipeline;
-        
-        // scatter(...labels:string[])=>Pipeline;
-        // select(...labels:string[])=>Pipeline;
 
 		constructor(method:string, args:any[], public helios:any){
 			
