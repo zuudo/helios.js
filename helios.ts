@@ -121,6 +121,8 @@ module Helios {
 	    as:(name:string)=> Pipeline;
 	    back:(x:any)=>Pipeline;
 	    optional:(x:any)=>Pipeline;
+	    select:(list?:string[], ...func:string[])=>Pipeline;
+
 	    except:(dataSet:{}[])=>Pipeline;
 	    retain:(dataSet:{}[])=>Pipeline;
 
@@ -168,19 +170,20 @@ module Helios {
 	        this.filter = this.add('filter');
 
 	        this.as = this.add('as');
-	        this.back = this.add('back');
-	        this.optional = this.add('optional');
+	        this.back = this.add('back', true);
+	        this.optional = this.add('optional', true);
+	        this.select = this.add('select', true);
 	        this.ifThenElse = this.add('ifThenElse');
 	        this.loop = this.add('loop');
 
 	        this.except = this.add('except');
 	        this.retain = this.add('retain');
-	        this.path = this.add('path');
+	        this.path = this.add('path', true);
 		}
 
-		add(func:string):()=>any{
+		add(func:string, trace?:bool):()=>any{
 			return function(...args:string[]):any{
-				if(func == 'back' || func == 'path' || func == 'optional'){
+				if(trace){
 					this.db.invoke("startTrace", true).fail(function(err){console.log(err.message);}).end();
 				} 
                 this.messages.push({method:func, parameters:args});
