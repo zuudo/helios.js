@@ -64,7 +64,7 @@ g.loadGraphSON('https://github.com/entrendipity/helios.js/blob/master/tests/data
 
 <p>Lets break this down. The first step creates a variable 'g' that references the graph database. All calls against the database will start with this variable.</p>
 <p>The next step loads data into the database using the loadGraphSON function. This function accepts <a href="https://github.com/tinkerpop/blueprints/wiki/GraphSON-Reader-and-Writer-Library">GraphSON</a> "NORMAL" mode format.</p>
-<p>Once the data is loaded we travese the graph. What the query is doing is retrieving all 'out' going vertices that 'knows' a related vertice. Once we get that data 'then' return with the result. The result is an array of Vertex objects.</p>
+<p>Once the data is loaded we travese the graph. What the query is doing is retrieving all 'out' going vertices that 'knows' a related vertex. Once the data is retrieved 'then' return with the result. The result is an array of Vertex objects.</p>
 
 <p>Function calls are able to be chained, because each call returns a Pipeline object, which is the data structure that pipes the data through each of the functions. Once 'then' is called, the Pipeline is closed and the result is emitted.</p>
 
