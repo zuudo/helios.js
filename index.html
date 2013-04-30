@@ -30,7 +30,7 @@
       <section>
         <h1>HeliosJS</h1>
 
-        <p>HeliosJS is an in-memory graph database for the browser. It uses a <a href="http://gremlin.tinkerpop.com">Gremlin</a> inspired graph traversal language to query, analyze and manipulate the graph.  </p>
+        <p>HeliosJS is an in-memory graph database for the browser. It uses a <a href="http://gremlin.tinkerpop.com">Gremlin</a> inspired graph traversal language to query, analyze and manipulate the graph. Gremlin is an open source project maintained by <a href="http://tinkerpop.com">TinkerPop</a>. For more information on Gremlin, see the <a href="https://github.com/tinkerpop/gremlin/wiki">Gremlin wiki</a>.</p>
 
         <!-- <h2>Dependancies</h2>
         <p>HeliosJS depends on the following libraries.
@@ -46,6 +46,1462 @@
 &lt;script src="./lib/q-comm.js"&gt;&lt;/script&gt;
 &lt;script src="helios.js"&gt;&lt;/script&gt;
 </code></pre>
+
+<p>Unless otherwise noted, all samples are derived from the TinkerPop &quot;toy&quot; graph. The hardcoded representation of the graph is diagrammed <a href="http://github.com/tinkerpop/blueprints/wiki/Property-Graph-Model">here</a>.  
+
+</p>
+
+
+<!-- <h2 id='transform'>Transform</h2 id='transform'>
+<p>Transform steps take an object and emit a transformation of it.
+
+</p>
+<h3 id='transform/_'>_</h3 id='transform/_'>
+<p>Identity turns an arbitrary object into a &quot;pipeline&quot;.
+
+</p>
+<pre><code class="text">gremlin&gt; x = [1,2,3]
+==&gt;1
+==&gt;2
+==&gt;3
+gremlin&gt; x._().transform{it+1}
+==&gt;2
+==&gt;3
+==&gt;4
+gremlin&gt; x = g.E.has(&#39;weight&#39;, T.gt, 0.5f).toList()
+==&gt;e[10][4-created-&gt;5]
+==&gt;e[8][1-knows-&gt;4]
+gremlin&gt; x.inV
+==&gt;[StartPipe, InPipe]
+==&gt;[StartPipe, InPipe]
+gremlin&gt; x._().inV
+==&gt;v[5]
+==&gt;v[4]</code></pre>
+<p><a href="#">top</a>
+
+</p>
+<hr>
+<h3 id='transform/both'>both</h3 id='transform/both'>
+<p>Get both adjacent vertices of the vertex, the in and the out.
+
+</p>
+<pre><code class="text">gremlin&gt; v = g.v(4)
+==&gt;v[4]
+gremlin&gt; v.both
+==&gt;v[1]
+==&gt;v[5]
+==&gt;v[3]
+gremlin&gt; v.both(&#39;knows&#39;)
+==&gt;v[1]
+gremlin&gt; v.both(&#39;knows&#39;, &#39;created&#39;)
+==&gt;v[1]
+==&gt;v[5]
+==&gt;v[3]</code></pre>
+<p><a href="#">top</a>
+
+</p>
+<hr>
+<h3 id='transform/bothe'>bothE</h3 id='transform/bothe'>
+<p>Get both incoming and outgoing edges of the vertex.
+
+</p>
+<pre><code class="text">gremlin&gt; v = g.v(4)
+==&gt;v[4]
+gremlin&gt; v.bothE
+==&gt;e[8][1-knows-&gt;4]
+==&gt;e[10][4-created-&gt;5]
+==&gt;e[11][4-created-&gt;3]
+gremlin&gt; v.bothE(&#39;knows&#39;)
+==&gt;e[8][1-knows-&gt;4]
+gremlin&gt; v.bothE(&#39;knows&#39;, &#39;created&#39;)
+==&gt;e[8][1-knows-&gt;4]
+==&gt;e[10][4-created-&gt;5]
+==&gt;e[11][4-created-&gt;3]</code></pre>
+<p><a href="#">top</a>
+
+</p>
+<hr>
+<h3 id='transform/bothv'>bothV</h3 id='transform/bothv'>
+<p>Get both incoming and outgoing vertices of the edge.
+
+</p>
+<pre><code class="text">gremlin&gt; e = g.e(12)
+==&gt;e[12][6-created-&gt;3]
+gremlin&gt; e.outV
+==&gt;v[6]
+gremlin&gt; e.inV
+==&gt;v[3]
+gremlin&gt; e.bothV
+==&gt;v[6]
+==&gt;v[3]</code></pre>
+<p><a href="#">top</a>
+
+</p>
+<hr>
+<h3 id='transform/cap'>cap</h3 id='transform/cap'>
+<p>Gets the side-effect of the pipe prior.  In other words, it emits the value of the previous step and not the values that flow through it.
+
+</p>
+<pre><code class="text">gremlin&gt; g.V(&#39;lang&#39;, &#39;java&#39;).in(&#39;created&#39;).name.groupCount
+==&gt;marko
+==&gt;josh
+==&gt;peter
+==&gt;josh
+gremlin&gt; g.V(&#39;lang&#39;, &#39;java&#39;).in(&#39;created&#39;).name.groupCount.cap
+==&gt;{marko=1, peter=1, josh=2}</code></pre>
+<p><a href="#">top</a>
+
+</p>
+<hr>
+<h3 id='transform/e'>E</h3 id='transform/e'>
+<p>The edge iterator for the graph.  Utilize this to iterate through all the edges in the graph.  Use with care on large graphs.
+
+</p>
+<pre><code class="text">gremlin&gt; g.E
+==&gt;e[10][4-created-&gt;5]
+==&gt;e[7][1-knows-&gt;2]
+==&gt;e[9][1-created-&gt;3]
+==&gt;e[8][1-knows-&gt;4]
+==&gt;e[11][4-created-&gt;3]
+==&gt;e[12][6-created-&gt;3]
+gremlin&gt; g.E.weight
+==&gt;1.0
+==&gt;0.5
+==&gt;0.4
+==&gt;1.0
+==&gt;0.4
+==&gt;0.2</code></pre>
+<p><a href="#">top</a>
+
+</p>
+<hr>
+<h3 id='transform/gather'>gather</h3 id='transform/gather'>
+<p>Collect all objects up to that step and process the gathered list with the provided closure.
+
+</p>
+<pre><code class="text">gremlin&gt; g.v(1).out
+==&gt;v[2]
+==&gt;v[4]
+==&gt;v[3]
+gremlin&gt; g.v(1).out.gather
+==&gt;[v[2], v[4], v[3]]
+gremlin&gt; g.v(1).out.gather{it.size()}
+==&gt;3</code></pre>
+<h4>See Also</h4>
+<ul>
+<li><a href="#transform/scatter">scatter</a></li>
+</ul>
+<p><a href="#">top</a>
+
+</p>
+<hr>
+<h3 id='transform/id'>id</h3 id='transform/id'>
+<p>Gets the unique identifier of the element.  
+
+</p>
+<pre><code class="text">gremlin&gt; v = g.V(&quot;name&quot;, &quot;marko&quot;).next()
+==&gt;v[1]
+gremlin&gt; v.id
+==&gt;1
+gremlin&gt; g.v(1).id
+==&gt;1</code></pre>
+<p><a href="#">top</a>
+
+</p>
+<hr>
+<h3 id='transform/in'>in</h3 id='transform/in'>
+<p>Gets the adjacent vertices to the vertex.
+
+</p>
+<pre><code class="text">gremlin&gt; v = g.v(4)
+==&gt;v[4]
+gremlin&gt; v.inE.outV
+==&gt;v[1]
+gremlin&gt; v.in
+==&gt;v[1]
+gremlin&gt; v = g.v(3)
+==&gt;v[3]
+gremlin&gt; v.in(&quot;created&quot;)
+==&gt;v[1]
+==&gt;v[4]
+==&gt;v[6]
+gremlin&gt; v.inE(&quot;created&quot;).outV
+==&gt;v[1]
+==&gt;v[4]
+==&gt;v[6]</code></pre>
+<p><a href="#">top</a>
+
+</p>
+<hr>
+<h3 id='transform/ine'>inE</h3 id='transform/ine'>
+<p>Gets the incoming edges of the vertex.
+
+</p>
+<pre><code class="text">gremlin&gt; v = g.v(4)
+==&gt;v[4]
+gremlin&gt; v.inE.outV
+==&gt;v[1]
+gremlin&gt; v.in
+==&gt;v[1]
+gremlin&gt; v = g.v(3)
+==&gt;v[3]
+gremlin&gt; v.in(&quot;created&quot;)
+==&gt;v[1]
+==&gt;v[4]
+==&gt;v[6]
+gremlin&gt; v.inE(&quot;created&quot;).outV
+==&gt;v[1]
+==&gt;v[4]
+==&gt;v[6]</code></pre>
+<p><a href="#">top</a>
+
+</p>
+<hr>
+<h3 id='transform/inv'>inV</h3 id='transform/inv'>
+<p>Get both incoming head vertex of the edge.
+
+</p>
+<pre><code class="text">gremlin&gt; e = g.e(12)
+==&gt;e[12][6-created-&gt;3]
+gremlin&gt; e.outV
+==&gt;v[6]
+gremlin&gt; e.inV
+==&gt;v[3]
+gremlin&gt; e.bothV
+==&gt;v[6]
+==&gt;v[3]</code></pre>
+<p><a href="#">top</a>
+
+</p>
+<hr>
+<h3 id='transform/key'>key</h3 id='transform/key'>
+<p>Get the property value of an element.  The property value can be obtained by simply appending the name to the end of the element or by referencing it as a Groovy map element with square brackets.  For best performance, drop down to the Blueprints API and use <code>getProperty(key)</code>.
+
+</p>
+<pre><code class="text">gremlin&gt; v = g.v(3)
+==&gt;v[3]
+gremlin&gt; v.name
+==&gt;lop
+gremlin&gt; v[&#39;name&#39;]
+==&gt;lop
+gremlin&gt; x = &#39;name&#39;
+==&gt;name
+gremlin&gt; v[x]
+==&gt;lop
+gremlin&gt; v.getProperty(&#39;name&#39;)
+==&gt;lop</code></pre>
+<p><a href="#">top</a>
+
+</p>
+<hr>
+<h3 id='transform/label'>label</h3 id='transform/label'>
+<p>Gets the label of an edge.
+
+</p>
+<pre><code class="text">gremlin&gt; g.v(6).outE.label
+==&gt;created
+gremlin&gt; g.v(1).outE.filter{it.label==&#39;created&#39;}
+==&gt;e[9][1-created-&gt;3]
+
+// a more efficient approach to use of label
+gremlin&gt; g.v(1).outE.has(&#39;label&#39;,&#39;created&#39;)
+==&gt;e[9][1-created-&gt;3]</code></pre>
+<p><a href="#">top</a>
+
+</p>
+<hr>
+<h3 id='transform/linkboth-in-out'>linkBoth[In/Out]</h3 id='transform/linkboth-in-out'>
+<p>An element-centric mutation that takes every incoming vertex and creates an edge to the provided vertex. It can be used with both a Vertex object or a named step.
+
+</p>
+<pre><code class="text">gremlin&gt; marko = g.v(1)
+==&gt;v[1]
+gremlin&gt; g.V.except([marko]).linkBoth(&#39;connected&#39;,marko)
+==&gt;v[3]
+==&gt;v[2]
+==&gt;v[6]
+==&gt;v[5]
+==&gt;v[4]
+gremlin&gt; marko.outE(&#39;connected&#39;)
+==&gt;e[2][1-connected-&gt;2]
+==&gt;e[0][1-connected-&gt;3]
+==&gt;e[6][1-connected-&gt;5]
+==&gt;e[4][1-connected-&gt;6]
+==&gt;e[14][1-connected-&gt;4]
+gremlin&gt; g.V.except([marko]).outE(&#39;connected&#39;)
+==&gt;e[1][3-connected-&gt;1]
+==&gt;e[3][2-connected-&gt;1]
+==&gt;e[5][6-connected-&gt;1]
+==&gt;e[13][5-connected-&gt;1]
+==&gt;e[15][4-connected-&gt;1]
+gremlin&gt; g.v(1).as(&#39;x&#39;).out(&#39;created&#39;).in(&#39;created&#39;).except([g.v(1)]).linkBoth(&#39;cocreator&#39;,&#39;x&#39;)
+==&gt;v[4]
+==&gt;v[6]
+gremlin&gt; g.E.has(&#39;label&#39;,&#39;cocreator&#39;)
+==&gt;e[3][6-cocreator-&gt;1]
+==&gt;e[2][1-cocreator-&gt;6]
+==&gt;e[1][4-cocreator-&gt;1]
+==&gt;e[0][1-cocreator-&gt;4]</code></pre>
+<p><a href="#">top</a>
+
+</p>
+<hr>
+<h3 id='transform/map'>map</h3 id='transform/map'>
+<p>Gets the property map of the graph element.
+
+</p>
+<pre><code class="text">gremlin&gt; g.v(1).map
+==&gt;{name=marko, age=29}
+gremlin&gt; g.v(1).map()
+==&gt;name=marko
+==&gt;age=29</code></pre>
+<p><a href="#">top</a>
+
+</p>
+<hr>
+<h3 id='transform/memoize'>memoize</h3 id='transform/memoize'>
+<p>Remembers a particular mapping from input to output.  Long or expensive expressions with no side effects can use this step to remember a mapping, which helps reduce load when previously processed objects are passed into it.
+
+</p>
+<p>For situations where memoization may consume large amounts of RAM, consider using an embedded key-value store like <a href="http://code.google.com/p/jdbm2/">JDBM</a> or some other persistent Map implementation.
+
+</p>
+<pre><code class="text">gremlin&gt; g.V.out.out.memoize(1).name
+==&gt;ripple
+==&gt;lop
+gremlin&gt; g.V.out.as(&#39;here&#39;).out.memoize(&#39;here&#39;).name
+==&gt;ripple
+==&gt;lop
+gremlin&gt; m = [:]
+gremlin&gt; g.V.out.out.memoize(1,m).name
+==&gt;ripple
+==&gt;lop</code></pre>
+<p><a href="#">top</a>
+
+</p>
+<hr>
+<h3 id='transform/order'>order</h3 id='transform/order'>
+<p>Order the items in the stream according to the closure if provided.  If no closure is provided, then a default sort order is used.
+
+</p>
+<pre><code class="text">gremlin&gt; g.V.name.order
+==&gt;josh
+==&gt;lop
+==&gt;marko
+==&gt;peter
+==&gt;ripple
+==&gt;vadas
+gremlin&gt;  g.V.name.order{it.b &lt;=&gt; it.a}
+==&gt;vadas
+==&gt;ripple
+==&gt;peter
+==&gt;marko
+==&gt;lop
+==&gt;josh
+gremlin&gt; g.V.order{it.b.name &lt;=&gt; it.a.name}.out(&#39;knows&#39;)
+==&gt;v[2]
+==&gt;v[4]</code></pre>
+<p><a href="#">top</a>
+
+</p>
+<hr>
+<h3 id='transform/ordermap'>orderMap</h3 id='transform/ordermap'>
+<p>For every incoming map, sort with supplied closure or <code>T.decr</code> or <code>T.incr</code> and emit keys.
+
+</p>
+<pre><code class="text">gremlin&gt; g.V.both.groupCount.cap.next()
+==&gt;v[3]=3
+==&gt;v[2]=1
+==&gt;v[1]=3
+==&gt;v[6]=1
+==&gt;v[5]=1
+==&gt;v[4]=3
+gremlin&gt; g.V.both.groupCount.cap.orderMap(T.decr)
+==&gt;v[3]
+==&gt;v[1]
+==&gt;v[4]
+==&gt;v[2]
+==&gt;v[6]
+==&gt;v[5]
+gremlin&gt; g.V.both.groupCount.cap.orderMap(T.decr)[0..1]
+==&gt;v[3]
+==&gt;v[1]
+gremlin&gt; g.V.both.groupCount.cap.orderMap(T.decr)[0..1].name
+==&gt;lop
+==&gt;marko</code></pre>
+<p><a href="#">top</a>
+
+</p>
+<hr>
+<h3 id='transform/out'>out</h3 id='transform/out'>
+<p>Gets the out adjacent vertices to the vertex.
+
+</p>
+<pre><code class="text">gremlin&gt; v = g.v(1)
+==&gt;v[1]
+gremlin&gt; v.outE.inV
+==&gt;v[2]
+==&gt;v[4]
+==&gt;v[3]
+gremlin&gt; v.out
+==&gt;v[2]
+==&gt;v[4]
+==&gt;v[3]
+gremlin&gt; v.outE(&#39;knows&#39;).inV
+==&gt;v[2]
+==&gt;v[4]
+gremlin&gt; v.out(&#39;knows&#39;)
+==&gt;v[2]
+==&gt;v[4]</code></pre>
+<p><a href="#">top</a>
+
+</p>
+<hr>
+<h3 id='transform/oute'>outE</h3 id='transform/oute'>
+<p>Gets the outgoing edges to the vertex.
+
+</p>
+<pre><code class="text">gremlin&gt; v = g.v(1)
+==&gt;v[1]
+gremlin&gt; v.outE.inV
+==&gt;v[2]
+==&gt;v[4]
+==&gt;v[3]
+gremlin&gt; v.out
+==&gt;v[2]
+==&gt;v[4]
+==&gt;v[3]
+gremlin&gt; v.outE(&#39;knows&#39;).inV
+==&gt;v[2]
+==&gt;v[4]
+gremlin&gt; v.out(&#39;knows&#39;)
+==&gt;v[2]
+==&gt;v[4]</code></pre>
+<p><a href="#">top</a>
+
+</p>
+<hr>
+<h3 id='transform/outv'>outV</h3 id='transform/outv'>
+<p>Get both outgoing tail vertex of the edge.
+
+</p>
+<pre><code class="text">gremlin&gt; e = g.e(12)
+==&gt;e[12][6-created-&gt;3]
+gremlin&gt; e.outV
+==&gt;v[6]
+gremlin&gt; e.inV
+==&gt;v[3]
+gremlin&gt; e.bothV
+==&gt;v[6]
+==&gt;v[3]</code></pre>
+<p><a href="#">top</a>
+
+</p>
+<hr>
+<h3 id='transform/path'>path</h3 id='transform/path'>
+<p>Gets the path through the pipeline up to this point, where closures are post-processing for each object in the path.  If the path step is provided closures then, in a round robin fashion, the closures are evaluated over each object of the path and that post-processed path is returned.
+
+</p>
+<pre><code class="text">gremlin&gt; g.v(1).out.path
+==&gt;[v[1], v[2]]
+==&gt;[v[1], v[4]]
+==&gt;[v[1], v[3]]
+gremlin&gt; g.v(1).out.path{it.id}
+==&gt;[1, 2]
+==&gt;[1, 4]
+==&gt;[1, 3]
+gremlin&gt; g.v(1).out.path{it.id}{it.name}
+==&gt;[1, vadas]
+==&gt;[1, josh]
+==&gt;[1, lop]
+gremlin&gt; g.v(1).outE.inV.name.path
+==&gt;[v[1], e[7][1-knows-&gt;2], v[2], vadas]
+==&gt;[v[1], e[8][1-knows-&gt;4], v[4], josh]
+==&gt;[v[1], e[9][1-created-&gt;3], v[3], lop]</code></pre>
+<p><a href="#">top</a>
+
+</p>
+<hr>
+<h3 id='transform/scatter'>scatter</h3 id='transform/scatter'>
+<p>Unroll all objects in the iterable at that step. Gather/Scatter is good for breadth-first traversals where the gather closure filters out unwanted elements at the current radius.
+
+</p>
+<pre><code class="text">gremlin&gt; g.v(1).out
+==&gt;v[2]
+==&gt;v[4]
+==&gt;v[3]
+gremlin&gt; g.v(1).out.gather{it[1..2]}
+==&gt;[v[4], v[3]]
+gremlin&gt; g.v(1).out.gather{it[1..2]}.scatter
+==&gt;v[4]
+==&gt;v[3]</code></pre>
+<h4>See Also</h4>
+<ul>
+<li><a href="#transform/gather">gather</a></li>
+</ul>
+<p><a href="#">top</a>
+
+</p>
+<hr>
+<h3 id='transform/select'>select</h3 id='transform/select'>
+<p>Select the named steps to emit after select with post-processing closures.
+
+</p>
+<pre><code class="text">gremlin&gt; g.v(1).as(&#39;x&#39;).out(&#39;knows&#39;).as(&#39;y&#39;).select
+==&gt;[x:v[1], y:v[2]]
+==&gt;[x:v[1], y:v[4]]
+gremlin&gt; g.v(1).as(&#39;x&#39;).out(&#39;knows&#39;).as(&#39;y&#39;).select([&quot;y&quot;])
+==&gt;[y:v[2]]
+==&gt;[y:v[4]]
+gremlin&gt; g.v(1).as(&#39;x&#39;).out(&#39;knows&#39;).as(&#39;y&#39;).select([&quot;y&quot;]){it.name}
+==&gt;[y:vadas]
+==&gt;[y:josh]
+gremlin&gt;  g.v(1).as(&#39;x&#39;).out(&#39;knows&#39;).as(&#39;y&#39;).select{it.id}{it.name}
+==&gt;[x:1, y:vadas]
+==&gt;[x:1, y:josh]</code></pre>
+<p><a href="#">top</a>
+
+</p>
+<hr>
+<h3 id='transform/shuffle'>shuffle</h3 id='transform/shuffle'>
+<p>Collect all objects up to that step into a list and randomize their order.
+
+</p>
+<pre><code class="text">gremlin&gt; g.v(1).out.shuffle
+==&gt;v[2]
+==&gt;v[3]
+==&gt;v[4]
+gremlin&gt; g.v(1).out.shuffle
+==&gt;v[3]
+==&gt;v[2]
+==&gt;v[4]</code></pre>
+<h4>See Also</h4>
+<ul>
+<li><a href="#filter/random">random</a></li>
+</ul>
+<p><a href="#">top</a>
+
+</p>
+<hr>
+<h3 id='transform/transform'>transform</h3 id='transform/transform'>
+<p>Transform emits the result of a closure.
+
+</p>
+<pre><code class="text">gremlin&gt; g.E.has(&#39;weight&#39;, T.gt, 0.5f).outV.map
+==&gt;32
+==&gt;29
+gremlin&gt; g.E.has(&#39;weight&#39;, T.gt, 0.5f).outV.age.transform{it+2}
+==&gt;34
+==&gt;31
+gremlin&gt; g.E.has(&#39;weight&#39;, T.gt, 0.5f).outV.transform{[it.id,it.age]}
+==&gt;[4, 32]
+==&gt;[1, 29]
+gremlin&gt; g.E.has(&#39;weight&#39;, T.gt, 0.5f).outV.transform{[id:it.id,age:it.age]}
+==&gt;{id=4, age=32}
+==&gt;{id=1, age=29}</code></pre>
+<p><a href="#">top</a>
+
+</p>
+<hr>
+<h3 id='transform/v'>V</h3 id='transform/v'>
+<p>The vertex iterator for the graph.  Utilize this to iterate through all the vertices in the graph.  Use with care on large graphs unless used in combination with a key index lookup.
+
+</p>
+<pre><code class="text">gremlin&gt; g.V
+==&gt;v[3]
+==&gt;v[2]
+==&gt;v[1]
+==&gt;v[6]
+==&gt;v[5]
+==&gt;v[4]
+gremlin&gt; g.V(&quot;name&quot;, &quot;marko&quot;)
+==&gt;v[1]
+gremlin&gt; g.V(&quot;name&quot;, &quot;marko&quot;).name
+==&gt;marko</code></pre>
+<p><a href="#">top</a>
+
+</p>
+<hr>
+<h2 id='filter'>Filter</h2 id='filter'>
+<p>Filter steps decide whether to allow an object to pass to the next step or not.
+
+</p>
+<h3 id='filter/i'>[i]</h3 id='filter/i'>
+<p>A index filter that emits the particular indexed object.
+
+</p>
+<pre><code class="text">gremlin&gt; g.V[0].name
+==&gt;lop</code></pre>
+<p><a href="#">top</a>
+
+</p>
+<hr>
+<h3 id='filter/i-j'>[i..j]</h3 id='filter/i-j'>
+<p>A range filter that emits the objects within a range.
+
+</p>
+<pre><code class="text">gremlin&gt; g.V[0..2].name
+==&gt;lop
+==&gt;vadas
+==&gt;marko
+gremlin&gt; g.V[0..&lt;2].name
+==&gt;lop
+==&gt;vadas</code></pre>
+<p><a href="#">top</a>
+
+</p>
+<hr>
+<h3 id='filter/and'>and</h3 id='filter/and'>
+<p>Takes a collection of pipes and emits incoming objects that are true for all of the pipes.
+
+</p>
+<pre><code class="text">gremlin&gt; g.v(1).outE.and(_().has(&#39;weight&#39;, T.gt, 0.4f), _().has(&#39;weight&#39;, T.lt, 0.8f))
+==&gt;e[7][1-knows-&gt;2]
+gremlin&gt; g.V.and(_().both(&quot;knows&quot;), _().both(&quot;created&quot;))
+==&gt;v[1]
+==&gt;v[4]</code></pre>
+<p><a href="#">top</a>
+
+</p>
+<hr>
+<h3 id='filter/back'>back</h3 id='filter/back'>
+<p>Go back to the results from n-steps ago or go back to the results of a named step.
+
+</p>
+<pre><code class="text">gremlin&gt; g.V.out(&#39;knows&#39;).has(&#39;age&#39;, T.gt, 30).back(2).age
+==&gt;29
+gremlin&gt; g.V.as(&#39;x&#39;).outE(&#39;knows&#39;).inV.has(&#39;age&#39;, T.gt, 30).back(&#39;x&#39;).age
+==&gt;29</code></pre>
+<p><a href="#">top</a>
+
+</p>
+<hr>
+<h3 id='filter/dedup'>dedup</h3 id='filter/dedup'>
+<p>Emit only incoming objects that have not been seen before with an optional closure being the object to check on.
+
+</p>
+<pre><code class="text">gremlin&gt; g.v(1).out.in
+==&gt;v[1]
+==&gt;v[1]
+==&gt;v[1]
+==&gt;v[4]
+==&gt;v[6]
+gremlin&gt; g.v(1).out.in.dedup()
+==&gt;v[1]
+==&gt;v[4]
+==&gt;v[6]</code></pre>
+<p><a href="#">top</a>
+
+</p>
+<hr>
+<h3 id='filter/except'>except</h3 id='filter/except'>
+<p>Emit everything to pass except what is in the supplied collection.
+
+</p>
+<pre><code class="text">gremlin&gt; x = [g.v(1), g.v(2), g.v(3)]
+==&gt;v[1]
+==&gt;v[2]
+==&gt;v[3]
+gremlin&gt; g.V.except(x)
+==&gt;v[6]
+==&gt;v[5]
+==&gt;v[4]
+gremlin&gt; x = []
+gremlin&gt; g.v(1).out.aggregate(x).out.except(x)
+==&gt;v[5]</code></pre>
+<h4>See Also</h4>
+<ul>
+<li><a href="#filter/retain">retain</a></li>
+</ul>
+<p><a href="#">top</a>
+
+</p>
+<hr>
+<h3 id='filter/filter'>filter</h3 id='filter/filter'>
+<p>Decide whether to allow an object to pass.  Return true from the closure to allow an object to pass.
+
+</p>
+<pre><code class="text">gremlin&gt; g.V.filter{it.age &gt; 29}.name
+==&gt;peter
+==&gt;josh</code></pre>
+<p><a href="#">top</a>
+
+</p>
+<hr>
+<h3 id='filter/has'>has</h3 id='filter/has'>
+<p>Allows an element if it has a particular property.  Utilizes several options for comparisons through <code>T</code>:
+
+</p>
+<ul>
+<li>T.gt - greater than </li>
+<li>T.gte - greater than or equal to</li>
+<li>T.eq - equal to</li>
+<li>T.neq - not equal to</li>
+<li>T.lte - less than or equal to</li>
+<li>T.lt - less than</li>
+</ul>
+<p>It is worth noting that the syntax of <code>has</code> is similar to <code>g.V(&quot;name&quot;, &quot;marko&quot;)</code>, which has the difference of being a <a href="https://github.com/tinkerpop/blueprints/wiki/Graph-Indices">key index</a> lookup and as such will perform faster. In contrast, this line, <code>g.V.has(&quot;name&quot;, &quot;marko&quot;)</code>, will iterate over all vertices checking the <code>name</code> property of each vertex for a match and will be significantly slower than the key index approach.
+
+</p>
+<pre><code class="text">gremlin&gt; g.V.has(&quot;name&quot;, &quot;marko&quot;).name
+==&gt;marko
+gremlin&gt; g.v(1).outE.has(&quot;weight&quot;, T.gte, 0.5f).weight
+==&gt;0.5
+==&gt;1.0
+gremlin&gt; g.V.has(&quot;age&quot;, null).name
+==&gt;lop
+==&gt;ripple</code></pre>
+<h4>See Also</h4>
+<ul>
+<li><a href="#filter/hasnot">hasNot</a></li>
+</ul>
+<p><a href="#">top</a>
+
+</p>
+<hr>
+<h3 id='filter/hasnot'>hasNot</h3 id='filter/hasnot'>
+<p>Allows an element if it does not have a particular property.  Utilizes several options for comparisons on through <code>T</code>:
+
+</p>
+<ul>
+<li>T.gt - greater than </li>
+<li>T.gte - greater than or equal to</li>
+<li>T.eq - equal to</li>
+<li>T.neq - not equal to</li>
+<li>T.lte - less than or equal to</li>
+<li>T.lt - less than</li>
+</ul>
+<pre><code class="text">gremlin&gt; g.v(1).outE.hasNot(&quot;weight&quot;, T.eq, 0.5f).weight
+==&gt;1.0
+==&gt;0.4
+gremlin&gt; g.V.hasNot(&quot;age&quot;, null).name
+==&gt;vadas
+==&gt;marko
+==&gt;peter
+==&gt;josh</code></pre>
+<p><a href="#">top</a>
+
+</p>
+<hr>
+<h3 id='filter/interval'>interval</h3 id='filter/interval'>
+<p>Allow elements to pass that have their property in the provided start and end interval.
+
+</p>
+<pre><code class="text">gremlin&gt; g.E.interval(&quot;weight&quot;, 0.3f, 0.9f).weight
+==&gt;0.5
+==&gt;0.4
+==&gt;0.4</code></pre>
+<h4>See Also</h4>
+<ul>
+<li><a href="#filter/has">has</a></li>
+</ul>
+<p><a href="#">top</a>
+
+</p>
+<hr>
+<h3 id='filter/or'>or</h3 id='filter/or'>
+<p>Takes a collection of pipes and emits incoming objects that are true for any of the pipes.
+
+</p>
+<pre><code class="text">gremlin&gt; g.v(1).outE.or(_().has(&#39;id&#39;, T.eq, &quot;9&quot;), _().has(&#39;weight&#39;, T.lt, 0.6f))
+==&gt;e[7][1-knows-&gt;2]
+==&gt;e[9][1-created-&gt;3]</code></pre>
+<p><a href="#">top</a>
+
+</p>
+<hr>
+<h3 id='filter/random'>random</h3 id='filter/random'>
+<p>Emits the incoming object if biased coin toss is heads.
+
+</p>
+<pre><code class="text">gremlin&gt; g.V.random(0.5)
+==&gt;v[3]
+==&gt;v[1]
+==&gt;v[6]
+gremlin&gt; g.V.random(0.5)
+==&gt;v[2]
+==&gt;v[5]
+==&gt;v[4]</code></pre>
+<p><a href="#">top</a>
+
+</p>
+<hr>
+<h3 id='filter/retain'>retain</h3 id='filter/retain'>
+<p>Allow everything to pass except what is not in the supplied collection.
+
+</p>
+<pre><code class="text">gremlin&gt; x = [g.v(1), g.v(2), g.v(3)]
+==&gt;v[1]
+==&gt;v[2]
+==&gt;v[3]
+gremlin&gt; g.V.retain(x)
+==&gt;v[3]
+==&gt;v[2]
+==&gt;v[1]
+gremlin&gt; x = []
+gremlin&gt; g.v(1).out.aggregate(x).out.retain(x)
+==&gt;v[3]</code></pre>
+<h4>See Also</h4>
+<ul>
+<li><a href="#filter/except">except</a></li>
+</ul>
+<p><a href="#">top</a>
+
+</p>
+<hr>
+<h3 id='filter/simplepath'>simplePath</h3 id='filter/simplepath'>
+<p>Emit the object only if the current path has no repeated elements.
+
+</p>
+<pre><code class="text">gremlin&gt; g.v(1).out.in
+==&gt;v[1]
+==&gt;v[1]
+==&gt;v[1]
+==&gt;v[4]
+==&gt;v[6]
+gremlin&gt; g.v(1).out.in.simplePath
+==&gt;v[4]
+==&gt;v[6]</code></pre>
+<p><a href="#">top</a>
+
+</p>
+<hr>
+<h2 id='side-effect'>Side Effect</h2 id='side-effect'>
+<p>Side Effect steps pass the object, but yield some kind of side effect while doing so.
+
+</p>
+<h3 id='side-effect/aggregate'>aggregate</h3 id='side-effect/aggregate'>
+<p>Emits input, but adds input in collection, where provided closure processes input prior to insertion (greedy). In being &quot;greedy&quot;, &#39;aggregate&#39; will exhaust all the items that come to it from previous steps before emitting the next element.
+
+</p>
+<pre><code class="text">gremlin&gt; x = []
+gremlin&gt; g.v(1).out.aggregate(x).next()
+==&gt;v[2]
+gremlin&gt; x
+==&gt;v[2]
+==&gt;v[4]
+==&gt;v[3]</code></pre>
+<h4>See Also</h4>
+<ul>
+<li><a href="#side-effect/store">store</a></li>
+<li><a href="#methods/pipe-fill">fill</a></li>
+</ul>
+<p><a href="#">top</a>
+
+</p>
+<hr>
+<h3 id='side-effect/as'>as</h3 id='side-effect/as'>
+<p>Emits input, but names the previous step.
+
+</p>
+<pre><code class="text">gremlin&gt; g.V.out(&#39;knows&#39;).has(&#39;age&#39;, T.gt, 30).back(2).age     
+==&gt;29
+gremlin&gt; g.V.as(&#39;x&#39;).outE(&#39;knows&#39;).inV.has(&#39;age&#39;, T.gt, 30).back(&#39;x&#39;).age
+==&gt;29</code></pre>
+<p><a href="#">top</a>
+
+</p>
+<hr>
+<h3 id='side-effect/groupby'>groupBy</h3 id='side-effect/groupby'>
+<p>Emits input, but groups input after processing it by provided key-closure and value-closure.  It is also possible to supply an optional reduce-closure.  
+
+</p>
+<pre><code class="text">gremlin&gt; g.V.groupBy{it}{it.out}.cap
+==&gt;{v[3]=[], v[2]=[], v[1]=[v[2], v[4], v[3]], v[6]=[v[3]], v[5]=[], v[4]=[v[5], v[3]]}
+gremlin&gt; g.V.groupBy{it}{it.out}{it.size()}.cap
+==&gt;{v[3]=0, v[2]=0, v[1]=3, v[6]=1, v[5]=0, v[4]=2}
+gremlin&gt; m = [:]
+gremlin&gt; g.V.groupBy(m){it}{it.out}.iterate();null;
+==&gt;null
+gremlin&gt; m
+==&gt;v[3]=[]
+==&gt;v[2]=[]
+==&gt;v[1]=[v[2], v[4], v[3]]
+==&gt;v[6]=[v[3]]
+==&gt;v[5]=[]
+==&gt;v[4]=[v[5], v[3]]
+gremlin&gt; g.V.out.groupBy{it.name}{it.in}{it.unique().findAll{i -&gt; i.age &gt; 30}.name}.cap
+==&gt;{lop=[josh, peter], ripple=[josh], josh=[], vadas=[]}</code></pre>
+<h4>See Also</h4>
+<ul>
+<li><a href="#side-effect/groupcount">groupCount</a></li>
+</ul>
+<p><a href="#">top</a>
+
+</p>
+<hr>
+<h3 id='side-effect/groupcount'>groupCount</h3 id='side-effect/groupcount'>
+<p>Emits input, but updates a map for each input, where closures provides generic map update.
+
+</p>
+<pre><code class="text">gremlin&gt; g.V.out.groupCount(m)
+==&gt;v[2]
+==&gt;v[4]
+==&gt;v[3]
+==&gt;v[3]
+==&gt;v[5]
+==&gt;v[3]
+gremlin&gt; m
+==&gt;v[2]=1
+==&gt;v[4]=1
+==&gt;v[3]=3
+==&gt;v[5]=1
+gremlin&gt; g.v(1).out.groupCount(m){it}{it.b+1.0}.out.groupCount(m){it}{it.b+0.5}
+==&gt;v[5]
+==&gt;v[3]
+gremlin&gt; m
+==&gt;v[2]=1.0
+==&gt;v[4]=1.0
+==&gt;v[5]=0.5
+==&gt;v[3]=1.5</code></pre>
+<h4>See Also</h4>
+<ul>
+<li><a href="#side-effect/groupby">groupBy</a></li>
+</ul>
+<p><a href="#">top</a>
+
+</p>
+<hr>
+<h3 id='side-effect/optional'>optional</h3 id='side-effect/optional'>
+<p>Behaves similar to <code>back</code> except that it does not filter. It will go down a particular path and back up to where it left off. As such, its useful for yielding a sideeffect down a particular branch.
+
+</p>
+<pre><code class="text">gremlin&gt; g.V.out(&#39;knows&#39;).has(&#39;age&#39;, T.gt, 30).back(2)        
+==&gt;v[1]
+gremlin&gt; g.V.out(&#39;knows&#39;).has(&#39;age&#39;, T.gt, 30).optional(2)    
+==&gt;v[3]
+==&gt;v[2]
+==&gt;v[1]
+==&gt;v[6]
+==&gt;v[5]
+==&gt;v[4]
+gremlin&gt; g.V.as(&#39;x&#39;).outE(&#39;knows&#39;).inV.has(&#39;age&#39;, T.gt, 30).back(&#39;x&#39;)
+==&gt;v[1]
+gremlin&gt; g.V.as(&#39;x&#39;).outE(&#39;knows&#39;).inV.has(&#39;age&#39;, T.gt, 30).optional(&#39;x&#39;)
+==&gt;v[3]
+==&gt;v[2]
+==&gt;v[1]
+==&gt;v[6]
+==&gt;v[5]
+==&gt;v[4]</code></pre>
+<h4>See Also</h4>
+<ul>
+<li><a href="#filter/back">back</a></li>
+</ul>
+<p><a href="#">top</a>
+
+</p>
+<hr>
+<h3 id='side-effect/sideeffect'>sideEffect</h3 id='side-effect/sideeffect'>
+<p>Emits input, but calls a side effect closure on each input.
+
+</p>
+<pre><code class="text">gremlin&gt; youngest = Integer.MAX_VALUE
+==&gt;2147483647
+gremlin&gt; g.V.hasNot(&#39;age&#39;, null).sideEffect{youngest=youngest&gt;it.age?it.age:youngest}
+==&gt;v[2]
+==&gt;v[1]
+==&gt;v[6]
+==&gt;v[4]
+gremlin&gt; youngest
+==&gt;27</code></pre>
+<p><a href="#">top</a>
+
+</p>
+<hr>
+<h3 id='side-effect/store'>store</h3 id='side-effect/store'>
+<p>Emits input, but adds input to collection, where provided closure processes input prior to insertion (lazy).  In being &quot;lazy&quot;, &#39;store&#39; will keep element as they are being requested.
+
+</p>
+<pre><code class="text">gremlin&gt; x = []
+gremlin&gt; g.v(1).out.store(x).next()
+==&gt;v[2]
+gremlin&gt; x
+==&gt;v[2]</code></pre>
+<h4>See Also</h4>
+<ul>
+<li><a href="#side-effect/aggregate">aggregate</a></li>
+<li><a href="#methods/pipe-fill">fill</a></li>
+</ul>
+<p><a href="#">top</a>
+
+</p>
+<hr>
+<h3 id='side-effect/table'>table</h3 id='side-effect/table'>
+<p>Emits input, but stores row of as values (constrained by column names if provided) in a table.  Accepts an optional set of closures that are applied in round-robin fashion to each column of the table.
+
+</p>
+<pre><code class="text">gremlin&gt; t = new Table()  
+gremlin&gt; g.V.name.as(&#39;name&#39;).back(1).age.as(&#39;age&#39;).table(t)
+==&gt;null
+==&gt;27
+==&gt;29
+==&gt;35
+==&gt;null
+==&gt;32
+gremlin&gt; t
+==&gt;[name:lop, age:null]
+==&gt;[name:vadas, age:27]
+==&gt;[name:marko, age:29]
+==&gt;[name:peter, age:35]
+==&gt;[name:ripple, age:null]
+==&gt;[name:josh, age:32]
+gremlin&gt; t = new Table()
+gremlin&gt; g.V.hasNot(&#39;age&#39;, null).name.as(&#39;name&#39;).back(1).age.as(&#39;age&#39;).table(t){it}{it&gt;30 ? &#39;over thirty&#39; : &#39;under thirty&#39;}
+==&gt;27
+==&gt;29
+==&gt;35
+==&gt;32
+gremlin&gt; t
+==&gt;[name:vadas, age:under thirty]
+==&gt;[name:marko, age:under thirty]
+==&gt;[name:peter, age:over thirty]
+==&gt;[name:josh, age:over thirty]
+gremlin&gt; t.get(0,&#39;name&#39;)      
+==&gt;vadas</code></pre>
+<h3 id='side-effect/tree'>tree</h3 id='side-effect/tree'>
+<p><a href="#">top</a>
+
+</p>
+<hr>
+<p>Emit input, but stores the tree formed by the traversal as a map.  Accepts an optional set of closures to be applied in round-robin fashion over each level of the tree.
+
+</p>
+<pre><code class="text">gremlin&gt; g.v(1).out.out.tree.cap
+==&gt;{v[1]={v[4]={v[3]={}, v[5]={}}}}
+gremlin&gt; g.v(1).out.out.tree{it.name}.cap
+==&gt;{marko={josh={lop={}, ripple={}}}}
+gremlin&gt; g.v(1).out.out.tree{it.name}{&quot;child1:&quot; + it.name}{&quot;child2:&quot; + it.name}.cap
+==&gt;{marko={child1:josh={child2:lop={}, child2:ripple={}}}}
+gremlin&gt; t = new Tree()                                                               
+gremlin&gt; g.v(1).out.out.tree(t){it.name}{&quot;child1:&quot; + it.name}{&quot;child2:&quot; + it.name}    
+==&gt;v[5]
+==&gt;v[3]
+gremlin&gt; t.get(&#39;marko&#39;)
+==&gt;child1:josh={child2:lop={}, child2:ripple={}}</code></pre>
+<h2 id='branch'>Branch</h2 id='branch'>
+<p>Branch steps decide which step to take.
+
+</p>
+<h3 id='branch/copysplit'>copySplit</h3 id='branch/copysplit'>
+<p>Copies incoming object to internal pipes.
+
+</p>
+<pre><code class="text">gremlin&gt; g.v(1).out(&#39;knows&#39;).copySplit(_().out(&#39;created&#39;).name, _().age).fairMerge
+==&gt;ripple
+==&gt;27
+==&gt;lop
+==&gt;32
+gremlin&gt; g.v(1).out(&#39;knows&#39;).copySplit(_().out(&#39;created&#39;).name, _().age).exhaustMerge
+==&gt;ripple
+==&gt;lop
+==&gt;27
+==&gt;32</code></pre>
+<h4>See Also</h4>
+<ul>
+<li><a href="#branch/exhaustmerge">exhaustMerge</a></li>
+<li><a href="#branch/fairmerge">fairMerge</a></li>
+</ul>
+<p><a href="#">top</a>
+
+</p>
+<hr>
+<h3 id='branch/exhaustmerge'>exhaustMerge</h3 id='branch/exhaustmerge'>
+<p>Used in combination with a <code>copySplit</code>, merging the parallel traversals by exhaustively getting the objects of the first, then the second, etc.
+
+</p>
+<pre><code class="text">gremlin&gt; g.v(1).out(&#39;knows&#39;).copySplit(_().out(&#39;created&#39;).name, _().age).exhaustMerge
+==&gt;ripple
+==&gt;lop
+==&gt;27
+==&gt;32</code></pre>
+<h4>See Also</h4>
+<ul>
+<li><a href="#branch/copysplit">copySplit</a></li>
+<li><a href="#branch/fairmerge">fairMerge</a></li>
+</ul>
+<p><a href="#">top</a>
+
+</p>
+<hr>
+<h3 id='branch/fairmerge'>fairMerge</h3 id='branch/fairmerge'>
+<p>Used in combination with a <code>copySplit</code>, merging the parallel traversals in a round-robin fashion.
+
+</p>
+<pre><code class="text">gremlin&gt; g.v(1).out(&#39;knows&#39;).copySplit(_().out(&#39;created&#39;).name, _().age).fairMerge
+==&gt;ripple
+==&gt;27
+==&gt;lop
+==&gt;32</code></pre>
+<h4>See Also</h4>
+<ul>
+<li><a href="#branch/copysplit">copySplit</a></li>
+<li><a href="#branch/exhaustmerge">exaustMerge</a></li>
+</ul>
+<p><a href="#">top</a>
+
+</p>
+<hr>
+<h3 id='branch/ifthenelse'>ifThenElse</h3 id='branch/ifthenelse'>
+<p>Allows for if-then-else conditional logic.
+
+</p>
+<pre><code class="text">gremlin&gt; g.v(1).out.ifThenElse{it.name==&#39;josh&#39;}{it.age}{it.name}
+==&gt;vadas
+==&gt;32
+==&gt;lop</code></pre>
+<p><a href="#">top</a>
+
+</p>
+<hr>
+<h3 id='branch/loop'>loop</h3 id='branch/loop'>
+<p>Loop over a particular set of steps in the pipeline.  The first argument is either the number of steps back in the pipeline to go or a named step.  The second argument is a while closure evaluating the current object.  The <code>it</code> component of the loop step closure has three properties that are accessible. These properties can be used to reason about when to break out of the loop.
+
+</p>
+<ul>
+<li><code>it.object</code>: the current object of the traverser.</li>
+<li><code>it.path</code>: the current path of the traverser.</li>
+<li><code>it.loops</code>: the number of times the traverser has looped through the loop section.</li>
+</ul>
+<p>The final argument is known as the &quot;emit&quot; closure. This boolean-based closure will determine wether the current object in the loop structure is emitted or not. As such, it is possible to emit intermediate objects, not simply those at the end of the loop.
+
+</p>
+<pre><code class="text">gremlin&gt; g.v(1).out.out                         
+==&gt;v[5]
+==&gt;v[3]
+gremlin&gt; g.v(1).out.loop(1){it.loops&lt;3}
+==&gt;v[5]
+==&gt;v[3]
+gremlin&gt; g.v(1).out.loop(1){it.loops&lt;3}{it.object.name==&#39;josh&#39;} 
+==&gt;v[4]</code></pre>
+<p><a href="#">top</a>
+
+</p>
+<hr>
+<h2 id='methods'>Methods</h2 id='methods'>
+<p>Methods represent functions that make it faster and easier to work with <a href="http://blueprints.tinkerpop.com">Blueprints</a> and <a href="http://pipes.tinkerpop.com">Pipes</a> APIs.  It is important to keep in mind that the full <a href="http://download.oracle.com/javase/6/docs/api/">Java API</a> and <a href="http://groovy.codehaus.org/groovy-jdk">Groovy API</a> are accessible from Gremlin.
+
+</p>
+<h3 id='methods/element-keys'>Element.keys</h3 id='methods/element-keys'>
+<p>Get the property keys of an element.
+
+</p>
+<pre><code class="text">gremlin&gt; g.v(1).keys()
+==&gt;name
+==&gt;age</code></pre>
+<p><a href="#">top</a>
+
+</p>
+<hr>
+<h3 id='methods/element-remove'>Element.remove</h3 id='methods/element-remove'>
+<p>Remove an element from the graph.
+
+</p>
+<pre><code class="text">gremlin&gt; g.E.weight
+==&gt;1.0
+==&gt;0.5
+==&gt;0.4
+==&gt;1.0
+==&gt;0.4
+==&gt;0.2
+gremlin&gt; g.E.has(&quot;weight&quot;,T.lt,0.5f).remove()
+==&gt;null
+gremlin&gt; g.E.weight
+==&gt;1.0
+==&gt;0.5
+==&gt;1.0</code></pre>
+<p><a href="#">top</a>
+
+</p>
+<hr>
+<h3 id='methods/element-values'>Element.values</h3 id='methods/element-values'>
+<p>Gets the property values of an element.
+
+</p>
+<pre><code class="text">gremlin&gt; g.v(1).values()
+==&gt;marko
+==&gt;29</code></pre>
+<p><a href="#">top</a>
+
+</p>
+<hr>
+<h3 id='methods/graph-addedge'>Graph.addEdge</h3 id='methods/graph-addedge'>
+<p>Adds an edge to the graph.  Note that most graph implementations ignore the identifier supplied to <code>addEdge</code>.  
+
+</p>
+<pre><code class="text">gremlin&gt; g = new TinkerGraph()                     
+==&gt;tinkergraph[vertices:0 edges:0]
+gremlin&gt; v1 = g.addVertex(100)                     
+==&gt;v[100]
+gremlin&gt; v2 = g.addVertex(200)
+==&gt;v[200]
+gremlin&gt; g.addEdge(v1,v2,&#39;friend&#39;)                 
+==&gt;e[0][100-friend-&gt;200]
+gremlin&gt; g.addEdge(1000,v1,v2,&#39;buddy&#39;)             
+==&gt;e[1000][100-buddy-&gt;200]
+gremlin&gt; g.addEdge(null,v1,v2,&#39;pal&#39;,[weight:0.75f])
+==&gt;e[1][100-pal-&gt;200]</code></pre>
+<p><a href="#">top</a>
+
+</p>
+<hr>
+<h3 id='methods/graph-addvertex'>Graph.addVertex</h3 id='methods/graph-addvertex'>
+<p>Adds a vertex to the graph.  Note that most graph implementations ignore the identifier supplied to <code>addVertex</code>.  
+
+</p>
+<pre><code class="text">gremlin&gt; g = new TinkerGraph()                     
+==&gt;tinkergraph[vertices:0 edges:0]
+gremlin&gt; g.addVertex()
+==&gt;v[0]
+gremlin&gt; g.addVertex(100)
+==&gt;v[100]
+gremlin&gt; g.addVertex(null,[name:&quot;stephen&quot;])
+==&gt;v[1]</code></pre>
+<p><a href="#">top</a>
+
+</p>
+<hr>
+<h3 id='methods/graph-e'>Graph.e</h3 id='methods/graph-e'>
+<p>Get an edge or set of edges by providing one or more edge identifiers.  The identifiers must be the identifiers assigned by the underlying graph implementation.
+
+</p>
+<pre><code class="text">gremlin&gt; g.e(10)
+==&gt;e[10][4-created-&gt;5]
+gremlin&gt; g.e(10,11,12)
+==&gt;e[10][4-created-&gt;5]
+==&gt;e[11][4-created-&gt;3]
+==&gt;e[12][6-created-&gt;3]
+gremlin&gt; ids = [10,11,12]
+==&gt;10
+==&gt;11
+==&gt;12
+gremlin&gt; g.e(ids.toArray())
+==&gt;e[10][4-created-&gt;5]
+==&gt;e[11][4-created-&gt;3]
+==&gt;e[12][6-created-&gt;3]</code></pre>
+<h4>See Also</h4>
+<ul>
+<li><a href="#methods/graph-v">Graph.v</a></li>
+</ul>
+<p><a href="#">top</a>
+
+</p>
+<hr>
+<h3 id='methods/graph-idx-string'>Graph.idx(String)</h3 id='methods/graph-idx-string'>
+<p>Get an manual index by its name.
+
+</p>
+<pre><code class="text">gremlin&gt; g.createIndex(&quot;my-index&quot;, Vertex.class)
+==&gt;index[my-index:Vertex]
+gremlin&gt; myIdx = g.idx(&quot;my-index&quot;).put(&quot;name&quot;, &quot;marko&quot;, g.v(1))
+==&gt;null
+gremlin&gt; myIdx.getIndexName()
+==&gt;my-index</code></pre>
+<h4>See Also</h4>
+<ul>
+<li><a href="#methods/index-map-entry">Index[Map.Entry]</a></li>
+</ul>
+<p><a href="#">top</a>
+
+</p>
+<hr>
+<h3 id='methods/graph-load'>Graph.load</h3 id='methods/graph-load'>
+<p>Load a file from one of several standard formats such as <a href="http://graphml.graphdrawing.org/">GraphML</a>, <a href="http://www.fim.uni-passau.de/en/fim/faculty/chairs/theoretische-informatik/projects.html">GML</a>, or <a href="https://github.com/tinkerpop/blueprints/wiki/GraphSON-Reader-and-Writer-Library">GraphSON</a>.
+
+</p>
+<pre><code class="text">gremlin&gt; g = new TinkerGraph()
+==&gt;tinkergraph[vertices:0 edges:0]
+gremlin&gt; g.loadGraphML(&#39;data/graph-example-1.xml&#39;)
+==&gt;null
+gremlin&gt; g.V
+==&gt;v[3]
+==&gt;v[2]
+==&gt;v[1]
+==&gt;v[6]
+==&gt;v[5]
+==&gt;v[4]</code></pre>
+<h4>See Also</h4>
+<ul>
+<li><a href="#methods/graph-save">Graph.save</a></li>
+</ul>
+<p><a href="#">top</a>
+
+</p>
+<hr>
+<h3 id='methods/graph-removeedge'>Graph.removeEdge</h3 id='methods/graph-removeedge'>
+<p>Remove an edge. 
+
+</p>
+<pre><code class="text">gremlin&gt; g = new TinkerGraph()                     
+==&gt;tinkergraph[vertices:0 edges:0]
+gremlin&gt; v1 = g.addVertex()                     
+==&gt;v[100]
+gremlin&gt; v2 = g.addVertex()
+==&gt;v[200]
+gremlin&gt; g.addEdge(v1,v2,&#39;friend&#39;)                 
+==&gt;e[0][100-friend-&gt;200]
+gremlin&gt; g.removeEdge(g.e(0))
+==&gt;null</code></pre>
+<p><a href="#">top</a>
+
+</p>
+<hr>
+<h3 id='methods/graph-removevertex'>Graph.removeVertex</h3 id='methods/graph-removevertex'>
+<p>Remove a vertex. 
+
+</p>
+<pre><code class="text">gremlin&gt; g.addVertex()
+==&gt;v[128]
+gremlin&gt; g.removeVertex(g.v(128))
+==&gt;null</code></pre>
+<p><a href="#">top</a>
+
+</p>
+<hr>
+<h3 id='methods/graph-save'>Graph.save</h3 id='methods/graph-save'>
+<p>Save a graph to file given one of several standard formats such as <a href="http://graphml.graphdrawing.org/">GraphML</a>, <a href="http://www.fim.uni-passau.de/en/fim/faculty/chairs/theoretische-informatik/projects.html">GML</a>, or <a href="https://github.com/tinkerpop/blueprints/wiki/GraphSON-Reader-and-Writer-Library">GraphSON</a>.
+
+</p>
+<pre><code class="text">gremlin&gt; g.saveGraphML(&#39;data/graph.xml&#39;)
+==&gt;null</code></pre>
+<h4>See Also</h4>
+<ul>
+<li><a href="#methods/graph-load">Graph.load</a></li>
+</ul>
+<p><a href="#">top</a>
+
+</p>
+<hr>
+<h3 id='methods/graph-v'>Graph.v</h3 id='methods/graph-v'>
+<p>Get a vertex or set of vertices by providing one or more vertex identifiers.  The identifiers must be the identifiers assigned by the underlying graph implementation.
+
+</p>
+<pre><code class="text">gremlin&gt; g.v(1)  
+==&gt;v[1]
+gremlin&gt; g.v(1,2,3)
+==&gt;v[1]
+==&gt;v[2]
+==&gt;v[3]
+gremlin&gt; ids = [1,2,3]
+==&gt;1
+==&gt;2
+==&gt;3
+gremlin&gt; g.v(ids.toArray())
+==&gt;v[1]
+==&gt;v[2]
+==&gt;v[3]</code></pre>
+<h4>See Also</h4>
+<ul>
+<li><a href="#methods/graph-e">Graph.e</a></li>
+</ul>
+<p><a href="#">top</a>
+
+</p>
+<hr>
+<h3 id='methods/index-map-entry'>Index[Map.Entry]</h3 id='methods/index-map-entry'>
+<p>Look up a value in an index.
+
+</p>
+<pre><code class="text">gremlin&gt; g.createIndex(&quot;my-index&quot;, Vertex.class)
+==&gt;index[my-index:Vertex]
+gremlin&gt; g.idx(&quot;my-index&quot;).put(&quot;name&quot;, &quot;marko&quot;, g.v(1))
+==&gt;null
+gremlin&gt; g.idx(&quot;my-index&quot;)[[name:&quot;marko&quot;]]  
+==&gt;v[1]</code></pre>
+<h4>See Also</h4>
+<ul>
+<li><a href="#methods/graph-idx-string">Graph.idx(String)</a></li>
+</ul>
+<p><a href="#">top</a>
+
+</p>
+<hr>
+<h3 id='methods/pipe-fill'>Pipe.fill</h3 id='methods/pipe-fill'>
+<p>Takes all the results in the pipeline and puts them into the provided collection.
+
+</p>
+<pre><code class="text">gremlin&gt; m = []
+gremlin&gt; g.v(1).out.fill(m)
+==&gt;v[2]
+==&gt;v[4]
+==&gt;v[3]
+gremlin&gt; m
+==&gt;v[2]
+==&gt;v[4]
+==&gt;v[3]</code></pre>
+<h4>See Also</h4>
+<ul>
+<li><a href="#side-effect/aggregate">aggregate</a></li>
+<li><a href="#side-effect/store">store</a></li>
+</ul>
+<p><a href="#">top</a>
+
+</p>
+<hr>
+<h3 id='methods/pipe-iterate'>Pipe.iterate</h3 id='methods/pipe-iterate'>
+<p>Calls <a href="#methods/pipe-next">Pipe.next</a> for all objects in the pipe. This is an important notion to follow when considering the behavior of the Gremlin Console.  The Gremlin Console iterates through the pipeline automatically and outputs the results.  Outside of the Gremlin Console or if more than one statement is present on a single line of the Gremlin Console, iterating the pipe must be done manually.  Read more about this topic in the Gremlin Wiki <a href="https://github.com/tinkerpop/gremlin/wiki/Troubleshooting">Troubleshooting Page</a>.
+
+</p>
+<p>There are some important things to note in the example below.  Had the the first line of Gremlin been executed separately, as opposed to being placed on the same line separated by a semi-colon, the names of all the vertices would have changed because the Gremlin Console would have automatically iterated the pipe and processed the side-effects.
+
+</p>
+<pre><code class="text">gremlin&gt; g.V.sideEffect{it.name=&quot;same-again&quot;};g.V.name          
+==&gt;lop
+==&gt;vadas
+==&gt;marko
+==&gt;peter
+==&gt;ripple
+==&gt;josh
+gremlin&gt; g.V.sideEffect{it.name=&quot;same&quot;}.iterate();g.V.name      
+==&gt;same
+==&gt;same
+==&gt;same
+==&gt;same
+==&gt;same
+==&gt;same</code></pre>
+<h4>See Also</h4>
+<ul>
+<li><a href="#methods/pipe-next">Pipe.next</a></li>
+</ul>
+<p><a href="#">top</a>
+
+</p>
+<hr>
+<h3 id='methods/pipe-next'>Pipe.next</h3 id='methods/pipe-next'>
+<p>Gets the next object in the pipe or the next <em>n</em> objects.  This is an important notion to follow when considering the behavior of the Gremlin Console.  The Gremlin Console iterates through the pipeline automatically and outputs the results.  Outside of the Gremlin Console or if more than one statement is present on a single line of the Gremlin Console, iterating the pipe must be done manually.  Read more about this topic in the Gremlin Wiki <a href="https://github.com/tinkerpop/gremlin/wiki/Troubleshooting">Troubleshooting Page</a>.
+
+</p>
+<p>There are some important things to note in the example below.  Had the the first line of Gremlin been executed separately, as opposed to being placed on the same line separated by a semi-colon, the name of the vertex would have changed because the Gremlin Console would have automatically iterated the pipe and processed the side-effect.
+
+</p>
+<pre><code class="text">gremlin&gt; g.v(1).sideEffect{it.name=&quot;same&quot;};g.v(1).name
+==&gt;marko
+gremlin&gt; g.v(1).sideEffect{it.name=&quot;same&quot;}.next();g.v(1).name   
+==&gt;same
+gremlin&gt; g.V.sideEffect{it.name=&quot;same-again&quot;}.next(3);g.V.name
+==&gt;same-again
+==&gt;same-again
+==&gt;same-again
+==&gt;peter
+==&gt;ripple
+==&gt;josh</code></pre>
+<h4>See Also</h4>
+<ul>
+<li><a href="#methods/pipe-iterate">Pipe.iterate</a></li>
+</ul>
+<p><a href="#">top</a>
+
+</p> -->
+
+
+
+
+
+
+
+
+
+
 
         <h2>License</h2>
 
