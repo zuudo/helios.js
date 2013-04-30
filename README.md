@@ -1,5 +1,5 @@
-#Helios.js  
-Helios.js is an in-memory key/value graph database for the browser. It uses a [Gremlin](http://gremlin.tinkerpop.com) inspired graph traversal language to query, analyze and manipulate the graph.  
+#HeliosJS  
+HeliosJS is an in-memory graph database for the browser. It uses a [Gremlin](http://gremlin.tinkerpop.com) inspired graph traversal language to query, analyze and manipulate the graph.  
 
 __Please see the [website](http://entrendipity.github.com/helios.js/) for full documentation.__
 
