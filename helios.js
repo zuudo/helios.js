@@ -146,21 +146,22 @@ var Helios;
             this.transform = this.add('transform');
             this.filter = this.add('filter');
             this.as = this.add('as');
-            this.back = this.add('back');
-            this.optional = this.add('optional');
+            this.back = this.add('back', true);
+            this.optional = this.add('optional', true);
+            this.select = this.add('select', true);
             this.ifThenElse = this.add('ifThenElse');
             this.loop = this.add('loop');
             this.except = this.add('except');
             this.retain = this.add('retain');
-            this.path = this.add('path');
+            this.path = this.add('path', true);
         }
-        Pipeline.prototype.add = function (func) {
+        Pipeline.prototype.add = function (func, trace) {
             return function () {
                 var args = [];
                 for (var _i = 0; _i < (arguments.length - 0); _i++) {
                     args[_i] = arguments[_i + 0];
                 }
-                if(func == 'back' || func == 'path' || func == 'optional') {
+                if(trace) {
                     this.db.invoke("startTrace", true).fail(function (err) {
                         console.log(err.message);
                     }).end();
