@@ -1414,6 +1414,81 @@ var Helios;
                 this.endPipe = endPipeArray;
                 return this;
             };
+            Pipeline.prototype.select = function (list) {
+                var funcs = [];
+                for (var _i = 0; _i < (arguments.length - 1); _i++) {
+                    funcs[_i] = arguments[_i + 1];
+                }
+                var backTo, i, l = this.pipeline.length, k, endPipeHash = {
+                }, tempEndPipeArray, endPipeArray = [], funcArray = [], funcOut, pos;
+                if(!this.graph.traceEnabled) {
+                    throw Error('Tracing is off');
+                    return;
+                }
+                ;
+                if(!list) {
+                    for(i = 0; i < l; i++) {
+                        tempEndPipeArray = [];
+                        for(k in this.asHash) {
+                            if(this.asHash.hasOwnProperty(k)) {
+                                endPipeHash = {
+                                };
+                                backTo = this.asHash[k].step;
+                                endPipeHash[k] = this.pipeline[i][backTo - 1].obj;
+                                push.call(tempEndPipeArray, endPipeHash);
+                            }
+                        }
+                        push.call(endPipeArray, tempEndPipeArray);
+                    }
+                } else {
+                    if(!Utils.isArray(list)) {
+                        funcs.unshift(list);
+                        list = undefined;
+                    }
+                    for(var j = 0, funcsLen = funcs.length; j < funcsLen; j++) {
+                        funcArray.push(new Function("it", "it=" + funcs[j] + "; return it;"));
+                    }
+                    if(list && Utils.isArray(list)) {
+                        for(i = 0; i < l; i++) {
+                            tempEndPipeArray = [];
+                            for(var x = 0, len = list.length; x < len; x++) {
+                                endPipeHash = {
+                                };
+                                if(list[x] in this.asHash) {
+                                    backTo = this.asHash[list[x]].step;
+                                    if(!!funcArray.length) {
+                                        endPipeHash[list[x]] = funcArray[x].call(this.pipeline[i][backTo - 1].obj, this.pipeline[i][backTo - 1].obj);
+                                    } else {
+                                        endPipeHash[list[x]] = this.pipeline[i][backTo - 1].obj;
+                                    }
+                                    push.call(tempEndPipeArray, endPipeHash);
+                                } else {
+                                    throw Error('Unknown named position');
+                                }
+                            }
+                            push.call(endPipeArray, tempEndPipeArray);
+                        }
+                    } else {
+                        for(i = 0; i < l; i++) {
+                            tempEndPipeArray = [];
+                            pos = 0;
+                            for(k in this.asHash) {
+                                if(this.asHash.hasOwnProperty(k)) {
+                                    endPipeHash = {
+                                    };
+                                    backTo = this.asHash[k].step;
+                                    endPipeHash[k] = funcArray[pos].call(this.pipeline[i][backTo - 1].obj, this.pipeline[i][backTo - 1].obj);
+                                    push.call(tempEndPipeArray, endPipeHash);
+                                }
+                                pos++;
+                            }
+                            push.call(endPipeArray, tempEndPipeArray);
+                        }
+                    }
+                }
+                this.endPipe = endPipeArray;
+                return this;
+            };
             Pipeline.prototype.path = function () {
                 var props = [];
                 for (var _i = 0; _i < (arguments.length - 0); _i++) {
