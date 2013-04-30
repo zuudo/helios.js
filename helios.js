@@ -110,6 +110,18 @@ var Helios;
             }
             return new Pipeline('e', args, this);
         };
+        GraphDatabase.prototype.close = function () {
+            var worker = this.worker;
+            this.db.invoke("dbCommand", [
+                {
+                    method: 'close',
+                    parameters: []
+                }
+            ]).then(function (message) {
+                worker.terminate();
+                console.log('Closed');
+            }).end();
+        };
         return GraphDatabase;
     })();
     Helios.GraphDatabase = GraphDatabase;    

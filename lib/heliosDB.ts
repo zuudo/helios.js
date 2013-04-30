@@ -223,14 +223,16 @@ module Helios {
             this._ = new Mogwai.Pipeline(this);
         }
 
-//        close(): void {
-//            this = undefined;
-//        }
+        close():void {
+            this.vertices = {};
+            this.edges = {};
+            this.v_idx = {};
+            this.e_idx = {};
+        }
 
        startTrace(turnOn:bool):bool {
           return this.traceEnabled = turnOn;
        }
-
 
        // getPathEnabled():bool {
        //     return this.traceEnabled;
@@ -262,7 +264,7 @@ module Helios {
 
         }
 
-        /*Use this to load JSON formatted Vertices into GraphDatabase*/
+        /*Use this to load JSON formatted Vertices into Graph Database*/
         loadVertices(rows:{}[]):void {
 
             var i:number,
@@ -279,7 +281,7 @@ module Helios {
             }
         }
 
-        /*Use this to load JSON formatted Edges into GraphDatabase*/
+        /*Use this to load JSON formatted Edges into Graph Database*/
         loadEdges(rows:{}[]):void {
 
             var i:number,
@@ -373,6 +375,10 @@ module Helios {
 
             if (Utils.isUndefined(jsonData)) { return null; }
 
+            if(!!jsonData.graph){
+                jsonData = jsonData.graph;
+            }
+
             if (!!jsonData.vertices) {
                this.loadVertices(jsonData.vertices);
             }
@@ -388,6 +394,10 @@ module Helios {
                     if (xmlhttp.readyState === 4) {
                         jsonData = JSON.parse(xmlhttp.responseText);
 
+                        if(!!jsonData.graph){
+                            jsonData = jsonData.graph;
+                        }
+                        
                         if (!!jsonData.vertices.length) {
                             graph.loadVertices(jsonData.vertices);
                         }
