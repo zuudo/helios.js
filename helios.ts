@@ -101,6 +101,7 @@ module Helios {
 		
 		private messages:{method:string; parameters:any[];}[];
 		private db:any;
+		private placeholder:number = -1;
 
         id:()=>any[];
         label:()=>any[];
@@ -110,6 +111,8 @@ module Helios {
         map:(...labels:string[])=>{}[];
         hash:()=>{};
 	    path:()=>any[];
+        pin:()=>Pipeline;
+        unpin:()=>Pipeline;
 		out:(...labels: string[]) => Pipeline;
 		in:(...labels:string[])=>Pipeline;
 		both:(...labels:string[])=>Pipeline;
@@ -139,6 +142,8 @@ module Helios {
 			this.messages = [{method:method, parameters:args}];
 			this.db = helios.db;
 
+			this.pin = this.add('pin')
+			this.unpin = this.add('unpin')
 			this.out = this.add('out');
 			this.in = this.add('in');
 			this.both = this.add('both');
@@ -180,14 +185,30 @@ module Helios {
 			return function(...args:string[]):any{
 				if(trace){
 					this.db.invoke("startTrace", true).fail(function(err){console.log(err.message);}).end();
-				} 
+				}
+				if(func == 'pin'){
+					this.placeholder = this.messages.length;
+					return this;
+				}
+				if(func == 'unpin'){
+					this.placeholder = -1;
+					return this;
+				}
                 this.messages.push({method:func, parameters:args});
                 return this;
             }
 		}
 
 		then(success?:()=>any, error?:()=>any):void{
-			this.db.invoke("run", this.messages).then(success, error).end();
+			var ctx = this;
+			this.db.invoke("run", this.messages)
+				.then(function(result){
+						if(ctx.placeholder > -1){
+							ctx.messages.length = ctx.placeholder;
+						}
+						return result;
+					}, function(error){return error;})
+				.then(success, error).end();
 		}
 	}
 }

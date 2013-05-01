@@ -128,6 +128,7 @@ var Helios;
     var Pipeline = (function () {
         function Pipeline(method, args, helios) {
             this.helios = helios;
+            this.placeholder = -1;
             this.messages = [
                 {
                     method: method,
@@ -135,6 +136,8 @@ var Helios;
                 }
             ];
             this.db = helios.db;
+            this.pin = this.add('pin');
+            this.unpin = this.add('unpin');
             this.out = this.add('out');
             this.in = this.add('in');
             this.both = this.add('both');
@@ -178,6 +181,14 @@ var Helios;
                         console.log(err.message);
                     }).end();
                 }
+                if(func == 'pin') {
+                    this.placeholder = this.messages.length;
+                    return this;
+                }
+                if(func == 'unpin') {
+                    this.placeholder = -1;
+                    return this;
+                }
                 this.messages.push({
                     method: func,
                     parameters: args
@@ -186,7 +197,15 @@ var Helios;
             };
         };
         Pipeline.prototype.then = function (success, error) {
-            this.db.invoke("run", this.messages).then(success, error).end();
+            var ctx = this;
+            this.db.invoke("run", this.messages).then(function (result) {
+                if(ctx.placeholder > -1) {
+                    ctx.messages.length = ctx.placeholder;
+                }
+                return result;
+            }, function (error) {
+                return error;
+            }).then(success, error).end();
         };
         return Pipeline;
     })();
