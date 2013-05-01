@@ -57,9 +57,9 @@
 g.loadGraphSON('https://github.com/entrendipity/helios.js/blob/master/tests/data/graph-example-1.json');</code></pre>
 
 <p>Then travese the graph.</p>
-<pre><code>g.V().out('knows').then(function(result){console.log(result)});</code></pre>
+<pre><code>g.V().out('knows').then(function(result){console.log(JSON.stringify(result))});
 <em>output:</em>
-<pre><code>[{"name":"vadas","age":27,"_id":2,"_type":"vertex"}
+[{"name":"vadas","age":27,"_id":2,"_type":"vertex"}
 ,{"name":"josh","age":32,"_id":4,"_type":"vertex"}]</code></pre>
 
 <p>Lets break this down. The first step creates a variable 'g' that references the graph database. All calls against the database will start with this variable.</p>
