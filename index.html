@@ -70,7 +70,7 @@ g.loadGraphSON('https://github.com/entrendipity/helios.js/blob/master/tests/data
 
 <h2 id='transform'>Documentation Conventions</h2 id='format'>
         <p>
-          Function signatures are loosely based on the <a href="http://www.typescriptlang.org/">TypeScript</a> notation.
+          Function signatures are based on the <a href="http://www.typescriptlang.org/">TypeScript</a> notation.
         </p>
         <p>
           Unless otherwise specified, all examples assume that the 'then' function is called with the output converted to JSON. For example:
@@ -92,7 +92,7 @@ g.loadGraphSON('https://github.com/entrendipity/helios.js/blob/master/tests/data
 </p>
 
 <h3 id='transform/both'>both(...labels:string[]):Pipeline</h3 id='transform/both'>
-<p>Get both adjacent vertices of the vertex, the in and the out. It accepts an optional array of strings or comma seperated list of strings and returns a Pipeline.
+<p>Get both adjacent vertices of the vertex, the in and the out.
 
 </p>
 <pre><code class="text">heliosjs&gt; g.v(4).both()
