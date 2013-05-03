@@ -103,14 +103,14 @@ module Helios {
 		private db:any;
 		private placeholder:number = -1;
 
-        id:()=>any[];
-        label:()=>any[];
-        property:(prop:string)=>any[];
-        count:()=>number;
-        stringify:()=>string;
-        map:(...labels:string[])=>{}[];
-        hash:()=>{};
-	    path:()=>any[];
+        id:()=>Pipeline;
+        label:()=>Pipeline;
+        property:(prop:string)=>Pipeline;
+        count:()=>Pipeline;
+        stringify:()=>Pipeline;
+        map:(...labels:string[])=>Pipeline;
+        hash:()=>Pipeline;
+	    path:()=>Pipeline;
         pin:()=>Pipeline;
         unpin:()=>Pipeline;
 		out:(...labels: string[]) => Pipeline;
@@ -129,13 +129,13 @@ module Helios {
 	    as:(name:string)=> Pipeline;
 	    back:(x:any)=>Pipeline;
 	    optional:(x:any)=>Pipeline;
-	    select:(list?:string[], ...func:string[])=>Pipeline;
+	    select:(list?:string[], ...closure:string[])=>Pipeline;
 	    except:(dataSet:{}[])=>Pipeline;
 	    retain:(dataSet:{}[])=>Pipeline;
-        transform:(func:string)=>Pipeline;
-        filter:(func:string)=>Pipeline;
-        ifThenElse:(ifFunc:string, thenFunc:string, elseFunc:string)=>Pipeline;
-        loop:(stepBack:any, iterations:number, func?:string)=>Pipeline;
+        transform:(closure:string)=>Pipeline;
+        filter:(closure:string)=>Pipeline;
+        ifThenElse:(ifClosure:string, thenClosure:string, elseClosure:string)=>Pipeline;
+        loop:(stepBack:any, iterations:number, closure?:string)=>Pipeline;
 
 		constructor(method:string, args:any[], public helios:any){
 			

@@ -906,79 +906,39 @@ module Helios {
             return this.endPipe;
         }
         export interface IPipeline {
-            /*** Transform ***/
-            out:(...labels:string[])=>Pipeline;
+            id:()=>Pipeline;
+            label:()=>Pipeline;
+            property:(prop:string)=>Pipeline;
+            count:()=>Pipeline;
+            stringify:()=>Pipeline;
+            map:(...labels:string[])=>Pipeline;
+            hash:()=>Pipeline;
+            path:()=>Pipeline;
+            //pin:()=>Pipeline;
+            //unpin:()=>Pipeline;
+            out:(...labels: string[])=>Pipeline;
             in:(...labels:string[])=>Pipeline;
-
-
-            // both:(...labels:string[])=>Pipeline;
-            // bothE(...labels:string[])=>Pipeline;
-            // bothV(...labels:string[])=>Pipeline;
-            // cap(...labels:string[])=>Pipeline;
-            // gather(...labels:string[])=>Pipeline;
-            // id(...labels:string[])=>Pipeline;
-            
-            // inE(...labels:string[])=>Pipeline;
-            // inV(...labels:string[])=>Pipeline;
-            // property(...labels:string[])=>Pipeline;
-            // label(...labels:string[])=>Pipeline;
-            // map(...labels:string[])=>Pipeline;
-            // memoize(...labels:string[])=>Pipeline;
-            // order(...labels:string[])=>Pipeline;
-            
-            // outE(...labels:string[])=>Pipeline;
-            // outV(...labels:string[])=>Pipeline;
-            // path(...labels:string[])=>Pipeline;
-            // scatter(...labels:string[])=>Pipeline;
-            // select(...labels:string[])=>Pipeline;
-            // transform(...labels:string[])=>Pipeline;
-            
-            // /*** Filter ***/
-            // inde(...labels:string[])=>Pipeline; //index(i)
-            // range(...labels:string[])=>Pipeline; //range('[i..j]')
-            // and(...labels:string[])=>Pipeline;
-            // back(...labels:string[])=>Pipeline;
-            // dedup(...labels:string[])=>Pipeline;
-            // except(...labels:string[])=>Pipeline;
-            // filter(...labels:string[])=>Pipeline;
-            // has(...labels:string[])=>Pipeline;
-            // hasNot(...labels:string[])=>Pipeline;
-            // interval(...labels:string[])=>Pipeline;
-            // or(...labels:string[])=>Pipeline;
-            // random(...labels:string[])=>Pipeline;
-            // retain(...labels:string[])=>Pipeline;
-            // simplePath(...labels:string[])=>Pipeline;
-            
-            // /*** Side Effect ***/ 
-            // // aggregate //Not implemented
-            // as(...labels:string[])=>Pipeline;
-            // groupBy(...labels:string[])=>Pipeline;
-            // groupCount(...labels:string[])=>Pipeline;
-            // optional(...labels:string[])=>Pipeline;
-            // sideEffect(...labels:string[])=>Pipeline;
-            // // store //Not implemented
-            // // table //Not implemented
-            // // tree //Not implemented
-
-            // /*** Branch ***/
-            // copySplit(...labels:string[])=>Pipeline;
-            // exhaustMerge(...labels:string[])=>Pipeline;
-            // fairMerge(...labels:string[])=>Pipeline;
-            // ifThenElse(...labels:string[])=>Pipeline; //g.v(1).out().ifThenElse('{it.name=='josh'}','{it.age}','{it.name}')
-            // loop(...labels:string[])=>Pipeline;
-
-            // /*** Methods ***/
-            // //fill //Not implemented
-            // count(...labels:string[])=>Pipeline;
-            // iterate(...labels:string[])=>Pipeline;
-            // next(...labels:string[])=>Pipeline;
-            // toList(...labels:string[])=>Pipeline;
-            // createIndex(...labels:string[])=>Pipeline;
-            // put(...labels:string[])=>Pipeline;
-
-            // getPropertyKeys(...labels:string[])=>Pipeline;
-            // setProperty(...labels:string[])=>Pipeline;
-            // property(...labels:string[])=>Pipeline;
+            both:(...labels:string[])=>Pipeline;
+            bothE:(...labels:string[])=>Pipeline;
+            bothV:()=>Pipeline;
+            inE:(...labels:string[])=>Pipeline;
+            inV:()=>Pipeline;
+            outE:(...labels:string[])=>Pipeline;
+            outV:()=>Pipeline;
+            where:(...comparables:{}[])=>Pipeline;
+            index:(...indices:number[])=>Pipeline;
+            range:(start:number, end?:number)=> Pipeline;
+            dedup:()=> Pipeline;
+            as:(name:string)=> Pipeline;
+            back:(x:any)=>Pipeline;
+            optional:(x:any)=>Pipeline;
+            select:(list?:string[], ...closure:string[])=>Pipeline;
+            except:(dataSet:{}[])=>Pipeline;
+            retain:(dataSet:{}[])=>Pipeline;
+            transform:(closure:string)=>Pipeline;
+            filter:(closure:string)=>Pipeline;
+            ifThenElse:(ifClosure:string, thenClosure:string, elseClosure:string)=>Pipeline;
+            loop:(stepBack:any, iterations:number, closure?:string)=>Pipeline;
 
         }
         export class Pipeline implements IPipeline{
@@ -1649,7 +1609,7 @@ module Helios {
                 return this;
             }
 
-            property(prop:string):any {
+            property(prop:string):Pipeline {
 
                 var element:IElement,
                     iter:any[] = [],
@@ -1873,7 +1833,7 @@ module Helios {
             }
 
 
-            filter(func:string):Pipeline {
+            filter(closure:string):Pipeline {
 
                 var element:IElement,
                     iter:any[] = [],
@@ -1881,14 +1841,14 @@ module Helios {
                     tracing:bool = !!this.graph.traceEnabled,
                     pipes:any[] = tracing ? [] : undefined,
                     pipe:any[],
-                    customFunc = new Function("it","it="+func + "; return it;");
+                    customClosure = new Function("it", Utils.funcBody(closure));
 
                 this.steps[++this.steps.currentStep] = { func: 'filter', args: [], 'exclFromPath':true };
                 iter = tracing ? this.pipeline : this.endPipe;
 
                 Utils.each(iter, function (next) {
                     element = tracing ? slice.call(next, -1)[0] : next;
-                    if (customFunc.call(element.obj, element.obj)) {
+                    if (customClosure.call(element.obj, element.obj)) {
                         endPipeArray.push(element);
                         if (tracing) {
                             pipe = [];
@@ -1909,7 +1869,7 @@ module Helios {
                 return this;
             }
 
-            ifThenElse(ifC:string, thenC:string, elseC:string):Pipeline {
+            ifThenElse(ifClosure:string, thenClosure:string, elseClosure:string):Pipeline {
 
                 var element:IElement,
                     iter:any[] = [],
@@ -1918,10 +1878,10 @@ module Helios {
                     pipes:any[] = tracing ? [] : undefined,
                     pipe:any[],
                     itObj:any,
-                    funcOut:any,
-                    ifFunc = new Function("it","it="+ifC + "; return it;"),
-                    thenFunc = new Function("it","it="+thenC + "; return it;"),
-                    elseFunc = new Function("it","it="+elseC + "; return it;");
+                    closureOut:any,
+                    ifC = new Function("it", Utils.funcBody(ifClosure)),
+                    thenC = new Function("it", Utils.funcBody(thenClosure)),
+                    elseC = new Function("it", Utils.funcBody(elseClosure));
 
                 this.steps[++this.steps.currentStep] = { func: 'ifThenElse', args: [] };
                 iter = tracing ? this.pipeline : this.endPipe;
@@ -1929,16 +1889,16 @@ module Helios {
                 Utils.each(iter, function (next) {
                     element = tracing ? slice.call(next, -1)[0] : next;
                     itObj = Utils.isElement(element) ? element.obj : element;
-                    if (ifFunc.call(itObj, itObj)) {
-                        funcOut = thenFunc.call(itObj, itObj);
+                    if (ifC.call(itObj, itObj)) {
+                        closureOut = thenC.call(itObj, itObj);
                     } else {
-                        funcOut = elseFunc.call(itObj, itObj);                    
+                        closureOut = elseC.call(itObj, itObj);                    
                     }
-                    endPipeArray.push(funcOut);
+                    endPipeArray.push(closureOut);
                     if (tracing) {
                         pipe = [];
                         pipe.push.apply(pipe, next);
-                        pipe.push(funcOut);
+                        pipe.push(closureOut);
                         pipes.push(pipe);
                     }
                 }, this);
@@ -2165,9 +2125,9 @@ module Helios {
 
             select():Pipeline;
             select(list:string[]):Pipeline;
-            select(...funcs:string[]):Pipeline;
-            select(list:string[], ...funcs:string[]):Pipeline;
-            select(list?:any, ...funcs:string[]):Pipeline {
+            select(...closure:string[]):Pipeline;
+            select(list:string[], ...closure:string[]):Pipeline;
+            select(list?:any, ...closure:string[]):Pipeline {
                 var backTo:number,
                     i:number,
                     l:number=this.pipeline.length,
@@ -2175,8 +2135,8 @@ module Helios {
                     endPipeHash:{} = {},
                     tempEndPipeArray:any[],
                     endPipeArray:any[] = [],
-                    funcArray:any[] = [],
-                    funcOut:any,
+                    closureArray:any[] = [],
+                    closureOut:any,
                     pos:number;
 
                 if (!this.graph.traceEnabled) {
@@ -2200,11 +2160,11 @@ module Helios {
                 } else {
                     //gather the functions to process
                     if(!Utils.isArray(list)){
-                        funcs.unshift(list);
+                        closure.unshift(list);
                         list = undefined;
                     }
-                    for(var j=0,funcsLen = funcs.length;j<funcsLen; j++){
-                        funcArray.push(new Function("it","it="+funcs[j] + "; return it;"))
+                    for(var j=0,funcsLen = closure.length;j<funcsLen; j++){
+                        closureArray.push(new Function("it", Utils.funcBody(closure[j])))
                     }
 
                     if(list && Utils.isArray(list)){
@@ -2215,8 +2175,8 @@ module Helios {
                                 if(list[x] in this.asHash){
                                     backTo = this.asHash[list[x]].step;  
 
-                                    if(!!funcArray.length){
-                                        endPipeHash[list[x]] = funcArray[x].call(this.pipeline[i][backTo-1].obj,this.pipeline[i][backTo-1].obj);
+                                    if(!!closureArray.length){
+                                        endPipeHash[list[x]] = closureArray[x].call(this.pipeline[i][backTo-1].obj,this.pipeline[i][backTo-1].obj);
                                     } else {
                                         endPipeHash[list[x]] = this.pipeline[i][backTo-1].obj;
                                     }
@@ -2235,7 +2195,7 @@ module Helios {
                                 if(this.asHash.hasOwnProperty(k)){
                                     endPipeHash = {};
                                     backTo = this.asHash[k].step;
-                                    endPipeHash[k] = funcArray[pos].call(this.pipeline[i][backTo-1].obj,this.pipeline[i][backTo-1].obj);  
+                                    endPipeHash[k] = closureArray[pos].call(this.pipeline[i][backTo-1].obj,this.pipeline[i][backTo-1].obj);  
                                     push.call(tempEndPipeArray, endPipeHash);
                                 }
                                 pos++;
@@ -2441,7 +2401,7 @@ module Helios {
             }
 
 
-            transform(func:string):Pipeline {
+            transform(closure:string):Pipeline {
                 var element:IElement,
                     iter:any[] = [],
                     endPipeArray:any[] = [],
@@ -2449,21 +2409,21 @@ module Helios {
                     pipes:any[] = tracing ? [] : undefined,
                     pipe:any[],
                     itObj:any,
-                    customFunc = new Function("it","it="+func + "; return it;"),
-                    funcOut:any;
+                    customClosure = new Function("it", Utils.funcBody(closure)),
+                    closureOut:any;
 
-                this.steps[++this.steps.currentStep] = { func: 'transform', args: func};
+                this.steps[++this.steps.currentStep] = { func: 'transform', args: closure};
                 iter = tracing ? this.pipeline : this.endPipe;
 
                 Utils.each(iter, function (next) {
                     element = tracing ? slice.call(next, -1)[0] : next;
                     itObj = Utils.isElement(element) ? element.obj : element;
-                    funcOut = customFunc.call(itObj, itObj);
-                    endPipeArray.push(funcOut);
+                    closureOut = customClosure.call(itObj, itObj);
+                    endPipeArray.push(closureOut);
                     if (tracing) {
                         pipe = [];
                         pipe.push.apply(pipe, next);
-                        pipe.push(funcOut);
+                        pipe.push(closureOut);
                         pipes.push(pipe);
                     }
                 });
@@ -2503,9 +2463,9 @@ module Helios {
 //
 //             *****************************************************************************************************/
 
-            loop(stepBack:number, iterations:number, func?:string):Pipeline;
-            loop(stepBack:string, iterations:number, func?:string):Pipeline;
-            loop(stepBack:any, iterations:number, func?:string):Pipeline {
+            loop(stepBack:number, iterations:number, closure?:string):Pipeline;
+            loop(stepBack:string, iterations:number, closure?:string):Pipeline;
+            loop(stepBack:any, iterations:number, closure?:string):Pipeline {
                     
                 var element:IElement,
                     iter:any[] = [],
@@ -2521,7 +2481,7 @@ module Helios {
                     i:number,
                     j:number,
                     l:number,
-                    customFunc = func ? new Function("it","it="+func + "; return it;"):undefined;
+                    customClosure = closure ? new Function("it", Utils.funcBody(closure)):undefined;
 
                     this.steps.looped = this.steps.looped + (iterations - 1) || iterations - 1;
 
@@ -2534,12 +2494,12 @@ module Helios {
                 } else {
                     backTo = this.steps.currentStep - (stepBack - 1);
                 }
-                if(func){
+                if(closure){
                     iter = tracing ? this.pipeline : this.endPipe;
 
                     Utils.each(iter, function (next) {
                         element = tracing ? slice.call(next, -1)[0] : next;
-                        if (customFunc.call(element.obj, element.obj)) {
+                        if (customClosure.call(element.obj, element.obj)) {
                             endPipeArray.push(element);
                             if (tracing) {
                                 pipe = [];
@@ -2555,11 +2515,11 @@ module Helios {
                         step = this.steps[i];
                         this[step.func].apply(this, step.args);
 
-                        if(func){
+                        if(closure){
                             iter = tracing ? this.pipeline : this.endPipe;
                             Utils.each(iter, function (next) {
                                 element = tracing ? slice.call(next, -1)[0] : next;
-                                if (customFunc.call(element.obj, element.obj)) {
+                                if (customClosure.call(element.obj, element.obj)) {
                                     endPipeArray.push(element);
                                     if (tracing) {
                                         pipe = [];
@@ -2951,12 +2911,9 @@ module Helios {
             return r;
         }
 
-        static each(array:any, func:(element:any)=>void,/* callback?:(result:any)=>void,*/ context?:{}):void {
+        static each(array:any, func:(element:any)=>void, context?:{}):void {
 
             var i:any, len:number, val:Element;
-
-            //if (!Utils.is(func))
-            //throw new TypeError();
 
             if (isArray(array)) {
                 len = array.length;
@@ -2972,43 +2929,14 @@ module Helios {
                     }
                 }
             }
-            //callback()
         }
 
-//        static  each(array:any, func:(element:any)=>void, context?:{}):void {
-//
-//            var i:any, len:number, val:Element;
-//
-//            //if (!Utils.is(func))
-//            //throw new TypeError();
-//
-//            if (isArray(array)) {
-//                len = array.length;
-//                for (i = 0; i < len; i += 1) {
-//                    val = array[i]; // in case func mutates this
-//                    func.call(context, val);
-//                }
-//            } else {
-//                for (i in array) {
-//                    if (array.hasOwnProperty(i)) {
-//                        val = array[i]; // in case func mutates this
-//                        func.call(context, val);
-//                    }
-//                }
-//            }
-//        }
-
-
         //TODO: check intersection
-        static intersection(arr1:any[], arr2:any[]/*, isObj:bool*/) {
+        static intersection(arr1:any[], arr2:any[]) {
 
             var r = [], o = {}, i, comp;
             for (i = 0; i < arr2.length; i += 1) {
-//                if (!!isObj) {
-//                    o[arr2[i][this.graph.meta.id]] = true;
-//                } else {
-                  o[arr2[i]] = true;
-                //}
+                o[arr2[i]] = true;
             }
 
             for (i = 0; i < arr1.length; i += 1) {
@@ -3045,20 +2973,15 @@ module Helios {
             return outputObj;
         }
 
-        //Utils are internal s
         //TODO: Check difference
-        static  difference(arr1:any[], arr2:any[]/*, isObj:bool*/):any[] {
+        static  difference(arr1:any[], arr2:any[]):any[] {
             var r = [], o = {}, i, comp;
             for (i = 0; i < arr2.length; i += 1) {
-//                if (!!isObj) {
-//                    o[arr2[i][arr2[i].graph.meta.id]] = true;
-//                } else {
-                    o[arr2[i]] = true;
-//                }
+                o[arr2[i]] = true;
             }
 
             for (i = 0; i < arr1.length; i += 1) {
-                comp = /*!!isObj ? arr1[i][arr1[i].graph.meta.id] :*/ arr1[i];
+                comp = arr1[i];
                 if (!o[comp]) {
                     r.push(arr1[i]);
                 }
@@ -3113,6 +3036,7 @@ module Helios {
             }
             return r;
         }
+
         static  uniqueElement(array:IElement[]):IElement[] {
 
             var o = {}, i, l = array.length, r = [];
@@ -3127,7 +3051,7 @@ module Helios {
             return r;
         }
 
-        static  include(array, i) {
+        static include(array, i) {
             return indexOf.call(array, i) === -1 ? false : true;
         }
 
@@ -3143,6 +3067,14 @@ module Helios {
 
         static values(o) {
             return toArray(o);
+        }
+
+        static strip(closure:string):string {
+            return closure.trim().slice(1).slice(0,-1).trim();
+        }
+
+        static funcBody(closure:string):string {
+            return "it = " + this.strip(closure) + "; return it;";
         }
 
         static pick(o:{}, props:string[]):{} {
@@ -3169,7 +3101,7 @@ module Helios {
             return result;
         }
 
-        static  pluck(objs:{ obj?:{}; }[], prop:string):any[] {
+        static pluck(objs:{ obj?:{}; }[], prop:string):any[] {
 
             var o,
                 i = objs.length,
@@ -3277,7 +3209,7 @@ module Helios {
             return result;
         }
 
-        static  embeddedObject(o:{}, prop:string):{} {
+        static embeddedObject(o:{}, prop:string):{} {
             var props:string[] = prop.indexOf(".") > -1 ? prop.split(".") : [prop],
                 l:number = props.length,
                 lastProp:string = props[l - 1],
