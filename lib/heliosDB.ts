@@ -3069,12 +3069,12 @@ module Helios {
             return toArray(o);
         }
 
-        static strip(closure:string):string {
-            return closure.trim().slice(1).slice(0,-1).trim();
-        }
+        // static strip(closure:string):string {
+        //     return closure.trim().slice(1).slice(0,-1).trim();
+        // }
 
         static funcBody(closure:string):string {
-            return "it = " + this.strip(closure) + "; return it;";
+            return "it = " + closure + "; return it;";
         }
 
         static pick(o:{}, props:string[]):{} {
