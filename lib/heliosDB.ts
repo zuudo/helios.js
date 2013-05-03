@@ -1623,7 +1623,7 @@ module Helios {
 
                 tempProp = isEmbedded ? prop.split(".").slice(-1)[0] : prop;
 
-                this.steps[++this.steps.currentStep] = { func: 'filter', args: prop };
+                this.steps[++this.steps.currentStep] = { func: 'property', args: prop };
                 iter = tracing ? this.pipeline : this.endPipe;
 
                 Utils.each(iter, function (next) {
