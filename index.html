@@ -68,10 +68,12 @@ g.loadGraphSON('https://github.com/entrendipity/helios.js/blob/master/tests/data
 
 <p>Function calls are able to be chained, because each call returns a Pipeline object, which is the object that pipes the data through each of the function calls. Once 'then' is called, the pipeline is closed and the result is emitted.</p>
 
-<h2 id='transform'>Documentation Conventions</h2 id='format'>
+<h2 id='convention'>Documentation Conventions</h2 id='format'>
+        <h3>Function signatures</h3>
         <p>
-          Function signatures are based on the <a href="http://www.typescriptlang.org/">TypeScript</a> notation.
+          Function signatures are based on the <a href="http://www.typescriptlang.org/">TypeScript</a> notation. Which essentially is <em>(variable name:Type)</em>. However, there are some little differences. One of which is the elipsis notation. When you encounter something like (...id:number[]), this is saying that you can optionally pass in and array of ids of Type number OR a comma separated list of ids of Type number.
         </p>
+        <p>Functions listed multiple times with different signatures signify that the function is overloaded.</p>
         <p>
           Unless otherwise specified, all examples assume that the 'then' function is called with the output converted to JSON. For example:
 
@@ -85,13 +87,262 @@ g.loadGraphSON('https://github.com/entrendipity/helios.js/blob/master/tests/data
 <em>output:</em>
 [{"name":"josh","age":32,"_id":4,"_type":"vertex"}]
 </code></pre>
-        
+
+        <h3>Closures</h3>
+        <p>
+          Gremlin comes in a number of different language variants. One of which is <a href="http://groovy.codehaus.org">Groovy</a>, which is what the Helios traversal language is based on. Groovy has a construct called <a href="http://groovy.codehaus.org/Closures">Closures</a> which are essentially anonymous functions and take the form of { [closureArguments->] statements }. In order to keep the traversal language as close to Gremlin as possible, Helios does it's best to mimic Closures. For simplicity, I refer to them as "closures" but they really aren't Closures.
+
+        </p>
+        <p>
+          To use closures is quiet simple. All you need to remember are 2 things:
+        </p>
+        <ul>
+          <li>'it' is a predefined variable that can be passed in (and almost always is) to a closure. It is a little like the 'this' variable in javascript. 'it' refers to the object that is being passed to it from in the previous step. The output of the closure will then be passed to the next step.</li>
+          <li>closures are passed in as a string parameter without the curly braces (javascript needs those)</li>
+        </ul>
+        <p>
+          It'll become a little clearer once you take a look at a few examples below.
+        </p>
 <h2 id='transform'>Transform</h2 id='transform'>
 <p>Transform steps take an object and emit a transformation of it.
 
 </p>
 
-<h3 id='transform/both'>both(...labels:string[]):Pipeline</h3 id='transform/both'>
+
+        <h3 id='transform/transform'>transform(closure:string)</h3 id='transform/transform'>
+<p>Transform emits the result of a closure.
+
+</p>
+<pre><code class="text">heliosjs&gt; g.E().where({'weight':{$gt:0.5}}).outV().property('age')
+<em>output:</em>
+[29,32]
+
+heliosjs&gt; g.E().where({'weight':{$gt:0.5}}).outV().property('age').transform('it+2')
+<em>output:</em>
+[31,34]
+
+heliosjs&gt; g.E().where({'weight':{$gt:0.5}}).outV().transform('[it._id, it.age]')
+<em>output:</em>
+[[1,29],[4,32]]
+
+heliosjs&gt; g.E().where({'weight':{$gt:0.5}}).outV().transform('{id:it._id,age:it.age}')
+<em>output:</em>
+[{"id":1,"age":29},{"id":4,"age":32}]</code></pre>
+<p><a href="#">top</a>
+
+</p>
+<hr>
+
+<h3 id='transform/v'>V(...id:string[])</h3 id='transform/v'>
+        <h3>V(...id:number[])</h3>
+        <h3>V(...elements:Vertex[]) <em>=> object must have 'id' property.</em></h3>
+        <h3>V(...comparator:{}[])</h3>
+        <p>The vertex iterator for the graph.  Utilize this to iterate through all the vertices in the graph.  Use with care on large graphs unless used in combination with a indexed key.<br/>
+          <mark>N.B. Uppercase V and lowercase V are inter-changeable. They take exactly the same parameters and have exactly the same output. i.e. V() == v()</mark>
+
+
+</p>
+        <pre><code class="text">heliosjs&gt; g.V()
+<em>output:</em>
+[{"name":"marko","age":29,"_id":1,"_type":"vertex"},
+{"name":"vadas","age":27,"_id":2,"_type":"vertex"},
+{"name":"lop","lang":"java","_id":3,"_type":"vertex"},
+{"name":"josh","age":32,"_id":4,"_type":"vertex"},
+{"name":"ripple","lang":"java","_id":5,"_type":"vertex"},
+{"name":"peter","age":35,"_id":6,"_type":"vertex"}]
+
+heliosjs&gt; g.V(1)
+<em>output:</em>
+[{"name":"marko","age":29,"_id":1,"_type":"vertex"}]
+
+heliosjs&gt; g.V("1")
+<em>output:</em>
+[{"name":"marko","age":29,"_id":1,"_type":"vertex"}]
+
+heliosjs&gt; g.v(1,4)
+<em>output:</em>
+[{"name":"marko","age":29,"_id":1,"_type":"vertex"},
+{"name":"josh","age":32,"_id":4,"_type":"vertex"}]
+
+heliosjs&gt; g.V([1,4])
+<em>output:</em>
+[{"name":"marko","age":29,"_id":1,"_type":"vertex"},
+{"name":"josh","age":32,"_id":4,"_type":"vertex"}]
+
+heliosjs&gt; g.V({name:{$eq:'marko'}})
+<em>output:</em>
+[{"name":"marko","age":29,"_id":1,"_type":"vertex"}]
+
+heliosjs&gt; g.V({name:{$eq:'marko'}},{name:{$eq:'josh'}})
+<em>output:</em>
+[{"name":"marko","age":29,"_id":1,"_type":"vertex"},
+{"name":"josh","age":32,"_id":4,"_type":"vertex"}]
+
+heliosjs&gt; g.v([{name:{$eq:'marko'}},{name:{$eq:'josh'}}])
+<em>output:</em>
+[{"name":"marko","age":29,"_id":1,"_type":"vertex"},
+{"name":"josh","age":32,"_id":4,"_type":"vertex"}]
+
+heliosjs&gt; g.V({name:{$eq:'marko'}}).property('name')
+<em>output:</em>
+["marko"]
+
+heliosjs&gt; g.V([{"name":"marko","_id":1},{"name":"josh","_id":4}])
+<em>output:</em>
+[{"name":"marko","age":29,"_id":1,"_type":"vertex"},
+{"name":"josh","age":32,"_id":4,"_type":"vertex"}]
+
+heliosjs&gt; g.V({"name":"marko","_id":1},{"name":"josh","_id":4})
+<em>output:</em>
+[{"name":"marko","age":29,"_id":1,"_type":"vertex"},
+{"name":"josh","age":32,"_id":4,"_type":"vertex"}]</code></pre>
+<p><a href="#">top</a>
+
+</p>
+<hr>
+
+
+        <h3 id='transform/e'>E(...id:string[])</h3 id='transform/e'>
+        <h3>E(...id:number[])</h3>
+        <h3>E(...elements:Edge[]) <em>=> object must have 'id' property.</em></h3>
+        <h3>E(...comparator:{}[])</h3>
+        <p>The edge iterator for the graph.  Utilize this to iterate through all the edges in the graph.  Use with care on large graphs. Can be used with indexed keys.<br/>
+<mark>N.B. Uppercase E and lowercase E are inter-changeable. They take exactly the same parameters and have exactly the same output. i.e. E() == e()</mark>
+</p>
+<pre><code class="text">heliosjs&gt; g.E()
+<em>output:</em>
+[{"weight":0.5,"_id":7,"_type":"edge","_label":"knows",
+"out":{"name":"marko","age":29,"_id":1,"_type":"vertex"},
+"in":{"name":"vadas","age":27,"_id":2,"_type":"vertex"}},
+{"weight":1,"_id":8,"_type":"edge","_label":"knows",
+"out":{"name":"marko","age":29,"_id":1,"_type":"vertex"},
+"in":{"name":"josh","age":32,"_id":4,"_type":"vertex"}},
+{"weight":0.4,"_id":9,"_type":"edge","_label":"created",
+"out":{"name":"marko","age":29,"_id":1,"_type":"vertex"},
+"in":{"name":"lop","lang":"java","_id":3,"_type":"vertex"}},
+{"weight":1,"_id":10,"_type":"edge","_label":"created",
+"out":{"name":"josh","age":32,"_id":4,"_type":"vertex"},
+"in":{"name":"ripple","lang":"java","_id":5,"_type":"vertex"}},
+{"weight":0.4,"_id":11,"_type":"edge","_label":"created",
+"out":{"name":"josh","age":32,"_id":4,"_type":"vertex"},
+"in":{"name":"lop","lang":"java","_id":3,"_type":"vertex"}},
+{"weight":0.2,"_id":12,"_type":"edge","_label":"created",
+"out":{"name":"peter","age":35,"_id":6,"_type":"vertex"},
+"in":{"name":"lop","lang":"java","_id":3,"_type":"vertex"}}]
+
+heliosjs&gt; g.e().property("weight")
+<em>output:</em>
+[0.5,1,0.4,1,0.4,0.2]
+
+heliosjs&gt; g.E({'out.name':{$eq:'marko'}})
+<em>output:</em>
+[{"weight":0.5,"_id":7,"_type":"edge","_label":"knows",
+"out":{"name":"marko","age":29,"_id":1,"_type":"vertex"},
+"in":{"name":"vadas","age":27,"_id":2,"_type":"vertex"}},
+{"weight":1,"_id":8,"_type":"edge","_label":"knows",
+"out":{"name":"marko","age":29,"_id":1,"_type":"vertex"},
+"in":{"name":"josh","age":32,"_id":4,"_type":"vertex"}},
+{"weight":0.4,"_id":9,"_type":"edge","_label":"created",
+"out":{"name":"marko","age":29,"_id":1,"_type":"vertex"},
+"in":{"name":"lop","lang":"java","_id":3,"_type":"vertex"}}]
+
+heliosjs&gt; g.E({'out.name':{$eq:'marko'}}).property('weight)
+<em>output:</em>
+[0.5,1,0.4]</code></pre>
+<p><a href="#">top</a>
+
+</p>
+<hr>
+        <h3 id='transform/id'>id()</h3 id='transform/id'>
+<p>Gets the unique identifier of the element.
+
+</p>
+<pre><code class="text">heliosjs&gt; g.V({name:{$eq:'marko'}},{name:{$eq:'josh'}}).id()
+<em>output:</em>
+[1,4]
+
+heliosjs&gt; g.V(1).out().id()
+<em>output:</em>
+[2,4,3]</code></pre>
+<p><a href="#">top</a>
+
+</p>
+<hr>
+
+<h3 id='transform/label'>label()</h3 id='transform/label'>
+<p>Gets the label of an edge.
+
+</p>
+<pre><code class="text">heliosjs&gt; g.v(6).outE().label()
+<em>output:</em>
+["created"]</code></pre>
+<p><a href="#">top</a>
+
+</p>
+<hr>
+<h3 id='transform/out'>out(...labels:string[])</h3 id='transform/out'>
+<p>Gets the out adjacent vertices to the vertex.
+
+</p>
+<pre><code class="text">heliosjs&gt; g.v(1).out()
+<em>output:</em>
+[{"name":"vadas","age":27,"_id":2,"_type":"vertex"},
+{"name":"josh","age":32,"_id":4,"_type":"vertex"},
+{"name":"lop","lang":"java","_id":3,"_type":"vertex"}]
+
+heliosjs&gt;  g.v(1).out('knows')
+<em>output:</em>
+[{"name":"vadas","age":27,"_id":2,"_type":"vertex"},
+{"name":"josh","age":32,"_id":4,"_type":"vertex"}]</code></pre>
+<p><a href="#">top</a>
+
+</p>
+<hr>
+<h3 id='transform/oute'>outE(...labels:string[])</h3 id='transform/oute'>
+<p>Gets the outgoing edges to the vertex.
+
+</p>
+<pre><code class="text">heliosjs&gt;  g.v(1).outE()
+<em>output:</em>
+[{"weight":0.5,"_id":7,"_type":"edge","_label":"knows",
+"out":{"name":"marko","age":29,"_id":1,"_type":"vertex"},
+"in":{"name":"vadas","age":27,"_id":2,"_type":"vertex"}},
+{"weight":1,"_id":8,"_type":"edge","_label":"knows",
+"out":{"name":"marko","age":29,"_id":1,"_type":"vertex"},
+"in":{"name":"josh","age":32,"_id":4,"_type":"vertex"}},
+{"weight":0.4,"_id":9,"_type":"edge","_label":"created",
+"out":{"name":"marko","age":29,"_id":1,"_type":"vertex"},
+"in":{"name":"lop","lang":"java","_id":3,"_type":"vertex"}}]
+
+heliosjs&gt;  g.v(1).outE('knows')
+<em>output:</em>
+[{"weight":0.5,"_id":7,"_type":"edge","_label":"knows",
+"out":{"name":"marko","age":29,"_id":1,"_type":"vertex"},
+"in":{"name":"vadas","age":27,"_id":2,"_type":"vertex"}},
+{"weight":1,"_id":8,"_type":"edge","_label":"knows",
+"out":{"name":"marko","age":29,"_id":1,"_type":"vertex"},
+"in":{"name":"josh","age":32,"_id":4,"_type":"vertex"}}]</code></pre>
+<p><a href="#">top</a>
+
+</p>
+<hr>
+<h3 id='transform/in'>in(...labels:string[])</h3 id='transform/in'>
+<p>Gets the adjacent vertices to the vertex.
+
+</p>
+<pre><code class="text">heliosjs&gt; g.v(4).in()
+<em>output:</em>
+[{"name":"marko","age":29,"_id":1,"_type":"vertex"}]
+
+heliosjs&gt;  g.v(4).in('knows')
+<em>output:</em>
+[{"name":"marko","age":29,"_id":1,"_type":"vertex"}]</code></pre>
+<p><a href="#">top</a>
+
+</p>
+<hr>
+
+<h3 id='transform/both'>both(...labels:string[])</h3 id='transform/both'>
 <p>Get both adjacent vertices of the vertex, the in and the out.
 
 </p>
@@ -120,45 +371,190 @@ heliosjs&gt; g.v(4).both([&#39;knows&#39;, &#39;created&#39;])
 <p><a href="#">top</a>
 
 </p>
+
+
 <hr>
-<!--<h3 id='transform/bothe'>bothE</h3 id='transform/bothe'>
+        <h3 id='transform/bothe'>bothE(...labels:string[])</h3 id='transform/bothe'>
 <p>Get both incoming and outgoing edges of the vertex.
 
 </p>
-<pre><code class="text">heliosjs&gt; v = g.v(4)
-==&gt;v[4]
-heliosjs&gt; v.bothE
-==&gt;e[8][1-knows-&gt;4]
-==&gt;e[10][4-created-&gt;5]
-==&gt;e[11][4-created-&gt;3]
-heliosjs&gt; v.bothE(&#39;knows&#39;)
-==&gt;e[8][1-knows-&gt;4]
-heliosjs&gt; v.bothE(&#39;knows&#39;, &#39;created&#39;)
-==&gt;e[8][1-knows-&gt;4]
-==&gt;e[10][4-created-&gt;5]
-==&gt;e[11][4-created-&gt;3]</code></pre>
+<pre><code class="text">heliosjs&gt; g.v(4).bothE()
+<em>output:</em>
+[{"weight":1,"_id":10,"_type":"edge","_label":"created",
+"out":{"name":"josh","age":32,"_id":4,"_type":"vertex"},
+"in":{"name":"ripple","lang":"java","_id":5,"_type":"vertex"}},
+{"weight":0.4,"_id":11,"_type":"edge","_label":"created",
+"out":{"name":"josh","age":32,"_id":4,"_type":"vertex"},
+"in":{"name":"lop","lang":"java","_id":3,"_type":"vertex"}},
+{"weight":1,"_id":8,"_type":"edge","_label":"knows",
+"out":{"name":"marko","age":29,"_id":1,"_type":"vertex"},
+"in":{"name":"josh","age":32,"_id":4,"_type":"vertex"}}]
+
+heliosjs&gt;  g.v(4).bothE('knows','created')
+<em>output:</em>
+[{"weight":1,"_id":10,"_type":"edge","_label":"created",
+"out":{"name":"josh","age":32,"_id":4,"_type":"vertex"},
+"in":{"name":"ripple","lang":"java","_id":5,"_type":"vertex"}},
+{"weight":0.4,"_id":11,"_type":"edge","_label":"created",
+"out":{"name":"josh","age":32,"_id":4,"_type":"vertex"},
+"in":{"name":"lop","lang":"java","_id":3,"_type":"vertex"}},
+{"weight":1,"_id":8,"_type":"edge","_label":"knows",
+"out":{"name":"marko","age":29,"_id":1,"_type":"vertex"},
+"in":{"name":"josh","age":32,"_id":4,"_type":"vertex"}}]</code></pre>
 <p><a href="#">top</a>
 
 </p>
 <hr>
-<h3 id='transform/bothv'>bothV</h3 id='transform/bothv'>
+
+<h3 id='transform/outv'>outV()</h3 id='transform/outv'>
+<p>Get both outgoing tail vertex of the edge.
+
+</p>
+<pre><code class="text">heliosjs&gt; g.e(12).outV()
+<em>output:</em>
+[{"name":"peter","age":35,"_id":6,"_type":"vertex"}]</code></pre>
+<p><a href="#">top</a>
+
+</p>
+<hr>
+<h3 id='transform/inv'>inV()</h3 id='transform/inv'>
+<p>Get both incoming head vertex of the edge.
+
+</p>
+<pre><code class="text">heliosjs&gt; g.e(12).inV()
+<em>output:</em>
+[{"name":"lop","lang":"java","_id":3,"_type":"vertex"}]</code></pre>
+<p><a href="#">top</a>
+
+</p>
+<hr>
+<h3 id='transform/bothv'>bothV()</h3 id='transform/bothv'>
 <p>Get both incoming and outgoing vertices of the edge.
 
 </p>
-<pre><code class="text">heliosjs&gt; e = g.e(12)
-==&gt;e[12][6-created-&gt;3]
-heliosjs&gt; e.outV
-==&gt;v[6]
-heliosjs&gt; e.inV
-==&gt;v[3]
-heliosjs&gt; e.bothV
-==&gt;v[6]
-==&gt;v[3]</code></pre>
+<pre><code class="text">heliosjs&gt; g.e(12).inV()
+<em>output:</em>
+[{"name":"peter","age":35,"_id":6,"_type":"vertex"},
+{"name":"lop","lang":"java","_id":3,"_type":"vertex"}]</code></pre>
 <p><a href="#">top</a>
 
 </p>
 <hr>
-<h3 id='transform/cap'>cap</h3 id='transform/cap'>
+
+<h3 id='transform/key'>property(property:string)</h3 id='transform/key'>
+<p>Get the property value of an element.
+
+</p>
+<pre><code class="text">heliosjs&gt; g.v(1).property('age')
+<em>output:</em>
+[29]</code></pre>
+<p><a href="#">top</a>
+
+</p>
+<hr>
+        <h3 id='transform/map'>map(...property:string[])</h3 id='transform/map'>
+<p>Gets the property map of the graph element.
+
+</p>
+<pre><code class="text">heliosjs&gt; g.v(1).map()
+<em>output:</em>
+[{"name":"marko","age":29,"_id":1,"_type":"vertex"}]
+
+heliosjs&gt; g.v(1).map('name', 'age')
+<em>output:</em>
+[{"name":"marko","age":29}]</code></pre>
+<p><a href="#">top</a>
+
+</p>
+<hr>
+        <h3 id='transform/path'>path(...property:string[])</h3 id='transform/path'>
+        <h3>path(...closure:string[])</h3>
+<p>Gets the path through the pipeline up to this point, where closures are post-processing for each object in the path.  If the path step is provided closures then, in a round robin fashion, the closures are evaluated over each object of the path and that post-processed path is returned.
+
+</p>
+<pre><code class="text">heliosjs&gt; g.v(1).out().path()
+<em>output:</em>
+[[{"name":"marko","age":29,"_id":1,"_type":"vertex"},
+{"name":"vadas","age":27,"_id":2,"_type":"vertex"}],
+[{"name":"marko","age":29,"_id":1,"_type":"vertex"},
+{"name":"josh","age":32,"_id":4,"_type":"vertex"}],
+[{"name":"marko","age":29,"_id":1,"_type":"vertex"},
+{"name":"lop","lang":"java","_id":3,"_type":"vertex"}]]
+
+heliosjs&gt; g.v(1).out().path('name','age')
+<em>output:</em>
+[[{"age":29,"name":"marko"},{"age":27,"name":"vadas"}],
+[{"age":29,"name":"marko"},{"age":32,"name":"josh"}],
+[{"age":29,"name":"marko"},{"name":"lop"}]]
+
+heliosjs&gt; g.v(1).out().path('it.id')
+<em>output:</em>
+[[1,2],[1,4],[1,3]]
+
+g.v(1).out().path('it.id','id.name')
+<em>output:</em>
+[[1,"vadas"],[1,"josh"],[1,"lop"]]
+
+heliosjs&gt; g.v(1).outE().inV().property('name').path()
+<em>output:</em>
+[[{"name":"marko","age":29,"_id":1,"_type":"vertex"},
+{"weight":0.5,"_id":7,"_type":"edge","_label":"knows",
+"out":{"name":"marko","age":29,"_id":1,"_type":"vertex"},
+"in":{"name":"vadas","age":27,"_id":2,"_type":"vertex"}},
+{"name":"vadas","age":27,"_id":2,"_type":"vertex"},"vadas"],
+[{"name":"marko","age":29,"_id":1,"_type":"vertex"},
+{"weight":1,"_id":8,"_type":"edge","_label":"knows",
+"out":{"name":"marko","age":29,"_id":1,"_type":"vertex"},
+"in":{"name":"josh","age":32,"_id":4,"_type":"vertex"}},
+{"name":"josh","age":32,"_id":4,"_type":"vertex"},"josh"],
+[{"name":"marko","age":29,"_id":1,"_type":"vertex"},
+{"weight":0.4,"_id":9,"_type":"edge","_label":"created",
+"out":{"name":"marko","age":29,"_id":1,"_type":"vertex"},
+"in":{"name":"lop","lang":"java","_id":3,"_type":"vertex"}},
+{"name":"lop","lang":"java","_id":3,"_type":"vertex"},"lop"]]</code></pre>
+<p><a href="#">top</a>
+
+</p>
+<hr>
+
+        <h3 id='transform/select'>select(...closure:string[])</h3 id='transform/select'>
+        <h3>select(list:string[])</h3>
+        <h3>select(list:string[], ...closure:string[])</h3>
+<p>Select the named steps to emit after select with post-processing closures in a round robin.
+
+</p>
+<pre><code class="text">heliosjs&gt; g.v(1).as(&#39;x&#39;).out(&#39;knows&#39;).as(&#39;y&#39;).select()
+<em>output:</em>
+[[{"x":{"name":"marko","age":29,"_id":1,"_type":"vertex"}},
+{"y":{"name":"vadas","age":27,"_id":2,"_type":"vertex"}}],
+[{"x":{"name":"marko","age":29,"_id":1,"_type":"vertex"}},
+{"y":{"name":"josh","age":32,"_id":4,"_type":"vertex"}}]]
+
+heliosjs&gt; g.v(1).as(&#39;x&#39;).out(&#39;knows&#39;).as(&#39;y&#39;).select([&quot;y&quot;])
+<em>output:</em>
+[[{"y":{"name":"vadas","age":27,"_id":2,"_type":"vertex"}}],
+[{"y":{"name":"josh","age":32,"_id":4,"_type":"vertex"}}]]
+
+heliosjs&gt; g.v(1).as(&#39;x&#39;).out(&#39;knows&#39;).as(&#39;y&#39;).select([&quot;y&quot;],'it.name')
+<em>output:</em>
+[[{"y":"vadas"}],[{"y":"josh"}]]
+
+heliosjs&gt; g.v(1).as(&#39;x&#39;).out(&#39;knows&#39;).as(&#39;y&#39;).select([&quot;y&quot;],'it._id','it.name')
+<em>output:</em>
+[[{"y":2}],[{"y":"josh"}]]
+
+heliosjs&gt;  g.v(1).as(&#39;x&#39;).out(&#39;knows&#39;).as(&#39;y&#39;).select('it._id','it.name')
+<em>output:</em>
+[[{"x":1},{"y":"vadas"}],[{"x":1},{"y":"josh"}]]
+
+heliosjs&gt;  g.v(1).as(&#39;x&#39;).out(&#39;knows&#39;).as(&#39;y&#39;).select(['x','y'],'it._id','it.name','it.age')
+<em>output:</em>
+[[{"x":1},{"y":"vadas"}],[{"x":29},{"y":4}]]</code></pre>
+<p><a href="#">top</a>
+
+</p>
+<hr>
+<!--<h3 id='transform/cap'>cap</h3 id='transform/cap'>
 <p>Gets the side-effect of the pipe prior.  In other words, it emits the value of the previous step and not the values that flow through it.
 
 </p>
@@ -173,28 +569,7 @@ heliosjs&gt; g.V(&#39;lang&#39;, &#39;java&#39;).in(&#39;created&#39;).name.grou
 
 </p>
 <hr>
-<h3 id='transform/e'>E</h3 id='transform/e'>
-<p>The edge iterator for the graph.  Utilize this to iterate through all the edges in the graph.  Use with care on large graphs.
 
-</p>
-<pre><code class="text">heliosjs&gt; g.E
-==&gt;e[10][4-created-&gt;5]
-==&gt;e[7][1-knows-&gt;2]
-==&gt;e[9][1-created-&gt;3]
-==&gt;e[8][1-knows-&gt;4]
-==&gt;e[11][4-created-&gt;3]
-==&gt;e[12][6-created-&gt;3]
-heliosjs&gt; g.E.weight
-==&gt;1.0
-==&gt;0.5
-==&gt;0.4
-==&gt;1.0
-==&gt;0.4
-==&gt;0.2</code></pre>
-<p><a href="#">top</a>
-
-</p>
-<hr>
 <h3 id='transform/gather'>gather</h3 id='transform/gather'>
 <p>Collect all objects up to that step and process the gathered list with the provided closure.
 
@@ -215,44 +590,8 @@ heliosjs&gt; g.v(1).out.gather{it.size()}
 
 </p>
 <hr>
-<h3 id='transform/id'>id</h3 id='transform/id'>
-<p>Gets the unique identifier of the element.
 
-</p>
-<pre><code class="text">heliosjs&gt; v = g.V(&quot;name&quot;, &quot;marko&quot;).next()
-==&gt;v[1]
-heliosjs&gt; v.id
-==&gt;1
-heliosjs&gt; g.v(1).id
-==&gt;1</code></pre>
-<p><a href="#">top</a>
 
-</p>
-<hr>
-<h3 id='transform/in'>in</h3 id='transform/in'>
-<p>Gets the adjacent vertices to the vertex.
-
-</p>
-<pre><code class="text">heliosjs&gt; v = g.v(4)
-==&gt;v[4]
-heliosjs&gt; v.inE.outV
-==&gt;v[1]
-heliosjs&gt; v.in
-==&gt;v[1]
-heliosjs&gt; v = g.v(3)
-==&gt;v[3]
-heliosjs&gt; v.in(&quot;created&quot;)
-==&gt;v[1]
-==&gt;v[4]
-==&gt;v[6]
-heliosjs&gt; v.inE(&quot;created&quot;).outV
-==&gt;v[1]
-==&gt;v[4]
-==&gt;v[6]</code></pre>
-<p><a href="#">top</a>
-
-</p>
-<hr>
 <h3 id='transform/ine'>inE</h3 id='transform/ine'>
 <p>Gets the incoming edges of the vertex.
 
@@ -277,59 +616,9 @@ heliosjs&gt; v.inE(&quot;created&quot;).outV
 
 </p>
 <hr>
-<h3 id='transform/inv'>inV</h3 id='transform/inv'>
-<p>Get both incoming head vertex of the edge.
 
-</p>
-<pre><code class="text">heliosjs&gt; e = g.e(12)
-==&gt;e[12][6-created-&gt;3]
-heliosjs&gt; e.outV
-==&gt;v[6]
-heliosjs&gt; e.inV
-==&gt;v[3]
-heliosjs&gt; e.bothV
-==&gt;v[6]
-==&gt;v[3]</code></pre>
-<p><a href="#">top</a>
 
-</p>
-<hr>
-<h3 id='transform/key'>key</h3 id='transform/key'>
-<p>Get the property value of an element.  The property value can be obtained by simply appending the name to the end of the element or by referencing it as a Groovy map element with square brackets.  For best performance, drop down to the Blueprints API and use <code>getProperty(key)</code>.
 
-</p>
-<pre><code class="text">heliosjs&gt; v = g.v(3)
-==&gt;v[3]
-heliosjs&gt; v.name
-==&gt;lop
-heliosjs&gt; v[&#39;name&#39;]
-==&gt;lop
-heliosjs&gt; x = &#39;name&#39;
-==&gt;name
-heliosjs&gt; v[x]
-==&gt;lop
-heliosjs&gt; v.getProperty(&#39;name&#39;)
-==&gt;lop</code></pre>
-<p><a href="#">top</a>
-
-</p>
-<hr>
-<h3 id='transform/label'>label</h3 id='transform/label'>
-<p>Gets the label of an edge.
-
-</p>
-<pre><code class="text">heliosjs&gt; g.v(6).outE.label
-==&gt;created
-heliosjs&gt; g.v(1).outE.filter{it.label==&#39;created&#39;}
-==&gt;e[9][1-created-&gt;3]
-
-// a more efficient approach to use of label
-heliosjs&gt; g.v(1).outE.has(&#39;label&#39;,&#39;created&#39;)
-==&gt;e[9][1-created-&gt;3]</code></pre>
-<p><a href="#">top</a>
-
-</p>
-<hr>
 <h3 id='transform/linkboth-in-out'>linkBoth[In/Out]</h3 id='transform/linkboth-in-out'>
 <p>An element-centric mutation that takes every incoming vertex and creates an edge to the provided vertex. It can be used with both a Vertex object or a named step.
 
@@ -366,19 +655,7 @@ heliosjs&gt; g.E.has(&#39;label&#39;,&#39;cocreator&#39;)
 
 </p>
 <hr>
-<h3 id='transform/map'>map</h3 id='transform/map'>
-<p>Gets the property map of the graph element.
 
-</p>
-<pre><code class="text">heliosjs&gt; g.v(1).map
-==&gt;{name=marko, age=29}
-heliosjs&gt; g.v(1).map()
-==&gt;name=marko
-==&gt;age=29</code></pre>
-<p><a href="#">top</a>
-
-</p>
-<hr>
 <h3 id='transform/memoize'>memoize</h3 id='transform/memoize'>
 <p>Remembers a particular mapping from input to output.  Long or expensive expressions with no side effects can use this step to remember a mapping, which helps reduce load when previously processed objects are passed into it.
 
@@ -453,95 +730,10 @@ heliosjs&gt; g.V.both.groupCount.cap.orderMap(T.decr)[0..1].name
 
 </p>
 <hr>
-<h3 id='transform/out'>out</h3 id='transform/out'>
-<p>Gets the out adjacent vertices to the vertex.
 
-</p>
-<pre><code class="text">heliosjs&gt; v = g.v(1)
-==&gt;v[1]
-heliosjs&gt; v.outE.inV
-==&gt;v[2]
-==&gt;v[4]
-==&gt;v[3]
-heliosjs&gt; v.out
-==&gt;v[2]
-==&gt;v[4]
-==&gt;v[3]
-heliosjs&gt; v.outE(&#39;knows&#39;).inV
-==&gt;v[2]
-==&gt;v[4]
-heliosjs&gt; v.out(&#39;knows&#39;)
-==&gt;v[2]
-==&gt;v[4]</code></pre>
-<p><a href="#">top</a>
 
-</p>
-<hr>
-<h3 id='transform/oute'>outE</h3 id='transform/oute'>
-<p>Gets the outgoing edges to the vertex.
 
-</p>
-<pre><code class="text">heliosjs&gt; v = g.v(1)
-==&gt;v[1]
-heliosjs&gt; v.outE.inV
-==&gt;v[2]
-==&gt;v[4]
-==&gt;v[3]
-heliosjs&gt; v.out
-==&gt;v[2]
-==&gt;v[4]
-==&gt;v[3]
-heliosjs&gt; v.outE(&#39;knows&#39;).inV
-==&gt;v[2]
-==&gt;v[4]
-heliosjs&gt; v.out(&#39;knows&#39;)
-==&gt;v[2]
-==&gt;v[4]</code></pre>
-<p><a href="#">top</a>
 
-</p>
-<hr>
-<h3 id='transform/outv'>outV</h3 id='transform/outv'>
-<p>Get both outgoing tail vertex of the edge.
-
-</p>
-<pre><code class="text">heliosjs&gt; e = g.e(12)
-==&gt;e[12][6-created-&gt;3]
-heliosjs&gt; e.outV
-==&gt;v[6]
-heliosjs&gt; e.inV
-==&gt;v[3]
-heliosjs&gt; e.bothV
-==&gt;v[6]
-==&gt;v[3]</code></pre>
-<p><a href="#">top</a>
-
-</p>
-<hr>
-<h3 id='transform/path'>path</h3 id='transform/path'>
-<p>Gets the path through the pipeline up to this point, where closures are post-processing for each object in the path.  If the path step is provided closures then, in a round robin fashion, the closures are evaluated over each object of the path and that post-processed path is returned.
-
-</p>
-<pre><code class="text">heliosjs&gt; g.v(1).out.path
-==&gt;[v[1], v[2]]
-==&gt;[v[1], v[4]]
-==&gt;[v[1], v[3]]
-heliosjs&gt; g.v(1).out.path{it.id}
-==&gt;[1, 2]
-==&gt;[1, 4]
-==&gt;[1, 3]
-heliosjs&gt; g.v(1).out.path{it.id}{it.name}
-==&gt;[1, vadas]
-==&gt;[1, josh]
-==&gt;[1, lop]
-heliosjs&gt; g.v(1).outE.inV.name.path
-==&gt;[v[1], e[7][1-knows-&gt;2], v[2], vadas]
-==&gt;[v[1], e[8][1-knows-&gt;4], v[4], josh]
-==&gt;[v[1], e[9][1-created-&gt;3], v[3], lop]</code></pre>
-<p><a href="#">top</a>
-
-</p>
-<hr>
 <h3 id='transform/scatter'>scatter</h3 id='transform/scatter'>
 <p>Unroll all objects in the iterable at that step. Gather/Scatter is good for breadth-first traversals where the gather closure filters out unwanted elements at the current radius.
 
@@ -563,26 +755,7 @@ heliosjs&gt; g.v(1).out.gather{it[1..2]}.scatter
 
 </p>
 <hr>
-<h3 id='transform/select'>select</h3 id='transform/select'>
-<p>Select the named steps to emit after select with post-processing closures.
 
-</p>
-<pre><code class="text">heliosjs&gt; g.v(1).as(&#39;x&#39;).out(&#39;knows&#39;).as(&#39;y&#39;).select
-==&gt;[x:v[1], y:v[2]]
-==&gt;[x:v[1], y:v[4]]
-heliosjs&gt; g.v(1).as(&#39;x&#39;).out(&#39;knows&#39;).as(&#39;y&#39;).select([&quot;y&quot;])
-==&gt;[y:v[2]]
-==&gt;[y:v[4]]
-heliosjs&gt; g.v(1).as(&#39;x&#39;).out(&#39;knows&#39;).as(&#39;y&#39;).select([&quot;y&quot;]){it.name}
-==&gt;[y:vadas]
-==&gt;[y:josh]
-heliosjs&gt;  g.v(1).as(&#39;x&#39;).out(&#39;knows&#39;).as(&#39;y&#39;).select{it.id}{it.name}
-==&gt;[x:1, y:vadas]
-==&gt;[x:1, y:josh]</code></pre>
-<p><a href="#">top</a>
-
-</p>
-<hr>
 <h3 id='transform/shuffle'>shuffle</h3 id='transform/shuffle'>
 <p>Collect all objects up to that step into a list and randomize their order.
 
@@ -603,45 +776,8 @@ heliosjs&gt; g.v(1).out.shuffle
 
 </p>
 <hr>
-<h3 id='transform/transform'>transform</h3 id='transform/transform'>
-<p>Transform emits the result of a closure.
 
-</p>
-<pre><code class="text">heliosjs&gt; g.E.has(&#39;weight&#39;, T.gt, 0.5f).outV.map
-==&gt;32
-==&gt;29
-heliosjs&gt; g.E.has(&#39;weight&#39;, T.gt, 0.5f).outV.age.transform{it+2}
-==&gt;34
-==&gt;31
-heliosjs&gt; g.E.has(&#39;weight&#39;, T.gt, 0.5f).outV.transform{[it.id,it.age]}
-==&gt;[4, 32]
-==&gt;[1, 29]
-heliosjs&gt; g.E.has(&#39;weight&#39;, T.gt, 0.5f).outV.transform{[id:it.id,age:it.age]}
-==&gt;{id=4, age=32}
-==&gt;{id=1, age=29}</code></pre>
-<p><a href="#">top</a>
 
-</p>
-<hr>
-<h3 id='transform/v'>V</h3 id='transform/v'>
-<p>The vertex iterator for the graph.  Utilize this to iterate through all the vertices in the graph.  Use with care on large graphs unless used in combination with a key index lookup.
-
-</p>
-<pre><code class="text">heliosjs&gt; g.V
-==&gt;v[3]
-==&gt;v[2]
-==&gt;v[1]
-==&gt;v[6]
-==&gt;v[5]
-==&gt;v[4]
-heliosjs&gt; g.V(&quot;name&quot;, &quot;marko&quot;)
-==&gt;v[1]
-heliosjs&gt; g.V(&quot;name&quot;, &quot;marko&quot;).name
-==&gt;marko</code></pre>
-<p><a href="#">top</a>
-
-</p>
-<hr>
 <h2 id='filter'>Filter</h2 id='filter'>
 <p>Filter steps decide whether to allow an object to pass to the next step or not.
 
