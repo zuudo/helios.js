@@ -292,7 +292,6 @@ module Helios {
             for (i = 0, l = rows.length; i < l; i += 1) {
                 edge = new Edge(rows[i], this);
                 this.edges[edge.obj[this.meta.id]] = edge;
-                //edge.associateVertices();
                 this.associateVertices(edge);
                 if (hasEIndex) {
                     edge.addToIndex(this.e_idx);
@@ -651,7 +650,7 @@ module Helios {
             args = Utils.flatten(args);
             l = args.length;
             isObject = Utils.isObject(args[0]);
-            if (isObject && !((this.meta.type in args[0]) && (args[0][this.meta.type] == 'vertex'))) {
+            if (isObject && !((this.meta.id in args[0]) && (args[0][this.meta.id] in this.vertices) && (this.vertices[args[0][this.meta.id]].Type == 'Vertex'))) {
                 for (var i = 0; i < l; i++) {
                     compObj = args[i];
 
@@ -785,7 +784,7 @@ module Helios {
             l = args.length;
             
             isObject = Utils.isObject(args[0]);
-            if (isObject && !((this.meta.type in args[0]) && (args[0][this.meta.type] == 'edge'))) {
+            if (isObject && !((this.meta.id in args[0]) && (args[0][this.meta.id] in this.edges) && (this.edges[args[0][this.meta.id]].Type == 'Edge'))) {
                 for (var i = 0; i < l; i++) {
                     compObj = args[i];
 
@@ -913,7 +912,7 @@ module Helios {
             stringify:()=>Pipeline;
             map:(...labels:string[])=>Pipeline;
             hash:()=>Pipeline;
-            path:()=>Pipeline;
+            path:(...props:string[])=>Pipeline;
             //pin:()=>Pipeline;
             //unpin:()=>Pipeline;
             out:(...labels: string[])=>Pipeline;
@@ -1624,7 +1623,7 @@ module Helios {
 
                 tempProp = isEmbedded ? prop.split(".").slice(-1)[0] : prop;
 
-                this.steps[++this.steps.currentStep] = { func: 'filter', args: prop };
+                this.steps[++this.steps.currentStep] = { func: 'property', args: prop };
                 iter = tracing ? this.pipeline : this.endPipe;
 
                 Utils.each(iter, function (next) {
@@ -2137,7 +2136,7 @@ module Helios {
                     endPipeArray:any[] = [],
                     closureArray:any[] = [],
                     closureOut:any,
-                    pos:number;
+                    pos:number = 0; //this holds the relative pos for modulus
 
                 if (!this.graph.traceEnabled) {
                     throw Error('Tracing is off');
@@ -2174,9 +2173,9 @@ module Helios {
                                 endPipeHash = {};
                                 if(list[x] in this.asHash){
                                     backTo = this.asHash[list[x]].step;  
-
                                     if(!!closureArray.length){
-                                        endPipeHash[list[x]] = closureArray[x].call(this.pipeline[i][backTo-1].obj,this.pipeline[i][backTo-1].obj);
+                                        endPipeHash[list[x]] = closureArray[pos % funcsLen].call(this.pipeline[i][backTo-1].obj,this.pipeline[i][backTo-1].obj);
+                                        ++pos;
                                     } else {
                                         endPipeHash[list[x]] = this.pipeline[i][backTo-1].obj;
                                     }
@@ -2190,12 +2189,11 @@ module Helios {
                     } else {
                         for(i=0;i<l;i++){
                             tempEndPipeArray= [];
-                            pos = 0;
                             for(k in this.asHash){
                                 if(this.asHash.hasOwnProperty(k)){
                                     endPipeHash = {};
                                     backTo = this.asHash[k].step;
-                                    endPipeHash[k] = closureArray[pos].call(this.pipeline[i][backTo-1].obj,this.pipeline[i][backTo-1].obj);  
+                                    endPipeHash[k] = closureArray[pos % funcsLen].call(this.pipeline[i][backTo-1].obj,this.pipeline[i][backTo-1].obj);  
                                     push.call(tempEndPipeArray, endPipeHash);
                                 }
                                 pos++;
@@ -2209,12 +2207,19 @@ module Helios {
                 return this;
             }
 
+            path(...closure:string[]):Pipeline;
             path(...props:string[]):Pipeline {
                 var tempObjArray:{}[] = [],
                     tempArr:any[] = [],
                     tempObj:{}={},
                     outputArray:any[] = [],
-                    len:number = 0;
+                    i:number = 0,
+                    len:number = 0,
+                    j:number = 0,
+                    l:number = 0,
+                    isClosure:bool,
+                    closureArray:any[] = [],
+                    propsLen:number = props.length;
 
                 if (!this.graph.traceEnabled) {
                     throw Error('Tracing is off');
@@ -2223,18 +2228,37 @@ module Helios {
                 
                 len = this.pipeline.length;
 
-                if(!!props.length){
-                    for (var i = 0; i < len; i++) {
-                        tempObjArray = Utils.toPathArray(this.pipeline[i], this.steps);
-                        for(var j = 0, l = tempObjArray.length; j < l; j++){
-                            push.call(tempArr, Utils.pick(tempObjArray[j], props))
+                if(!!propsLen){
+                    isClosure = /^\s*it(?=\.[A-Za-z_])/.exec(props[0]) ? true : false;
+                    if(isClosure){
+                        for(var c=0,funcsLen = propsLen; c<funcsLen; c++){
+                            closureArray.push(new Function("it", Utils.funcBody(props[c])))
                         }
-                        push.call(outputArray, tempArr);
-                        tempObjArray = [];
-                        tempArr = [];
+                        for (i = 0; i < len; i++) {
+                            tempObjArray = Utils.toPathArray(this.pipeline[i], this.steps);
+                            l = tempObjArray.length;
+                            for(j = 0; j < l; j++){
+                                push.call(tempArr, closureArray[j % propsLen].call(tempObjArray[j], tempObjArray[j]));
+                            }
+                            push.call(outputArray, tempArr);
+                            tempObjArray = [];
+                            tempArr = [];
+                        }
+                    } else {
+                        for (i = 0; i < len; i++) {
+                            tempObjArray = Utils.toPathArray(this.pipeline[i], this.steps);
+                            l = tempObjArray.length;
+                            for(j = 0; j < l; j++){
+
+                                push.call(tempArr, Utils.pick(tempObjArray[j], props))
+                            }
+                            push.call(outputArray, tempArr);
+                            tempObjArray = [];
+                            tempArr = [];
+                        }
                     }
                 } else {
-                    for (var i = 0; i < len; i++) {
+                    for (i = 0; i < len; i++) {
                         push.call(outputArray, Utils.toPathArray(this.pipeline[i], this.steps));
                     }
                 }

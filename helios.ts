@@ -110,7 +110,7 @@ module Helios {
         stringify:()=>Pipeline;
         map:(...labels:string[])=>Pipeline;
         hash:()=>Pipeline;
-	    path:()=>Pipeline;
+	    path:(...props:string[])=>Pipeline;
         pin:()=>Pipeline;
         unpin:()=>Pipeline;
 		out:(...labels: string[]) => Pipeline;
