@@ -912,7 +912,7 @@ module Helios {
             stringify:()=>Pipeline;
             map:(...labels:string[])=>Pipeline;
             hash:()=>Pipeline;
-            path:()=>Pipeline;
+            path:(...props:string[])=>Pipeline;
             //pin:()=>Pipeline;
             //unpin:()=>Pipeline;
             out:(...labels: string[])=>Pipeline;
@@ -2208,12 +2208,19 @@ module Helios {
                 return this;
             }
 
+            path(...closure:string[]):Pipeline;
             path(...props:string[]):Pipeline {
                 var tempObjArray:{}[] = [],
                     tempArr:any[] = [],
                     tempObj:{}={},
                     outputArray:any[] = [],
-                    len:number = 0;
+                    i:number = 0,
+                    len:number = 0,
+                    j:number = 0,
+                    l:number = 0,
+                    isClosure:bool,
+                    closureArray:any[] = [],
+                    propsLen:number = props.length;
 
                 if (!this.graph.traceEnabled) {
                     throw Error('Tracing is off');
@@ -2222,18 +2229,37 @@ module Helios {
                 
                 len = this.pipeline.length;
 
-                if(!!props.length){
-                    for (var i = 0; i < len; i++) {
-                        tempObjArray = Utils.toPathArray(this.pipeline[i], this.steps);
-                        for(var j = 0, l = tempObjArray.length; j < l; j++){
-                            push.call(tempArr, Utils.pick(tempObjArray[j], props))
+                if(!!propsLen){
+                    isClosure = /^\s*it(?=\.[A-Za-z_])/.exec(props[0]) ? true : false;
+                    if(isClosure){
+                        for(var c=0,funcsLen = propsLen; c<funcsLen; c++){
+                            closureArray.push(new Function("it", Utils.funcBody(props[c])))
                         }
-                        push.call(outputArray, tempArr);
-                        tempObjArray = [];
-                        tempArr = [];
+                        for (i = 0; i < len; i++) {
+                            tempObjArray = Utils.toPathArray(this.pipeline[i], this.steps);
+                            l = tempObjArray.length;
+                            for(j = 0; j < l; j++){
+                                push.call(tempArr, closureArray[j % propsLen].call(tempObjArray[j], tempObjArray[j]));
+                            }
+                            push.call(outputArray, tempArr);
+                            tempObjArray = [];
+                            tempArr = [];
+                        }
+                    } else {
+                        for (i = 0; i < len; i++) {
+                            tempObjArray = Utils.toPathArray(this.pipeline[i], this.steps);
+                            l = tempObjArray.length;
+                            for(j = 0; j < l; j++){
+
+                                push.call(tempArr, Utils.pick(tempObjArray[j], props))
+                            }
+                            push.call(outputArray, tempArr);
+                            tempObjArray = [];
+                            tempArr = [];
+                        }
                     }
                 } else {
-                    for (var i = 0; i < len; i++) {
+                    for (i = 0; i < len; i++) {
                         push.call(outputArray, Utils.toPathArray(this.pipeline[i], this.steps));
                     }
                 }
