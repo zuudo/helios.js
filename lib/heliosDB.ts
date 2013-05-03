@@ -2136,7 +2136,7 @@ module Helios {
                     endPipeArray:any[] = [],
                     closureArray:any[] = [],
                     closureOut:any,
-                    pos:number;
+                    pos:number = 0; //this holds the relative pos for modulus
 
                 if (!this.graph.traceEnabled) {
                     throw Error('Tracing is off');
@@ -2173,9 +2173,9 @@ module Helios {
                                 endPipeHash = {};
                                 if(list[x] in this.asHash){
                                     backTo = this.asHash[list[x]].step;  
-
                                     if(!!closureArray.length){
-                                        endPipeHash[list[x]] = closureArray[x].call(this.pipeline[i][backTo-1].obj,this.pipeline[i][backTo-1].obj);
+                                        endPipeHash[list[x]] = closureArray[pos % funcsLen].call(this.pipeline[i][backTo-1].obj,this.pipeline[i][backTo-1].obj);
+                                        ++pos;
                                     } else {
                                         endPipeHash[list[x]] = this.pipeline[i][backTo-1].obj;
                                     }
@@ -2189,12 +2189,11 @@ module Helios {
                     } else {
                         for(i=0;i<l;i++){
                             tempEndPipeArray= [];
-                            pos = 0;
                             for(k in this.asHash){
                                 if(this.asHash.hasOwnProperty(k)){
                                     endPipeHash = {};
                                     backTo = this.asHash[k].step;
-                                    endPipeHash[k] = closureArray[pos].call(this.pipeline[i][backTo-1].obj,this.pipeline[i][backTo-1].obj);  
+                                    endPipeHash[k] = closureArray[pos % funcsLen].call(this.pipeline[i][backTo-1].obj,this.pipeline[i][backTo-1].obj);  
                                     push.call(tempEndPipeArray, endPipeHash);
                                 }
                                 pos++;
