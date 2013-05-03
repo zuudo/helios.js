@@ -292,7 +292,6 @@ module Helios {
             for (i = 0, l = rows.length; i < l; i += 1) {
                 edge = new Edge(rows[i], this);
                 this.edges[edge.obj[this.meta.id]] = edge;
-                //edge.associateVertices();
                 this.associateVertices(edge);
                 if (hasEIndex) {
                     edge.addToIndex(this.e_idx);
@@ -651,7 +650,7 @@ module Helios {
             args = Utils.flatten(args);
             l = args.length;
             isObject = Utils.isObject(args[0]);
-            if (isObject && !((this.meta.type in args[0]) && (args[0][this.meta.type] == 'vertex'))) {
+            if (isObject && !((this.meta.id in args[0]) && (args[0][this.meta.id] in this.vertices) && (this.vertices[args[0][this.meta.id]].Type == 'Vertex'))) {
                 for (var i = 0; i < l; i++) {
                     compObj = args[i];
 
@@ -785,7 +784,7 @@ module Helios {
             l = args.length;
             
             isObject = Utils.isObject(args[0]);
-            if (isObject && !((this.meta.type in args[0]) && (args[0][this.meta.type] == 'edge'))) {
+            if (isObject && !((this.meta.id in args[0]) && (args[0][this.meta.id] in this.edges) && (this.edges[args[0][this.meta.id]].Type == 'Edge'))) {
                 for (var i = 0; i < l; i++) {
                     compObj = args[i];
 
