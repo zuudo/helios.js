@@ -2787,6 +2787,13 @@ module Helios {
                 return !Compare.$in(objVal, val, graph);
             }
 
+            /* use $match for
+              - startsWith
+              - endsWith
+              - contains
+              - notContains
+            */
+            //$match => takes either a string or regex or array of strings and/or regex's 
             static $match(objVal:any, val:string[], graph:GraphDatabase):bool {
                 var objValIsArray:bool = Utils.isArray(objVal),
                     index:number,
@@ -2876,13 +2883,6 @@ module Helios {
                 }
                 return matches == valLen;
             }
-
-            /*
-             $startsWith
-             $endsWith
-             $contains
-             $notContains
-             */
 
             static $hasAny(obj:{}, val:string[]):bool {
                 var i:number = val.length,
