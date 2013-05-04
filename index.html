@@ -74,6 +74,7 @@ g.loadGraphSON('https://github.com/entrendipity/helios.js/blob/master/tests/data
           Function signatures are based on the <a href="http://www.typescriptlang.org/">TypeScript</a> notation. Which essentially is <em>(variable name:Type)</em>. However, there are some little differences. One of which is the elipsis notation. When you encounter something like (...id:number[]), this is saying that you can optionally pass in and array of ids of Type number OR a comma separated list of ids of Type number.
         </p>
         <p>Functions listed multiple times with different signatures signify that the function is overloaded.</p>
+        <p>Data Type of 'Element' refers to either a Vertex or Edge object.</p>
         <p>
           Unless otherwise specified, all examples assume that the 'then' function is called with the output converted to JSON. For example:
 
@@ -196,7 +197,10 @@ heliosjs&gt; g.V({"name":"marko","_id":1},{"name":"josh","_id":4})
 <em>output:</em>
 [{"name":"marko","age":29,"_id":1,"_type":"vertex"},
 {"name":"josh","age":32,"_id":4,"_type":"vertex"}]</code></pre>
-<p><a href="#">top</a>
+<h4>See Also</h4>
+<ul>
+<li><a href="#filter/where">where</a> to understand how to use the 'comparator'</li>
+</ul><p><a href="#">top</a>
 
 </p>
 <hr>
@@ -249,7 +253,10 @@ heliosjs&gt; g.E({'out.name':{$eq:'marko'}})
 heliosjs&gt; g.E({'out.name':{$eq:'marko'}}).property('weight)
 <em>output:</em>
 [0.5,1,0.4]</code></pre>
-<p><a href="#">top</a>
+<h4>See Also</h4>
+<ul>
+<li><a href="#filter/where">where</a> to understand how to use the 'comparator'</li>
+</ul><p><a href="#">top</a>
 
 </p>
 <hr>
@@ -554,7 +561,212 @@ heliosjs&gt;  g.v(1).as(&#39;x&#39;).out(&#39;knows&#39;).as(&#39;y&#39;).select
 
 </p>
 <hr>
-<!--<h3 id='transform/cap'>cap</h3 id='transform/cap'>
+        
+<h2 id='filter'>Filter</h2 id='filter'>
+<p>Filter steps decide whether to allow an object to pass to the next step or not.
+
+</p>
+
+        <h3 id='filter/filter'>filter(closure:string)</h3 id='filter/filter'>
+<p>Decide whether to allow an object to pass.  Return true from the closure to allow an object to pass.
+
+</p>
+<pre><code class="text">heliosjs&gt; g.V().filter('it.age &gt; 29').property('name')
+<em>output:</em>
+["josh","peter"]</code></pre>
+<p><a href="#">top</a>
+
+</p>
+<hr>
+        
+        <h3 id='filter/i'>index(...indices:number[])</h3 id='filter/i'>
+<p>A index filter that emits the particular indexed objects.
+
+</p>
+<pre><code class="text">heliosjs&gt; g.V().index(0).property('name')
+<em>output:</em>
+["marko"]
+
+heliosjs&gt; g.V().index(0, 2).property('name')
+<em>output:</em>
+["marko", "lop"]</code></pre>
+<p><a href="#">top</a>
+
+</p>
+<hr>
+<h3 id='filter/i-j'>range(start:number, end?:number)</h3 id='filter/i-j'>
+<p>A range filter that emits the objects within a range.
+
+</p>
+<pre><code class="text">heliosjs&gt; g.V().range(0,2).property('name')
+<em>output:</em>
+["marko","vadas","lop"]
+
+heliosjs&gt; g.V().range(2).property('name')
+<em>output:</em>
+["lop","josh","ripple","peter"]</code></pre>
+<p><a href="#">top</a>
+
+</p>
+<hr>        
+
+
+        <h3 id='filter/back'>back(steps:number)</h3 id='filter/back'>
+        <h3>back(namedStep:string)</h3>
+<p>Go back to the results from n-steps ago, where the preceding step is step 0, or go back to the results of a named step.
+</p>
+<pre><code class="text">heliosjs&gt; g.V().out('knows').where({'age':{$gt:30}}).back(2).property('age')
+<em>output:</em>
+[29]
+
+heliosjs&gt; g.V().as('x').outE('knows').inV().where({'age':{$gt:30}}).back('x')
+<em>output:</em>
+[29]</code></pre>
+<p><a href="#">top</a>
+
+</p>
+<hr>
+<h3 id='filter/dedup'>dedup()</h3 id='filter/dedup'>
+<p>Emit only incoming objects that have not been seen before.
+
+</p>
+<pre><code class="text">heliosjs&gt; g.v(1).out().in().id()
+<em>output:</em>
+[1,1,1,4,6]
+
+heliosjs&gt; g.v(1).out().in().dedup().id()
+<em>output:</em>
+[1,4,6]</code></pre>
+<p><a href="#">top</a>
+
+</p>
+<hr>
+        <h3 id='filter/except'>except(dataSet:Element[])</h3 id='filter/except'>
+        <h3>except(id:number[])</h3>
+        <h3>except(id:string[])</h3>
+<p>Emit everything to pass except what is in the supplied collection.
+
+</p>
+<pre><code class="text">heliosjs&gt; var x = [[{"name":"marko","age":29,"_id":1,"_type":"vertex"},
+{"name":"vadas","age":27,"_id":2,"_type":"vertex"},
+{"name":"lop","lang":"java","_id":3,"_type":"vertex"}]]
+
+heliosjs&gt; g.V().except(x)
+<em>output:</em>
+[{"name":"peter","age":35,"_id":6,"_type":"vertex"},
+{"name":"ripple","lang":"java","_id":5,"_type":"vertex"},
+{"name":"josh","age":32,"_id":4,"_type":"vertex"}]
+
+heliosjs&gt; x = [1,2,3];
+heliosjs&gt; g.V().except(x)
+<em>output:</em>
+[{"name":"peter","age":35,"_id":6,"_type":"vertex"},
+{"name":"ripple","lang":"java","_id":5,"_type":"vertex"},
+{"name":"josh","age":32,"_id":4,"_type":"vertex"}]</code></pre>
+<h4>See Also</h4>
+<ul>
+<li><a href="#filter/retain">retain</a></li>
+</ul>
+<p><a href="#">top</a>
+
+</p>
+<hr>
+
+        <h3 id='filter/retain'>retain(dataSet:Element[])</h3 id='filter/retain'>
+        <h3>retain(id:number[])</h3>
+        <h3>retain(id:string[])</h3>
+<p>Allow everything to pass except what is not in the supplied collection.
+
+</p>
+<pre><code class="text">heliosjs&gt; var x = [[{"name":"marko","age":29,"_id":1,"_type":"vertex"},
+{"name":"vadas","age":27,"_id":2,"_type":"vertex"},
+{"name":"lop","lang":"java","_id":3,"_type":"vertex"}]]
+
+heliosjs&gt; g.V().retain(x)
+<em>output:</em>
+[{"name":"lop","lang":"java","_id":3,"_type":"vertex"},
+{"name":"vadas","age":27,"_id":2,"_type":"vertex"},
+{"name":"marko","age":29,"_id":1,"_type":"vertex"}]
+
+heliosjs&gt; x = [1,2,3];
+heliosjs&gt; g.V().retain(x)
+<em>output:</em>
+[{"name":"lop","lang":"java","_id":3,"_type":"vertex"},
+{"name":"vadas","age":27,"_id":2,"_type":"vertex"},
+{"name":"marko","age":29,"_id":1,"_type":"vertex"}]</code></pre>
+<h4>See Also</h4>
+<ul>
+<li><a href="#filter/except">except</a></li>
+</ul>
+<p><a href="#">top</a>
+
+</p>
+<hr>
+        
+<!--<h3 id='filter/where'>where(comparator:{}[])</h3 id='filter/where'>
+<p>Emit only incoming objects that meet the specified criteria of the comparator.
+
+</p>
+        <p>If you are familiar with Gremlin, <code>where</code> replaces the following Gremlin steps:
+          
+        </p>
+        <ul>
+          <li>has</li>
+          <li>hasNot</li>
+          <li>and</li>
+          <li>or</li>
+          <li>interval</li>
+        </ul>
+        <p>and could even be use instead of the <code>filter</code> step.</p>
+        <h4>Comparator Selectors</h4>
+        <h5>Logical</h5>
+         <ul>
+          <li>and</li>
+          <li>or</li>
+          <li>not</li>
+          <li>nor</li>
+        </ul>
+        <h5>Comparisons</h5>
+        <h6>$eq</h6>
+        <h5>Element</h5>
+        <h5>Field??</h5>
+        <p>
+          $eq ffslkdjfs lk
+        </p>
+        <ul>
+          <li>$eq</li>
+          <li>$neq</li>
+          <li>$lt</li>
+          <li>$lte</li>
+          <li>$gt</li>
+          <li>$gte</li>
+          <li>$btw</li>
+          <li>$typeOf</li>
+          <li>$notTypeOf</li>
+          <li>$in</li>
+          <li>$nin</li>
+          <li>$match</li>
+          <li>$all</li>
+          <li>$none</li>
+          <li>$exact</li>
+          <li>$hasAny</li>
+          <li>$hasAll</li>
+          <li>$notAny</li>
+          <li>$notAll</li>
+        </ul>
+<pre><code class="text">heliosjs&gt; 
+<em>output:</em>
+
+
+heliosjs&gt; 
+<em>output:</em>
+</code></pre>
+<p><a href="#">top</a>
+
+</p>
+<hr>
+        
+<h3 id='transform/cap'>cap</h3 id='transform/cap'>
 <p>Gets the side-effect of the pipe prior.  In other words, it emits the value of the previous step and not the values that flow through it.
 
 </p>
@@ -778,35 +990,7 @@ heliosjs&gt; g.v(1).out.shuffle
 <hr>
 
 
-<h2 id='filter'>Filter</h2 id='filter'>
-<p>Filter steps decide whether to allow an object to pass to the next step or not.
 
-</p>
-<h3 id='filter/i'>[i]</h3 id='filter/i'>
-<p>A index filter that emits the particular indexed object.
-
-</p>
-<pre><code class="text">heliosjs&gt; g.V[0].name
-==&gt;lop</code></pre>
-<p><a href="#">top</a>
-
-</p>
-<hr>
-<h3 id='filter/i-j'>[i..j]</h3 id='filter/i-j'>
-<p>A range filter that emits the objects within a range.
-
-</p>
-<pre><code class="text">heliosjs&gt; g.V[0..2].name
-==&gt;lop
-==&gt;vadas
-==&gt;marko
-heliosjs&gt; g.V[0..&lt;2].name
-==&gt;lop
-==&gt;vadas</code></pre>
-<p><a href="#">top</a>
-
-</p>
-<hr>
 <h3 id='filter/and'>and</h3 id='filter/and'>
 <p>Takes a collection of pipes and emits incoming objects that are true for all of the pipes.
 
@@ -820,70 +1004,8 @@ heliosjs&gt; g.V.and(_().both(&quot;knows&quot;), _().both(&quot;created&quot;))
 
 </p>
 <hr>
-<h3 id='filter/back'>back</h3 id='filter/back'>
-<p>Go back to the results from n-steps ago or go back to the results of a named step.
 
-</p>
-<pre><code class="text">heliosjs&gt; g.V.out(&#39;knows&#39;).has(&#39;age&#39;, T.gt, 30).back(2).age
-==&gt;29
-heliosjs&gt; g.V.as(&#39;x&#39;).outE(&#39;knows&#39;).inV.has(&#39;age&#39;, T.gt, 30).back(&#39;x&#39;).age
-==&gt;29</code></pre>
-<p><a href="#">top</a>
 
-</p>
-<hr>
-<h3 id='filter/dedup'>dedup</h3 id='filter/dedup'>
-<p>Emit only incoming objects that have not been seen before with an optional closure being the object to check on.
-
-</p>
-<pre><code class="text">heliosjs&gt; g.v(1).out.in
-==&gt;v[1]
-==&gt;v[1]
-==&gt;v[1]
-==&gt;v[4]
-==&gt;v[6]
-heliosjs&gt; g.v(1).out.in.dedup()
-==&gt;v[1]
-==&gt;v[4]
-==&gt;v[6]</code></pre>
-<p><a href="#">top</a>
-
-</p>
-<hr>
-<h3 id='filter/except'>except</h3 id='filter/except'>
-<p>Emit everything to pass except what is in the supplied collection.
-
-</p>
-<pre><code class="text">heliosjs&gt; x = [g.v(1), g.v(2), g.v(3)]
-==&gt;v[1]
-==&gt;v[2]
-==&gt;v[3]
-heliosjs&gt; g.V.except(x)
-==&gt;v[6]
-==&gt;v[5]
-==&gt;v[4]
-heliosjs&gt; x = []
-heliosjs&gt; g.v(1).out.aggregate(x).out.except(x)
-==&gt;v[5]</code></pre>
-<h4>See Also</h4>
-<ul>
-<li><a href="#filter/retain">retain</a></li>
-</ul>
-<p><a href="#">top</a>
-
-</p>
-<hr>
-<h3 id='filter/filter'>filter</h3 id='filter/filter'>
-<p>Decide whether to allow an object to pass.  Return true from the closure to allow an object to pass.
-
-</p>
-<pre><code class="text">heliosjs&gt; g.V.filter{it.age &gt; 29}.name
-==&gt;peter
-==&gt;josh</code></pre>
-<p><a href="#">top</a>
-
-</p>
-<hr>
 <h3 id='filter/has'>has</h3 id='filter/has'>
 <p>Allows an element if it has a particular property.  Utilizes several options for comparisons through <code>T</code>:
 
@@ -982,29 +1104,7 @@ heliosjs&gt; g.V.random(0.5)
 
 </p>
 <hr>
-<h3 id='filter/retain'>retain</h3 id='filter/retain'>
-<p>Allow everything to pass except what is not in the supplied collection.
 
-</p>
-<pre><code class="text">heliosjs&gt; x = [g.v(1), g.v(2), g.v(3)]
-==&gt;v[1]
-==&gt;v[2]
-==&gt;v[3]
-heliosjs&gt; g.V.retain(x)
-==&gt;v[3]
-==&gt;v[2]
-==&gt;v[1]
-heliosjs&gt; x = []
-heliosjs&gt; g.v(1).out.aggregate(x).out.retain(x)
-==&gt;v[3]</code></pre>
-<h4>See Also</h4>
-<ul>
-<li><a href="#filter/except">except</a></li>
-</ul>
-<p><a href="#">top</a>
-
-</p>
-<hr>
 <h3 id='filter/simplepath'>simplePath</h3 id='filter/simplepath'>
 <p>Emit the object only if the current path has no repeated elements.
 
