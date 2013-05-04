@@ -1724,20 +1724,40 @@ module Helios {
                 return this;
             }
 
-            except(dataSet:{}[]):Pipeline {
-                var exclIds = Utils.pluck(Utils.flatten(dataSet), this.graph.meta.id);
-                var ids = Utils.pluck(this.endPipe, this.graph.meta.id);
-                var endPipeIds = Utils.difference(ids, exclIds);
-                this.endPipe = Utils.materializeElementArray(endPipeIds, this.graph, this.endPipe[0].Type);
+            except(dataSet:{}[]):Pipeline;
+            except(id:string[]):Pipeline;
+            except(id:number[]):Pipeline;
+            except(any:any[]):Pipeline {
+                var exclIds:any[],
+                    ids:any[],
+                    endPipeIds:any[];
+                if(!!any.length){
+                    ids = Utils.pluck(this.endPipe, this.graph.meta.id);
+                    exclIds = Utils.isObject(any[0]) ? Utils.pluck(Utils.flatten(any), this.graph.meta.id) : any;
+                    endPipeIds = Utils.difference(ids, exclIds);
+                    this.endPipe = Utils.materializeElementArray(endPipeIds, this.graph, this.endPipe[0].Type);
+                } else {
+                    this.endPipe = [];
+                }
                 return this;
             }
 
             //retain
-            retain(dataSet:{}[]):Pipeline {
-                var intersectIds = Utils.pluck(Utils.flatten(dataSet), this.graph.meta.id);
-                var ids = Utils.pluck(this.endPipe, this.graph.meta.id);
-                var endPipeIds = Utils.intersection(ids, intersectIds);
-                this.endPipe = Utils.materializeElementArray(endPipeIds, this.graph, this.endPipe[0].Type);
+            retain(dataSet:{}[]):Pipeline;
+            retain(id:string[]):Pipeline;
+            retain(id:number[]):Pipeline;
+            retain(any:any[]):Pipeline {
+                var intersectIds:any[],
+                    ids:any[],
+                    endPipeIds:any[];
+                if(!!any.length){
+                    ids = Utils.pluck(this.endPipe, this.graph.meta.id);
+                    intersectIds = Utils.isObject(any[0]) ? Utils.pluck(Utils.flatten(any), this.graph.meta.id) : any;
+                    endPipeIds = Utils.intersection(ids, intersectIds);
+                    this.endPipe = Utils.materializeElementArray(endPipeIds, this.graph, this.endPipe[0].Type);
+                } else {
+                    this.endPipe = [];
+                }
                 return this;
             }
 
@@ -2701,6 +2721,11 @@ module Helios {
                 return !Compare.$lt(objVal, val, graph);
             }
 
+            //accepts array with length 2 => [start, end]
+            static $btw(objVal:any, val:any[], graph:GraphDatabase):bool {
+                return Compare.$gte(objVal, val[0], graph) && Compare.$lte(objVal, val[1], graph);
+            }
+
             static $typeOf(objVal:any, val:string[], graph:GraphDatabase):bool {
 
                 var objValIsArray:bool = Utils.isArray(objVal),
@@ -2762,6 +2787,13 @@ module Helios {
                 return !Compare.$in(objVal, val, graph);
             }
 
+            /* use $match for
+              - startsWith
+              - endsWith
+              - contains
+              - notContains
+            */
+            //$match => takes either a string or regex or array of strings and/or regex's 
             static $match(objVal:any, val:string[], graph:GraphDatabase):bool {
                 var objValIsArray:bool = Utils.isArray(objVal),
                     index:number,
@@ -2851,13 +2883,6 @@ module Helios {
                 }
                 return matches == valLen;
             }
-
-            /*
-             $startsWith
-             $endsWith
-             $contains
-             $notContains
-             */
 
             static $hasAny(obj:{}, val:string[]):bool {
                 var i:number = val.length,
