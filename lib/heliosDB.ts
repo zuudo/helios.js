@@ -2721,6 +2721,11 @@ module Helios {
                 return !Compare.$lt(objVal, val, graph);
             }
 
+            //accepts array with length 2 => [start, end]
+            static $btw(objVal:any, val:any[], graph:GraphDatabase):bool {
+                return Compare.$gte(objVal, val[0], graph) && Compare.$lte(objVal, val[1], graph);
+            }
+
             static $typeOf(objVal:any, val:string[], graph:GraphDatabase):bool {
 
                 var objValIsArray:bool = Utils.isArray(objVal),
