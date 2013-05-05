@@ -1777,15 +1777,29 @@ module Helios {
                     compObj:{},
                     tempProp:string,
                     propVals:any[] = [],
-                    isIn:bool;
+                    isIn:bool,
+                    norArray:IElement[] = [],
+                    origArray:IElement[] = [];
 
                 this.steps[++this.steps.currentStep] = { func: 'where', args: args, 'exclFromPath':true };
                 iter = tracing ? this.pipeline : this.endPipe;
 
                 comparables = Utils.flatten(args);
+                
                 l = comparables.length;
                 for (var i = 0; i < l; i++) {
                     compObj = comparables[i];
+                    if('$nor' in compObj){
+                        norArray.push.apply(norArray, this.endPipe);
+                        origArray.push.apply(origArray, this.endPipe);
+                        for(var x = 0, xl = compObj['$nor'].length; x < xl; x++){
+                            this.where.call(this, compObj['$nor'][x]);
+                            norArray.push.apply(norArray, this.endPipe);
+                            this.endPipe = origArray;
+                        }
+                        endPipeArray = Utils.findInstances(norArray, 1);
+                        continue;
+                    }
                     Utils.each(iter, function (next) {
                         element = tracing ? slice.call(next, -1)[0] : next;
                         for (var prop in compObj) {
@@ -2993,8 +3007,9 @@ module Helios {
 
         static intersectElement(elements:{}[]):{} {
 
-            var o:{}, outputObj:{} = {}, compObj:{} = elements[0];
-
+            var o:{}, outputObj:{} = {}, compObj:{};
+            elements = Utils.flatten(elements);
+            compObj = elements[0];
             for (var i = 1, l = elements.length; i < l; i++) {
                 o = {};
                 for (var k in elements[i]) {
@@ -3080,7 +3095,7 @@ module Helios {
             return r;
         }
 
-        static  uniqueElement(array:IElement[]):IElement[] {
+        static uniqueElement(array:IElement[]):IElement[] {
 
             var o = {}, i, l = array.length, r = [];
             for (i = 0; i < l; i += 1) {
@@ -3089,6 +3104,26 @@ module Helios {
             for (i in o) {
                 if (o.hasOwnProperty(i)) {
                     r.push(o[i]);
+                }
+            }
+            return r;
+        }
+
+
+        static findInstances(array:IElement[], instances:number):IElement[] {
+
+            var o = {}, id:any, i, l = array.length, r = [];
+            for (i = 0; i < l; i += 1) {
+                id = array[i].obj[array[i].graph.meta.id];
+                o[id] = array[i];
+                ('count' in o[id]) ? o[id].count++ : o[id].count = 1;
+            }
+            for (i in o) {
+                if (o.hasOwnProperty(i)) {
+                    if(o[i].count == instances){
+                        r.push(o[i]);    
+                    }
+                    delete o[i].count;
                 }
             }
             return r;
@@ -3306,6 +3341,10 @@ module Helios {
             return toString.call(o) === '[object Number]';
         }
 
+        static isBoolean(o:any):bool {
+            return toString.call(o) === '[object Boolean]';
+        }
+
         static  isObject(o:any):bool {
             return toString.call(o) === '[object Object]';
         }
@@ -3324,7 +3363,7 @@ module Helios {
         }
 
         static isFunction(o:any):bool {
-            return toString.call(o) === '[object ]';
+            return toString.call(o) === '[object Function]';
         }
 
         static isNull(o:any):bool {
