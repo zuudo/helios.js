@@ -2920,7 +2920,7 @@ module Helios {
 
             static $hasAll(obj:{}, val:string[]):bool {
                 var i:number = val.length,
-                    matches:number,
+                    matches:number = 0,
                     tempObj:{},
                     tempProp:string;
 
