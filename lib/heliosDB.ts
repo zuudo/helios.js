@@ -1,5 +1,4 @@
 "use strict"
-/*/// <reference path="moment.d.ts" />*/
 
 if ( !Date.prototype.toISOString ) {
   ( function() {
