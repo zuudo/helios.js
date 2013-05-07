@@ -704,7 +704,7 @@ module Helios {
                                     var funcObj = preProcObj[prop];
                                     for (var func in funcObj) {
                                         if (funcObj.hasOwnProperty(func)) {
-                                            //array comparables require the whole array for comparison
+                                            //array comparables require the whole array for comparn
                                             if (Utils.include(['$exact', '$none', '$all'], func)) {
                                                 item = items[m];
                                                 for (var it in item) {
@@ -1856,7 +1856,7 @@ module Helios {
                                     funcObj = compObj[prop];
                                     for (var func in funcObj) {
                                         if (funcObj.hasOwnProperty(func)) {
-                                            if (Compare[func].call(null, tempObj[tempProp], funcObj[func], this.graph)) {
+                                            if (Compare[func].call(null, tempObj[tempProp], funcObj[func])) {
                                                 if (!isIn) {
                                                     isIn = true;
                                                 }
@@ -2454,7 +2454,7 @@ module Helios {
                         if (!(Utils.isObject(tempObj[tempProp])) && tempObj.hasOwnProperty(tempProp)) {
                             props = Utils.isArray(tempObj[tempProp]) ? tempObj[tempProp] : [tempObj[tempProp]];
                             for (var j = 0, len = props.length; j < len; j++) {
-                                o[args[i]] = o[args[i]] + Utils.parseNumber([props[j]], this.graph);
+                                o[args[i]] = o[args[i]] + Utils.parseNumber([props[j]]);
                             }
                         }
                     });
@@ -2691,7 +2691,7 @@ module Helios {
         export class Compare {
             //comparables
 
-            static $eq(objVal:any, val:any, graph:GraphDatabase):bool {
+            static $eq(objVal:any, val:any):bool {
 
                 var objValIsArray:bool = Utils.isArray(objVal),
                     index:number;
@@ -2700,10 +2700,10 @@ module Helios {
                 index = objVal.length;
                 while (index) {
                     --index;
-                    if (((Utils.isDate(val, graph.date) && Utils.isDate(objVal[index], graph.date))
-                        || (Utils.isMoney(val, graph.currency) && Utils.isMoney(objVal[index], graph.currency))
-                        || (!(Utils.isDate(objVal[index], graph.date) || Utils.isMoney(objVal[index], graph.currency))))
-                        && (Utils.parseNumber(objVal[index], graph) === Utils.parseNumber(val, graph))) {
+                    if (((Utils.isDate(val) && Utils.isDate(objVal[index]))
+                        || (Utils.isMoney(val) && Utils.isMoney(objVal[index]))
+                        || (!(Utils.isDate(objVal[index]) || Utils.isMoney(objVal[index]))))
+                        && (Utils.parseNumber(objVal[index]) === Utils.parseNumber(val))) {
 
                         return true;
                     }
@@ -2711,11 +2711,11 @@ module Helios {
                 return false;
             }
 
-            static $neq(objVal:any, val:any, graph:GraphDatabase):bool {
-                return !Compare.$eq(objVal, val, graph);
+            static $neq(objVal:any, val:any):bool {
+                return !Compare.$eq(objVal, val);
             }
 
-            static $lt(objVal:any, val:any, graph:GraphDatabase):bool {
+            static $lt(objVal:any, val:any):bool {
                 var objValIsArray:bool = Utils.isArray(objVal),
                     index:number;
 
@@ -2723,10 +2723,10 @@ module Helios {
                 index = objVal.length;
                 while (index) {
                     --index;
-                    if (((Utils.isDate(val, graph.date) && Utils.isDate(objVal[index], graph.date))
-                        || (Utils.isMoney(val, graph.currency) && Utils.isMoney(objVal[index], graph.currency))
-                        || (!(Utils.isDate(objVal[index], graph.date) || Utils.isMoney(objVal[index], graph.currency))))
-                        && (Utils.parseNumber(objVal[index], graph) < Utils.parseNumber(val, graph))) {
+                    if (((Utils.isDate(val) && Utils.isDate(objVal[index]))
+                        || (Utils.isMoney(val) && Utils.isMoney(objVal[index]))
+                        || (!(Utils.isDate(objVal[index]) || Utils.isMoney(objVal[index]))))
+                        && (Utils.parseNumber(objVal[index]) < Utils.parseNumber(val))) {
 
                         return true;
                     }
@@ -2734,7 +2734,7 @@ module Helios {
                 return false;
             }
 
-            static $lte(objVal:any, val:any, graph:GraphDatabase):bool {
+            static $lte(objVal:any, val:any):bool {
                 var objValIsArray:bool = Utils.isArray(objVal),
                     index:number;
 
@@ -2742,10 +2742,10 @@ module Helios {
                 index = objVal.length;
                 while (index) {
                     --index;
-                    if (((Utils.isDate(val, graph.date) && Utils.isDate(objVal[index], graph.date))
-                        || (Utils.isMoney(val, graph.currency) && Utils.isMoney(objVal[index], graph.currency))
-                        || (!(Utils.isDate(objVal[index], graph.date) || Utils.isMoney(objVal[index], graph.currency))))
-                        && (Utils.parseNumber(objVal[index], graph) <= Utils.parseNumber(val, graph))) {
+                    if (((Utils.isDate(val) && Utils.isDate(objVal[index]))
+                        || (Utils.isMoney(val) && Utils.isMoney(objVal[index]))
+                        || (!(Utils.isDate(objVal[index]) || Utils.isMoney(objVal[index]))))
+                        && (Utils.parseNumber(objVal[index]) <= Utils.parseNumber(val))) {
 
                         return true;
                     }
@@ -2753,20 +2753,20 @@ module Helios {
                 return false;
             }
 
-            static $gt(objVal:any, val:any, graph:GraphDatabase):bool {
-                return !Compare.$lte(objVal, val, graph);
+            static $gt(objVal:any, val:any):bool {
+                return !Compare.$lte(objVal, val);
             }
 
-            static $gte(objVal:any, val:any, graph:GraphDatabase):bool {
-                return !Compare.$lt(objVal, val, graph);
+            static $gte(objVal:any, val:any):bool {
+                return !Compare.$lt(objVal, val);
             }
 
             //accepts array with length 2 => [start, end]
-            static $btw(objVal:any, val:any[], graph:GraphDatabase):bool {
-                return Compare.$gte(objVal, val[0], graph) && Compare.$lte(objVal, val[1], graph);
+            static $btw(objVal:any, val:any[]):bool {
+                return Compare.$gte(objVal, val[0]) && Compare.$lte(objVal, val[1]);
             }
 
-            static $typeOf(objVal:any, val:string[], graph:GraphDatabase):bool {
+            static $typeOf(objVal:any, val:string[]):bool {
 
                 var objValIsArray:bool = Utils.isArray(objVal),
                     index:number,
@@ -2778,34 +2778,34 @@ module Helios {
                 while (index) {
                     --index;
                     comp = val[index].toLowerCase()
-                    if (comp == 'number' && !Utils.isDate(objVal, graph.date) && !Utils.isMoney(objVal, graph.currency) && Utils.isNumber(Utils.parseNumber(objVal, graph))) {
+                    if (comp == 'number' && !Utils.isDate(objVal) && !Utils.isMoney(objVal) && Utils.isNumber(Utils.parseNumber(objVal))) {
                         return true;
-                    } else if (comp == 'money' && Utils.isMoney(objVal, graph.currency)) {
+                    } else if (comp == 'money' && Utils.isMoney(objVal)) {
                         return true;
-                    } else if (comp == 'string' && !Utils.isDate(objVal, graph.date) && !Utils.isMoney(objVal, graph.currency) && Utils.isString(Utils.parseNumber(objVal, graph))) {
+                    } else if (comp == 'string' && !Utils.isDate(objVal) && !Utils.isMoney(objVal) && Utils.isString(Utils.parseNumber(objVal))) {
                         return true;
                     } else if (comp == 'array' && Utils.isArray(objVal)) {
                         return true;
-                    } else if (comp == 'date' && Utils.isDate(objVal, graph.date)) {
+                    } else if (comp == 'date' && Utils.isDate(objVal)) {
                         return true;
                     }
                 }
                 return false;
             }
 
-            static $notTypeOf(objVal:any, val:string[], graph:GraphDatabase):bool {
-                return !Compare.$typeOf(objVal, val, graph);
+            static $notTypeOf(objVal:any, val:string[]):bool {
+                return !Compare.$typeOf(objVal, val);
             }
 
-            static $len(objVal:any, val:any, graph:GraphDatabase):bool {
+            static $len(objVal:any, val:any):bool {
                 var len = objVal.length;
-                if(Utils.isNumber(Utils.parseNumber(val, graph))){
+                if(Utils.isNumber(Utils.parseNumber(val))){
                     return len == val;
                 }
                 return eval(len + /^\s*(?:<|>)\=*\s*\d+|^\s*(?:!|=)\={1,2}\s*\d/.exec(val)[0]);
             }
 
-            static $in(objVal:any, val:any[], graph:GraphDatabase):bool {
+            static $in(objVal:any, val:any[]):bool {
 
                 var objValIsArray:bool = Utils.isArray(objVal),
                     index:number,
@@ -2819,10 +2819,10 @@ module Helios {
                     i = valLen;
                     while (!!i) {
                         --i;
-                        if (((Utils.isDate(val[i], graph.date) && Utils.isDate(objVal[index], graph.date))
-                            || (Utils.isMoney(val[i], graph.currency) && Utils.isMoney(objVal[index], graph.currency))
-                            || (!(Utils.isDate(objVal[index], graph.date) || Utils.isMoney(objVal[index], graph.currency))))
-                            && (Utils.parseNumber(objVal[index], graph) === Utils.parseNumber(val[i], graph))) {
+                        if (((Utils.isDate(val[i]) && Utils.isDate(objVal[index]))
+                            || (Utils.isMoney(val[i]) && Utils.isMoney(objVal[index]))
+                            || (!(Utils.isDate(objVal[index]) || Utils.isMoney(objVal[index]))))
+                            && (Utils.parseNumber(objVal[index]) === Utils.parseNumber(val[i]))) {
 
                             return true;
                         }
@@ -2831,8 +2831,8 @@ module Helios {
                 return false;
             }
 
-            static $nin(objVal:any, val:any[], graph:GraphDatabase):bool {
-                return !Compare.$in(objVal, val, graph);
+            static $nin(objVal:any, val:any[]):bool {
+                return !Compare.$in(objVal, val);
             }
 
             /* use $match for
@@ -2842,7 +2842,7 @@ module Helios {
               - notContains
             */
             //$match => takes either a string or regex or array of strings and/or regex's 
-            static $match(objVal:any, val:string[], graph:GraphDatabase):bool {
+            static $match(objVal:any, val:string[]):bool {
                 var objValIsArray:bool = Utils.isArray(objVal),
                     index:number,
                     i:number = 0,
@@ -2855,7 +2855,7 @@ module Helios {
                     i = valLen;
                     while (!!i) {
                         --i;
-                        if (Utils.isString(objVal[index]) && !(objVal[index].search(val[i]) === false)) {
+                        if (Utils.isString(objVal[index]) && !(objVal[index].search(val[i]) === -1)) {
                             return true;
                         }
                     }
@@ -2864,7 +2864,7 @@ module Helios {
             }
 
             //Array comparator
-            static $all(objVal:any[], val:any[], graph:GraphDatabase):bool {
+            static $all(objVal:any[], val:any[]):bool {
 
                 var matches:number = 0,
                     index:number = 0,
@@ -2882,10 +2882,10 @@ module Helios {
                         i = valLen;
                         while (!!i) {
                             --i;
-                            if (((Utils.isDate(val[i], graph.date) && Utils.isDate(objVal[index], graph.date))
-                                || (Utils.isMoney(val[i], graph.currency) && Utils.isMoney(objVal[index], graph.currency))
-                                || (!(Utils.isDate(objVal[index], graph.date) || Utils.isMoney(objVal[index], graph.currency))))
-                                && (Utils.parseNumber(objVal[index], graph) === Utils.parseNumber(val[i], graph))) {
+                            if (((Utils.isDate(val[i]) && Utils.isDate(objVal[index]))
+                                || (Utils.isMoney(val[i]) && Utils.isMoney(objVal[index]))
+                                || (!(Utils.isDate(objVal[index]) || Utils.isMoney(objVal[index]))))
+                                && (Utils.parseNumber(objVal[index]) === Utils.parseNumber(val[i]))) {
 
                                 matches++;
                             }
@@ -2896,12 +2896,12 @@ module Helios {
             }
 
             //Array comparator
-            static $none(objVal:any[], val:any[], graph:GraphDatabase):bool {
-                return !Compare.$all(objVal, val, graph);
+            static $none(objVal:any[], val:any[]):bool {
+                return !Compare.$all(objVal, val);
             }
 
             //Array comparator
-            static $exact(objVal:any[], val:any[], graph:GraphDatabase):bool {
+            static $exact(objVal:any[], val:any[]):bool {
 
                 var matches:number = 0,
                     index:number = 0,
@@ -2919,10 +2919,10 @@ module Helios {
                         i = valLen;
                         while (!!i) {
                             --i;
-                            if (((Utils.isDate(val[i], graph.date) && Utils.isDate(objVal[index], graph.date))
-                                || (Utils.isMoney(val[i], graph.currency) && Utils.isMoney(objVal[index], graph.currency))
-                                || (!(Utils.isDate(objVal[index], graph.date) || Utils.isMoney(objVal[index], graph.currency))))
-                                && (Utils.parseNumber(objVal[index], graph) === Utils.parseNumber(val[i], graph))) {
+                            if (((Utils.isDate(val[i]) && Utils.isDate(objVal[index]))
+                                || (Utils.isMoney(val[i]) && Utils.isMoney(objVal[index]))
+                                || (!(Utils.isDate(objVal[index]) || Utils.isMoney(objVal[index]))))
+                                && (Utils.parseNumber(objVal[index]) === Utils.parseNumber(val[i]))) {
 
                                 matches++;
                             }
@@ -3417,7 +3417,7 @@ module Helios {
             return o.hasOwnProperty('obj');
         }
 
-        static isDate(o:any, date?:{ format:any;}):bool {
+        static isDate(o:any):bool {
             var dateResult = validISO8601Date.exec(o);
             if(dateResult != null && !!dateResult[7] && !isNaN(Date.parse(o))){
                 return true;
@@ -3425,7 +3425,7 @@ module Helios {
             return false;
         }
 
-        static isMoney(val:any, curr?:{ symbol:any; decimal:string; }):bool {
+        static isMoney(val:any):bool {
             if (validNumeric.exec(val) != null) {
                 return validNumeric.exec(val)[0].length === validNumeric.exec(val)[1].length;
             }
@@ -3433,7 +3433,7 @@ module Helios {
         }
 
         //convert string to number OR return string
-        static  parseNumber(val:any, graph:GraphDatabase):any {
+        static  parseNumber(val:any):any {
             var numResult;
             if(Utils.isDate(val)){
                 return Date.parse(val);
