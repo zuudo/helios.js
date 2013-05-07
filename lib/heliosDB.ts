@@ -2766,7 +2766,7 @@ module Helios {
                 return Compare.$gte(objVal, val[0]) && Compare.$lte(objVal, val[1]);
             }
 
-            static $typeOf(objVal:any, val:string[]):bool {
+            static $type(objVal:any, val:string[]):bool {
 
                 var objValIsArray:bool = Utils.isArray(objVal),
                     index:number,
@@ -2793,8 +2793,8 @@ module Helios {
                 return false;
             }
 
-            static $notTypeOf(objVal:any, val:string[]):bool {
-                return !Compare.$typeOf(objVal, val);
+            static $notType(objVal:any, val:string[]):bool {
+                return !Compare.$type(objVal, val);
             }
 
             static $len(objVal:any, val:any):bool {
