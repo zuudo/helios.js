@@ -1,5 +1,31 @@
 "use strict"
-/// <reference path="moment.d.ts" />
+/*/// <reference path="moment.d.ts" />*/
+
+if ( !Date.prototype.toISOString ) {
+  ( function() {
+     
+    function pad(number) {
+      var r = String(number);
+      if ( r.length === 1 ) {
+        r = '0' + r;
+      }
+      return r;
+    }
+  
+    Date.prototype.toISOString = function() {
+      return this.getUTCFullYear()
+        + '-' + pad( this.getUTCMonth() + 1 )
+        + '-' + pad( this.getUTCDate() )
+        + 'T' + pad( this.getUTCHours() )
+        + ':' + pad( this.getUTCMinutes() )
+        + ':' + pad( this.getUTCSeconds() )
+        + '.' + String( (this.getUTCMilliseconds()/1000).toFixed(3) ).slice( 2, 5 )
+        + 'Z';
+    };
+   
+  }() );
+}
+
 declare var Q_COMM;
 
 module Helios {
@@ -2771,6 +2797,14 @@ module Helios {
                 return !Compare.$typeOf(objVal, val, graph);
             }
 
+            static $len(objVal:any, val:any, graph:GraphDatabase):bool {
+                var len = objVal.length;
+                if(Utils.isNumber(Utils.parseNumber(val, graph))){
+                    return len == val;
+                }
+                return eval(len + /^\s*(?:<|>)\=*\s*\d+|^\s*(?:!|=)\={1,2}\s*\d/.exec(val)[0]);
+            }
+
             static $in(objVal:any, val:any[], graph:GraphDatabase):bool {
 
                 var objValIsArray:bool = Utils.isArray(objVal),
@@ -2952,11 +2986,16 @@ module Helios {
     }
 
     class Utils {
+        /*
+        //Currency regex => accepts decimal or comma separators
 
-        static currencyRegex:{} = {
-            '.': /[^0-9-.]+/g,
-            ',': /[^0-9-,]+/g
-        };
+        validCurrency.exec('$2,043,400.05')
+        
+        //["$2,043,400.05", "2,043,400.05"]
+        */
+
+        static validNumeric = /^\$?\-?([1-9]{1}[0-9]{0,2}(?:\,\d{3})*(?:\.\d{0,2})?|[1-9]{1}\d{0,}(?:\.\d{0,2})?|0(?:\.\d{0,2})?|(?:\.\d{1,2}))$|^\-?\$?(?:[1-9]{1}\d{0,2}(?:\,\d{3})*(?:\.\d{0,2})?|[1-9]{1}\d{0,}(?:\.\d{0,2})?|0(?:\.\d{0,2})?|(?:\.\d{1,2}))$|^\(\$?(?:[1-9]{1}\d{0,2}(?:\,\d{3})*(?:\.\d{0,2})?|[1-9]{1}\d{0,}(?:\.\d{0,2})?|0(?:\.\d{0,2})?|(?:\.\d{1,2}))\)$/;
+        static validISO8601Date = /^([\+-]?\d{4}(?!\d{2}\b))((-?)((0[1-9]|1[0-2])(\3([12]\d|0[1-9]|3[01]))?|W([0-4]\d|5[0-2])(-?[1-7])?|(00[1-9]|0[1-9]\d|[12]\d{2}|3([0-5]\d|6[1-6])))([T\s]((([01]\d|2[0-3])((:?)[0-5]\d)?|24\:?00)([\.,]\d+(?!:))?)?(\17[0-5]\d([\.,]\d+)?)?([zZ]|([\+-])([01]\d|2[0-3]):?([0-5]\d)?)?)?)?$/;
 
         static  toArray(o) {
             var k, r = [];
@@ -3345,7 +3384,7 @@ module Helios {
             return toString.call(o) === '[object Boolean]';
         }
 
-        static  isObject(o:any):bool {
+        static isObject(o:any):bool {
             return toString.call(o) === '[object Object]';
         }
 
@@ -3378,34 +3417,30 @@ module Helios {
             return o.hasOwnProperty('obj');
         }
 
-        static isDate(o:any, date:{ format:any;}):bool {
-            return isString(o) ? moment(o, date.format).isValid() : false;
+        static isDate(o:any, date?:{ format:any;}):bool {
+            var dateResult = validISO8601Date.exec(o);
+            if(dateResult != null && !!dateResult[7] && !isNaN(Date.parse(o))){
+                return true;
+            }
+            return false;
         }
 
-        static isMoney(val:any, curr:{ symbol:any; decimal:string; }):bool {
-            var i:number,
-                l:number = curr.symbol.length;
-
-            if (isString(val)) {
-                for (i = 0; i < l; i++) {
-                    if (val.indexOf(curr.symbol[i]) > -1) {
-                        return !isNaN(parseFloat(val.replace(currencyRegex[curr.decimal], '')));
-                    }
-                }
+        static isMoney(val:any, curr?:{ symbol:any; decimal:string; }):bool {
+            if (validNumeric.exec(val) != null) {
+                return validNumeric.exec(val)[0].length === validNumeric.exec(val)[1].length;
             }
             return false;
         }
 
         //convert string to number OR return string
         static  parseNumber(val:any, graph:GraphDatabase):any {
-            if (isDate(val, graph.date.format)) {
-                return moment(val, graph.date.format).valueOf();
+            var numResult;
+            if(Utils.isDate(val)){
+                return Date.parse(val);
             }
-            if (isString(val)) {
-                if (isNaN(parseFloat(val.replace(currencyRegex[graph.currency.decimal], '')))) {
-                    return val;
-                }
-                return parseFloat(val.replace(currencyRegex[graph.currency.decimal], ''));
+            numResult = validNumeric.exec(val);
+            if (numResult != null) {
+                return parseFloat(numResult[1]);
             }
             return val;
         }
@@ -3414,7 +3449,7 @@ module Helios {
 
 
 try{
-    importScripts('sax.js', 'moment.min.js', 'q.min.js', 'uuid.js', 'q-comm.js');
+    importScripts('sax.js', 'q.min.js', 'uuid.js', 'q-comm.js');
     var i, l, g, r;
     Q_COMM.Connection(this, {
         init: function (params) {
