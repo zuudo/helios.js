@@ -41,11 +41,11 @@
         </p> -->
 
         <h2>Getting Started</h2>
-        <p>Copy helios.js and the 'lib' directory to your project. Then reference the helios.js file and it's dependancies from the script tags.</p>
-<pre><code>&lt;script src="./lib/q.min.js"&gt;&lt;/script&gt;
-&lt;script src="./lib/uuid.js"&gt;&lt;/script&gt;
-&lt;script src="./lib/q-comm.js"&gt;&lt;/script&gt;
-&lt;script src="helios.js"&gt;&lt;/script&gt;
+        <p>Copy the helios directory to your project's root directory. Then reference the helios.js file and it's dependancies from the script tags.</p>
+        <pre><code>&lt;script src="./helios/lib/q.min.js"&gt;&lt;/script&gt;
+&lt;script src="./helios/lib/uuid.js"&gt;&lt;/script&gt;
+&lt;script src="./helios/lib/q-comm.js"&gt;&lt;/script&gt;
+&lt;script src="./helios/helios.js"&gt;&lt;/script&gt;
 </code></pre>
 
 <p><em>N.B. Unless otherwise noted, all samples are derived from the TinkerPop &quot;toy&quot; graph. The hardcoded representation of the graph is diagrammed <a href="http://github.com/tinkerpop/blueprints/wiki/Property-Graph-Model">here</a>.</em>
@@ -561,7 +561,7 @@ heliosjs&gt;  g.v(1).as(&#39;x&#39;).out(&#39;knows&#39;).as(&#39;y&#39;).select
 
 </p>
 <hr>
-        
+
 <h2 id='filter'>Filter</h2 id='filter'>
 <p>Filter steps decide whether to allow an object to pass to the next step or not.
 
@@ -578,8 +578,8 @@ heliosjs&gt;  g.v(1).as(&#39;x&#39;).out(&#39;knows&#39;).as(&#39;y&#39;).select
 
 </p>
 <hr>
-        
-        <h3 id='filter/i'>index(...indices:number[])</h3 id='filter/i'>
+
+        <h3 id='filter/i'>index(indices:number[])</h3 id='filter/i'>
 <p>A index filter that emits the particular indexed objects.
 
 </p>
@@ -608,7 +608,7 @@ heliosjs&gt; g.V().range(2).property('name')
 <p><a href="#">top</a>
 
 </p>
-<hr>        
+<hr>
 
 
         <h3 id='filter/back'>back(steps:number)</h3 id='filter/back'>
@@ -702,13 +702,13 @@ heliosjs&gt; g.V().retain(x)
 
 </p>
 <hr>
-        
+
 <!--<h3 id='filter/where'>where(comparator:{}[])</h3 id='filter/where'>
 <p>Emit only incoming objects that meet the specified criteria of the comparator.
 
 </p>
         <p>If you are familiar with Gremlin, <code>where</code> replaces the following Gremlin steps:
-          
+
         </p>
         <ul>
           <li>has</li>
@@ -717,22 +717,12 @@ heliosjs&gt; g.V().retain(x)
           <li>or</li>
           <li>interval</li>
         </ul>
-        <p>and could even be use instead of the <code>filter</code> step.</p>
+        <p>and could even be used instead of the <code>filter</code> step.</p>
         <h4>Comparator Selectors</h4>
-        <h5>Logical</h5>
-         <ul>
-          <li>and</li>
-          <li>or</li>
-          <li>not</li>
-          <li>nor</li>
-        </ul>
+        
         <h5>Comparisons</h5>
         <h6>$eq</h6>
-        <h5>Element</h5>
-        <h5>Field??</h5>
-        <p>
-          $eq ffslkdjfs lk
-        </p>
+        
         <ul>
           <li>$eq</li>
           <li>$neq</li>
@@ -741,31 +731,46 @@ heliosjs&gt; g.V().retain(x)
           <li>$gt</li>
           <li>$gte</li>
           <li>$btw</li>
-          <li>$typeOf</li>
-          <li>$notTypeOf</li>
+          <li>$type</li>
+          <li>$notType</li>
+          <li>$match</li>
           <li>$in</li>
           <li>$nin</li>
-          <li>$match</li>
+</ul>
+          <h5>Array</h5>
+          <ul>
           <li>$all</li>
           <li>$none</li>
           <li>$exact</li>
+          <li>$len</li>
+
+        </ul>
+        <h5>Logical</h5>
+         <ul>
+          <li>and</li>
+          <li>or</li>
+          <li>not</li>
+          <li>nor</li>
+        </ul>
+          <h5>Element</h5>
+          <ul>
           <li>$hasAny</li>
           <li>$hasAll</li>
           <li>$notAny</li>
           <li>$notAll</li>
-        </ul>
-<pre><code class="text">heliosjs&gt; 
+          </ul>
+<pre><code class="text">heliosjs&gt;
 <em>output:</em>
 
 
-heliosjs&gt; 
+heliosjs&gt;
 <em>output:</em>
 </code></pre>
 <p><a href="#">top</a>
 
 </p>
 <hr>
-        
+
 <h3 id='transform/cap'>cap</h3 id='transform/cap'>
 <p>Gets the side-effect of the pipe prior.  In other words, it emits the value of the previous step and not the values that flow through it.
 
