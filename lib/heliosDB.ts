@@ -2680,8 +2680,9 @@ module Helios {
                     --index;
                     if (((Utils.isDate(val) && Utils.isDate(objVal[index]))
                         || (Utils.isMoney(val) && Utils.isMoney(objVal[index]))
-                        || (!(Utils.isDate(objVal[index]) || Utils.isMoney(objVal[index]))))
-                        && (Utils.parseNumber(objVal[index]) === Utils.parseNumber(val))) {
+                        || (Utils.isBoolean(val) && Utils.isBoolean(objVal[index]))
+                        || (!(Utils.isDate(objVal[index]) || Utils.isMoney(objVal[index]) || Utils.isBoolean(objVal[index]))))
+                        && (Utils.parseValue(objVal[index]) === Utils.parseValue(val))) {
 
                         return true;
                     }
@@ -2703,8 +2704,9 @@ module Helios {
                     --index;
                     if (((Utils.isDate(val) && Utils.isDate(objVal[index]))
                         || (Utils.isMoney(val) && Utils.isMoney(objVal[index]))
-                        || (!(Utils.isDate(objVal[index]) || Utils.isMoney(objVal[index]))))
-                        && (Utils.parseNumber(objVal[index]) < Utils.parseNumber(val))) {
+                        || (Utils.isBoolean(val) && Utils.isBoolean(objVal[index]))
+                        || (!(Utils.isDate(objVal[index]) || Utils.isMoney(objVal[index]) || Utils.isBoolean(objVal[index]))))
+                        && (Utils.parseValue(objVal[index]) < Utils.parseValue(val))) {
 
                         return true;
                     }
@@ -2722,8 +2724,9 @@ module Helios {
                     --index;
                     if (((Utils.isDate(val) && Utils.isDate(objVal[index]))
                         || (Utils.isMoney(val) && Utils.isMoney(objVal[index]))
-                        || (!(Utils.isDate(objVal[index]) || Utils.isMoney(objVal[index]))))
-                        && (Utils.parseNumber(objVal[index]) <= Utils.parseNumber(val))) {
+                        || (Utils.isBoolean(val) && Utils.isBoolean(objVal[index]))
+                        || (!(Utils.isDate(objVal[index]) || Utils.isMoney(objVal[index]) || Utils.isBoolean(objVal[index]))))
+                        && (Utils.parseValue(objVal[index]) <= Utils.parseValue(val))) {
 
                         return true;
                     }
@@ -2744,38 +2747,38 @@ module Helios {
                 return Compare.$gte(objVal, val[0]) && Compare.$lte(objVal, val[1]);
             }
 
-            static $type(objVal:any, val:string[]):bool {
+            // static $type(objVal:any, val:string[]):bool {
 
-                var objValIsArray:bool = Utils.isArray(objVal),
-                    index:number,
-                    i:number = 0,
-                    valLen:number = val.length,
-                    comp:string;
+            //     var objValIsArray:bool = Utils.isArray(objVal),
+            //         index:number,
+            //         i:number = 0,
+            //         valLen:number = val.length,
+            //         comp:string;
 
-                index = val.length;
-                while (index) {
-                    --index;
-                    comp = val[index].toLowerCase()
-                    if (comp == 'number' && !Utils.isDate(objVal) && !Utils.isMoney(objVal) && Utils.isNumber(Utils.parseNumber(objVal))) {
-                        return true;
-                    } else if (comp == 'money' && Utils.isMoney(objVal)) {
-                        return true;
-                    } else if (comp == 'string' && !Utils.isDate(objVal) && !Utils.isMoney(objVal) && Utils.isString(Utils.parseNumber(objVal))) {
-                        return true;
-                    } else if (comp == 'array' && Utils.isArray(objVal)) {
-                        return true;
-                    } else if (comp == 'date' && Utils.isDate(objVal)) {
-                        return true;
-                    } else if (comp == 'bool' && Utils.isBoolean(objVal)) {
-                        return true;
-                    }
-                }
-                return false;
-            }
+            //     index = val.length;
+            //     while (index) {
+            //         --index;
+            //         comp = val[index].toLowerCase()
+            //         if (comp == 'number' && !Utils.isDate(objVal) && !Utils.isMoney(objVal) && !Utils.isBoolean(objVal) && Utils.isNumber(Utils.parseNumber(objVal))) {
+            //             return true;
+            //         } else if (comp == 'money' && Utils.isMoney(objVal)) {
+            //             return true;
+            //         } else if (comp == 'string' && !Utils.isDate(objVal) && !Utils.isMoney(objVal) && !Utils.isBoolean(objVal) && Utils.isString(Utils.parseNumber(objVal))) {
+            //             return true;
+            //         } else if (comp == 'array' && Utils.isArray(objVal)) {
+            //             return true;
+            //         } else if (comp == 'date' && Utils.isDate(objVal)) {
+            //             return true;
+            //         } else if (comp == 'bool' && Utils.isBoolean(objVal)) {
+            //             return true;
+            //         }
+            //     }
+            //     return false;
+            // }
 
-            static $notType(objVal:any, val:string[]):bool {
-                return !Compare.$type(objVal, val);
-            }
+            // static $notType(objVal:any, val:string[]):bool {
+            //     return !Compare.$type(objVal, val);
+            // }
 
             static $len(objVal:any, val:any):bool {
                 var len = objVal.length;
@@ -2801,8 +2804,9 @@ module Helios {
                         --i;
                         if (((Utils.isDate(val[i]) && Utils.isDate(objVal[index]))
                             || (Utils.isMoney(val[i]) && Utils.isMoney(objVal[index]))
-                            || (!(Utils.isDate(objVal[index]) || Utils.isMoney(objVal[index]))))
-                            && (Utils.parseNumber(objVal[index]) === Utils.parseNumber(val[i]))) {
+                            || (Utils.isBoolean(val[i]) && Utils.isBoolean(objVal[index]))
+                            || (!(Utils.isDate(objVal[index]) || Utils.isMoney(objVal[index]) || Utils.isBoolean(objVal[index]))))
+                            && (Utils.parseValue(objVal[index]) === Utils.parseValue(val[i]))) {
 
                             return true;
                         }
@@ -2864,8 +2868,9 @@ module Helios {
                             --i;
                             if (((Utils.isDate(val[i]) && Utils.isDate(objVal[index]))
                                 || (Utils.isMoney(val[i]) && Utils.isMoney(objVal[index]))
-                                || (!(Utils.isDate(objVal[index]) || Utils.isMoney(objVal[index]))))
-                                && (Utils.parseNumber(objVal[index]) === Utils.parseNumber(val[i]))) {
+                                || (Utils.isBoolean(val[i]) && Utils.isBoolean(objVal[index]))
+                                || (!(Utils.isDate(objVal[index]) || Utils.isMoney(objVal[index]) || Utils.isBoolean(objVal[index]))))
+                                && (Utils.parseValue(objVal[index]) === Utils.parseValue(val[i]))) {
 
                                 matches++;
                             }
@@ -2901,8 +2906,9 @@ module Helios {
                             --i;
                             if (((Utils.isDate(val[i]) && Utils.isDate(objVal[index]))
                                 || (Utils.isMoney(val[i]) && Utils.isMoney(objVal[index]))
-                                || (!(Utils.isDate(objVal[index]) || Utils.isMoney(objVal[index]))))
-                                && (Utils.parseNumber(objVal[index]) === Utils.parseNumber(val[i]))) {
+                                || (Utils.isBoolean(val[i]) && Utils.isBoolean(objVal[index]))
+                                || (!(Utils.isDate(objVal[index]) || Utils.isMoney(objVal[index]) || Utils.isBoolean(objVal[index]))))
+                                && (Utils.parseValue(objVal[index]) === Utils.parseValue(val[i]))) {
 
                                 matches++;
                             }
@@ -2975,7 +2981,7 @@ module Helios {
         */
 
         static validNumeric = /^\$?\-?([1-9]{1}[0-9]{0,2}(?:\,\d{3})*(?:\.\d{0,2})?|[1-9]{1}\d{0,}(?:\.\d{0,2})?|0(?:\.\d{0,2})?|(?:\.\d{1,2}))$|^\-?\$?(?:[1-9]{1}\d{0,2}(?:\,\d{3})*(?:\.\d{0,2})?|[1-9]{1}\d{0,}(?:\.\d{0,2})?|0(?:\.\d{0,2})?|(?:\.\d{1,2}))$|^\(\$?(?:[1-9]{1}\d{0,2}(?:\,\d{3})*(?:\.\d{0,2})?|[1-9]{1}\d{0,}(?:\.\d{0,2})?|0(?:\.\d{0,2})?|(?:\.\d{1,2}))\)$/;
-        static validISO8601Date = /^([\+-]?\d{4}(?!\d{2}\b))((-?)((0[1-9]|1[0-2])(\3([12]\d|0[1-9]|3[01]))?|W([0-4]\d|5[0-2])(-?[1-7])?|(00[1-9]|0[1-9]\d|[12]\d{2}|3([0-5]\d|6[1-6])))([T\s]((([01]\d|2[0-3])((:?)[0-5]\d)?|24\:?00)([\.,]\d+(?!:))?)?(\17[0-5]\d([\.,]\d+)?)?([zZ]|([\+-])([01]\d|2[0-3]):?([0-5]\d)?)?)?)?$/;
+        //static validISO8601Date = /^([\+-]?\d{4}(?!\d{2}\b))((-?)((0[1-9]|1[0-2])(\3([12]\d|0[1-9]|3[01]))?|W([0-4]\d|5[0-2])(-?[1-7])?|(00[1-9]|0[1-9]\d|[12]\d{2}|3([0-5]\d|6[1-6])))([T\s]((([01]\d|2[0-3])((:?)[0-5]\d)?|24\:?00)([\.,]\d+(?!:))?)?(\17[0-5]\d([\.,]\d+)?)?([zZ]|([\+-])([01]\d|2[0-3]):?([0-5]\d)?)?)?)?$/;
 
         static  toArray(o) {
             var k, r = [];
@@ -3328,7 +3334,7 @@ module Helios {
         /*
          * Recursively merge properties of two objects
          */
-        static  merge(obj1:{}, obj2:{}):{} {
+        static merge(obj1:{}, obj2:{}):{} {
 
             for (var p in obj2) {
                 try {
@@ -3361,7 +3367,7 @@ module Helios {
         }
 
         static isBoolean(o:any):bool {
-            return toString.call(o) === '[object Boolean]';
+            return toString.call(Utils.parseBoolean(o)) === '[object Boolean]';
         }
 
         static isObject(o:any):bool {
@@ -3398,11 +3404,7 @@ module Helios {
         }
 
         static isDate(o:any):bool {
-            var dateResult = validISO8601Date.exec(o);
-            if(dateResult != null && !!dateResult[7] && !isNaN(Date.parse(o))){
-                return true;
-            }
-            return false;
+            return toString.call(o) === "[object Date]" || toString.call(new Date(o)) === "[object Date]";
         }
 
         static isMoney(val:any):bool {
@@ -3412,16 +3414,41 @@ module Helios {
             return false;
         }
 
-        //convert string to number OR return string
-        static  parseNumber(val:any):any {
-            var numResult;
-            if(Utils.isDate(val)){
-                return Date.parse(val);
-            }
-            numResult = validNumeric.exec(val);
+        //convert string to number otherwise return string
+        static parseNumber(val:any):any {
+            var numResult = validNumeric.exec(val);
             if (numResult != null) {
                 return parseFloat(numResult[1]);
             }
+            return val;
+        }
+
+        //convert string to boolean otherwise return string
+        static parseBoolean(val:any):any {
+            if(Utils.isString(val)){
+                if(val.toLowerCase() === 'true'){
+                    return true;
+                }
+                if(val.toLowerCase() === 'false'){
+                    return false;
+                }
+            }
+            return val;
+        }
+
+        //convert a value to something that can be compared with
+        static parseValue(val:any):any {
+            var numResult = validNumeric.exec(val);
+            if (numResult != null) {
+                return parseFloat(numResult[1]);
+            }
+            if(Utils.isBoolean(val)){
+                return Utils.parseBoolean(val);
+            }
+            if(Utils.isDate(val)){
+                return Date.parse(val);
+            }
+            //else just return the unchanged string
             return val;
         }
     }
