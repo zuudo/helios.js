@@ -3398,7 +3398,7 @@ module Helios {
         }
 
         static isDate(o:any):bool {
-            return toString.call(o) === "[object Date]" || toString.call(new Date(o)) === "[object Date]";
+            return !(new Date(o).toString() === 'Invalid Date');
         }
 
         static isMoney(val:any):bool {
