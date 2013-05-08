@@ -2679,9 +2679,8 @@ module Helios {
                 while (index) {
                     --index;
                     if (((Utils.isDate(val) && Utils.isDate(objVal[index]))
-                        || (Utils.isMoney(val) && Utils.isMoney(objVal[index]))
                         || (Utils.isBoolean(val) && Utils.isBoolean(objVal[index]))
-                        || (!(Utils.isDate(objVal[index]) || Utils.isMoney(objVal[index]) || Utils.isBoolean(objVal[index]))))
+                        || (!(Utils.isDate(objVal[index]) || Utils.isBoolean(objVal[index]))))
                         && (Utils.parseValue(objVal[index]) === Utils.parseValue(val))) {
 
                         return true;
@@ -2703,9 +2702,8 @@ module Helios {
                 while (index) {
                     --index;
                     if (((Utils.isDate(val) && Utils.isDate(objVal[index]))
-                        || (Utils.isMoney(val) && Utils.isMoney(objVal[index]))
                         || (Utils.isBoolean(val) && Utils.isBoolean(objVal[index]))
-                        || (!(Utils.isDate(objVal[index]) || Utils.isMoney(objVal[index]) || Utils.isBoolean(objVal[index]))))
+                        || (!(Utils.isDate(objVal[index]) || Utils.isBoolean(objVal[index]))))
                         && (Utils.parseValue(objVal[index]) < Utils.parseValue(val))) {
 
                         return true;
@@ -2723,9 +2721,8 @@ module Helios {
                 while (index) {
                     --index;
                     if (((Utils.isDate(val) && Utils.isDate(objVal[index]))
-                        || (Utils.isMoney(val) && Utils.isMoney(objVal[index]))
                         || (Utils.isBoolean(val) && Utils.isBoolean(objVal[index]))
-                        || (!(Utils.isDate(objVal[index]) || Utils.isMoney(objVal[index]) || Utils.isBoolean(objVal[index]))))
+                        || (!(Utils.isDate(objVal[index]) || Utils.isBoolean(objVal[index]))))
                         && (Utils.parseValue(objVal[index]) <= Utils.parseValue(val))) {
 
                         return true;
@@ -2803,9 +2800,8 @@ module Helios {
                     while (!!i) {
                         --i;
                         if (((Utils.isDate(val[i]) && Utils.isDate(objVal[index]))
-                            || (Utils.isMoney(val[i]) && Utils.isMoney(objVal[index]))
                             || (Utils.isBoolean(val[i]) && Utils.isBoolean(objVal[index]))
-                            || (!(Utils.isDate(objVal[index]) || Utils.isMoney(objVal[index]) || Utils.isBoolean(objVal[index]))))
+                            || (!(Utils.isDate(objVal[index]) || Utils.isBoolean(objVal[index]))))
                             && (Utils.parseValue(objVal[index]) === Utils.parseValue(val[i]))) {
 
                             return true;
@@ -2867,9 +2863,8 @@ module Helios {
                         while (!!i) {
                             --i;
                             if (((Utils.isDate(val[i]) && Utils.isDate(objVal[index]))
-                                || (Utils.isMoney(val[i]) && Utils.isMoney(objVal[index]))
                                 || (Utils.isBoolean(val[i]) && Utils.isBoolean(objVal[index]))
-                                || (!(Utils.isDate(objVal[index]) || Utils.isMoney(objVal[index]) || Utils.isBoolean(objVal[index]))))
+                                || (!(Utils.isDate(objVal[index]) || Utils.isBoolean(objVal[index]))))
                                 && (Utils.parseValue(objVal[index]) === Utils.parseValue(val[i]))) {
 
                                 matches++;
@@ -2905,9 +2900,8 @@ module Helios {
                         while (!!i) {
                             --i;
                             if (((Utils.isDate(val[i]) && Utils.isDate(objVal[index]))
-                                || (Utils.isMoney(val[i]) && Utils.isMoney(objVal[index]))
                                 || (Utils.isBoolean(val[i]) && Utils.isBoolean(objVal[index]))
-                                || (!(Utils.isDate(objVal[index]) || Utils.isMoney(objVal[index]) || Utils.isBoolean(objVal[index]))))
+                                || (!(Utils.isDate(objVal[index]) || Utils.isBoolean(objVal[index]))))
                                 && (Utils.parseValue(objVal[index]) === Utils.parseValue(val[i]))) {
 
                                 matches++;
@@ -2975,12 +2969,12 @@ module Helios {
         /*
         //Currency regex => accepts decimal or comma separators
 
-        validCurrency.exec('$2,043,400.05')
+        validCurrency.exec('$100,123,456,789.51')
         
-        //["$2,043,400.05", "2,043,400.05"]
+        //["$100,123,456,789.51", "100,123,456,789.51", ",789", ".51"]
         */
 
-        static validNumeric = /^\$?\-?([1-9]{1}[0-9]{0,2}(?:\,\d{3})*(?:\.\d{0,2})?|[1-9]{1}\d{0,}(?:\.\d{0,2})?|0(?:\.\d{0,2})?|(?:\.\d{1,2}))$|^\-?\$?(?:[1-9]{1}\d{0,2}(?:\,\d{3})*(?:\.\d{0,2})?|[1-9]{1}\d{0,}(?:\.\d{0,2})?|0(?:\.\d{0,2})?|(?:\.\d{1,2}))$|^\(\$?(?:[1-9]{1}\d{0,2}(?:\,\d{3})*(?:\.\d{0,2})?|[1-9]{1}\d{0,}(?:\.\d{0,2})?|0(?:\.\d{0,2})?|(?:\.\d{1,2}))\)$/;
+        static validNumeric = /^\$?\-?([1-9]{1}[0-9]{0,2}(\,\d{3})*(\.\d{0,2})?|[1-9]{1}\d{0,}(?:\.\d{0,2})?|0(?:\.\d{0,2})?|(?:\.\d{1,2}))$|^\-?\$?(?:[1-9]{1}\d{0,2}(?:\,\d{3})*(?:\.\d{0,2})?|[1-9]{1}\d{0,}(?:\.\d{0,2})?|0(?:\.\d{0,2})?|(?:\.\d{1,2}))$|^\(\$?(?:[1-9]{1}\d{0,2}(?:\,\d{3})*(?:\.\d{0,2})?|[1-9]{1}\d{0,}(?:\.\d{0,2})?|0(?:\.\d{0,2})?|(?:\.\d{1,2}))\)$/;
         //static validISO8601Date = /^([\+-]?\d{4}(?!\d{2}\b))((-?)((0[1-9]|1[0-2])(\3([12]\d|0[1-9]|3[01]))?|W([0-4]\d|5[0-2])(-?[1-7])?|(00[1-9]|0[1-9]\d|[12]\d{2}|3([0-5]\d|6[1-6])))([T\s]((([01]\d|2[0-3])((:?)[0-5]\d)?|24\:?00)([\.,]\d+(?!:))?)?(\17[0-5]\d([\.,]\d+)?)?([zZ]|([\+-])([01]\d|2[0-3]):?([0-5]\d)?)?)?)?$/;
 
         static  toArray(o) {
@@ -3440,6 +3434,9 @@ module Helios {
         static parseValue(val:any):any {
             var numResult = validNumeric.exec(val);
             if (numResult != null) {
+                if(!!numResult[2]){
+                    return parseFloat(numResult[1].replace(numResult[2].charAt(0),''));
+                }
                 return parseFloat(numResult[1]);
             }
             if(Utils.isBoolean(val)){
