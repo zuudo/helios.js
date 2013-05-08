@@ -1,5 +1,3 @@
-var expect = chai.expect;
-
 describe('Filter', function() {
 
     describe('index => [i]', function() {
@@ -184,6 +182,4 @@ describe('Filter', function() {
             expect(result).to.be.an('array').with.deep.property('[0]', 29);
         });
     });
-
-    
 });

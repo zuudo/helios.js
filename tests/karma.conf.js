@@ -3,24 +3,23 @@
 
 
 // base path, that will be used to resolve files and exclude
-basePath = '../';
+basePath = '../../';
 
 
 // list of files / patterns to load in the browser
 files = [
   MOCHA,
   MOCHA_ADAPTER,
-  'tests/chai.js',
-  'lib/sax.js',
-  'lib/moment.min.js',
-  'lib/heliosDB.js',
-  'tests/*.js'
+  'helios/tests/chai.js',
+  'helios/lib/sax.js',
+  'helios/lib/heliosDB.js',
+  'helios/tests/*.js'
 ];
 
 
 // list of files to exclude
 exclude = [
-  'tests/karma.conf.js'
+  'helios/tests/karma.conf.js'
 ];
 
 

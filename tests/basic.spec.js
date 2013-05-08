@@ -7,12 +7,12 @@ before(function(){
       "graph": {
         "mode":"NORMAL",
         "vertices":[
-          {"name":"marko","age":29,"_id":1,"_type":"vertex"},
-          {"name":"vadas","age":27,"_id":2,"_type":"vertex"},
+          {"name":"marko","age":29,"_id":1,"_type":"vertex", "dow":["mon", "tue"], "dob":"1984-05-05", "active":true, "salary":"$120,000", "device":{"qty":3,"mobile":{"phone":["iphone", "samsung"], "tablet":["galaxy"]}}},
+          {"name":"vadas","age":27,"_id":2,"_type":"vertex", "dow":["mon", "wed", "thu"], "dob":"1986-03-12", "active":false, "salary":"$100,000", "device":{"qty":1,"mobile":{"phone":["iphone"]}}},
           {"name":"lop","lang":"java","_id":3,"_type":"vertex"},
-          {"name":"josh","age":32,"_id":4,"_type":"vertex"},
+          {"name":"josh","age":32,"_id":4,"_type":"vertex", "dow":["fri"], "dob":"1981-09-01T00:00:00.000Z", "active":true, "salary":"$80,000", "device":{"qty":2,"mobile":{"phone":["iphone"], "tablet":["ipad"]}}},
           {"name":"ripple","lang":"java","_id":5,"_type":"vertex"},
-          {"name":"peter","age":35,"_id":6,"_type":"vertex"}
+          {"name":"peter","age":35,"_id":6,"_type":"vertex", "dow":["mon","fri"], "dob":"1978-12-13", "active":true, "salary":"$70,000", "device":{"qty":2,"mobile":{"phone":["iphone"], "tablet":["ipad"]}}}
         ],
         "edges":[
           {"weight":0.5,"_id":7,"_type":"edge","_outV":1,"_inV":2,"_label":"knows"},

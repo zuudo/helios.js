@@ -2668,7 +2668,6 @@ module Helios {
 
         export class Compare {
             //comparables
-
             static $eq(objVal:any, val:any):bool {
 
                 var objValIsArray:bool = Utils.isArray(objVal),
@@ -2682,7 +2681,6 @@ module Helios {
                         || (Utils.isBoolean(val) && Utils.isBoolean(objVal[index]))
                         || (!(Utils.isDate(objVal[index]) || Utils.isBoolean(objVal[index]))))
                         && (Utils.parseValue(objVal[index]) === Utils.parseValue(val))) {
-
                         return true;
                     }
                 }
@@ -2705,7 +2703,6 @@ module Helios {
                         || (Utils.isBoolean(val) && Utils.isBoolean(objVal[index]))
                         || (!(Utils.isDate(objVal[index]) || Utils.isBoolean(objVal[index]))))
                         && (Utils.parseValue(objVal[index]) < Utils.parseValue(val))) {
-
                         return true;
                     }
                 }
@@ -2724,7 +2721,6 @@ module Helios {
                         || (Utils.isBoolean(val) && Utils.isBoolean(objVal[index]))
                         || (!(Utils.isDate(objVal[index]) || Utils.isBoolean(objVal[index]))))
                         && (Utils.parseValue(objVal[index]) <= Utils.parseValue(val))) {
-
                         return true;
                     }
                 }
@@ -2743,39 +2739,6 @@ module Helios {
             static $btw(objVal:any, val:any[]):bool {
                 return Compare.$gte(objVal, val[0]) && Compare.$lte(objVal, val[1]);
             }
-
-            // static $type(objVal:any, val:string[]):bool {
-
-            //     var objValIsArray:bool = Utils.isArray(objVal),
-            //         index:number,
-            //         i:number = 0,
-            //         valLen:number = val.length,
-            //         comp:string;
-
-            //     index = val.length;
-            //     while (index) {
-            //         --index;
-            //         comp = val[index].toLowerCase()
-            //         if (comp == 'number' && !Utils.isDate(objVal) && !Utils.isMoney(objVal) && !Utils.isBoolean(objVal) && Utils.isNumber(Utils.parseNumber(objVal))) {
-            //             return true;
-            //         } else if (comp == 'money' && Utils.isMoney(objVal)) {
-            //             return true;
-            //         } else if (comp == 'string' && !Utils.isDate(objVal) && !Utils.isMoney(objVal) && !Utils.isBoolean(objVal) && Utils.isString(Utils.parseNumber(objVal))) {
-            //             return true;
-            //         } else if (comp == 'array' && Utils.isArray(objVal)) {
-            //             return true;
-            //         } else if (comp == 'date' && Utils.isDate(objVal)) {
-            //             return true;
-            //         } else if (comp == 'bool' && Utils.isBoolean(objVal)) {
-            //             return true;
-            //         }
-            //     }
-            //     return false;
-            // }
-
-            // static $notType(objVal:any, val:string[]):bool {
-            //     return !Compare.$type(objVal, val);
-            // }
 
             static $len(objVal:any, val:any):bool {
                 var len = objVal.length;
@@ -2876,9 +2839,9 @@ module Helios {
             }
 
             //Array comparator
-            static $none(objVal:any[], val:any[]):bool {
-                return !Compare.$all(objVal, val);
-            }
+            static $notExact(objVal:any[], val:any[]):bool {
+                return !Compare.$exact(objVal, val);
+            }            
 
             //Array comparator
             static $exact(objVal:any[], val:any[]):bool {
@@ -3398,7 +3361,7 @@ module Helios {
         }
 
         static isDate(o:any):bool {
-            return !(new Date(o).toString() === 'Invalid Date');
+            return Utils.isString(o) && !(new Date(o).toString() === 'Invalid Date');
         }
 
         static isMoney(val:any):bool {
