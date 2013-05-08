@@ -136,14 +136,6 @@ module Helios {
 
         traceEnabled:bool;
 
-        date:{
-            format:any;// = "DD/MM/YYYY"; //can be array
-        };
-        currency:{
-            symbol:any;//can be array
-            decimal:string;
-        };
-
         meta:{
             id:string;
             label:string;
@@ -176,19 +168,6 @@ module Helios {
         _:Mogwai.Pipeline;
 
         traceEnabled:bool = false;
-        date:{
-            format:any;//can be array
-        } = {
-            format: "DD/MM/YYYY"
-        };
-
-        currency:{
-            symbol:any;//can be array
-            decimal:string;
-        } = {
-            symbol: '$',
-            decimal: '.'
-        };
 
         meta:{
             id:string;
@@ -2786,6 +2765,8 @@ module Helios {
                     } else if (comp == 'array' && Utils.isArray(objVal)) {
                         return true;
                     } else if (comp == 'date' && Utils.isDate(objVal)) {
+                        return true;
+                    } else if (comp == 'bool' && Utils.isBoolean(objVal)) {
                         return true;
                     }
                 }

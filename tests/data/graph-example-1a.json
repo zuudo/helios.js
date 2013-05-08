@@ -2,12 +2,12 @@
   "graph": {
     "mode":"NORMAL",
     "vertices":[
-      {"name":"marko","age":29,"_id":1,"_type":"vertex", "dow":["mon", "tue"]},
-      {"name":"vadas","age":27,"_id":2,"_type":"vertex", "dow":["mon", "wed", "thu"]},
+      {"name":"marko","age":29,"_id":1,"_type":"vertex", "dow":["mon", "tue"], "DOB":"1984-05-05", "active":true},
+      {"name":"vadas","age":27,"_id":2,"_type":"vertex", "dow":["mon", "wed", "thu"], "DOB":"1986-03-12", "active":false},
       {"name":"lop","lang":"java","_id":3,"_type":"vertex"},
-      {"name":"josh","age":32,"_id":4,"_type":"vertex", "dow":["fri"]},
+      {"name":"josh","age":32,"_id":4,"_type":"vertex", "dow":["fri"], "DOB":"1981-09-01", "active":true},
       {"name":"ripple","lang":"java","_id":5,"_type":"vertex"},
-      {"name":"peter","age":35,"_id":6,"_type":"vertex", "dow":["mon","fri"]}
+      {"name":"peter","age":35,"_id":6,"_type":"vertex", "dow":["mon","fri"], "DOB":"1978-12-13", "active":true}
     ],
     "edges":[
       {"weight":0.5,"_id":7,"_type":"edge","_outV":1,"_inV":2,"_label":"knows"},

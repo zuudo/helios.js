@@ -2,7 +2,7 @@ var Helios;
 (function (Helios) {
     var GraphDatabase = (function () {
         function GraphDatabase(options) {
-            this.worker = new Worker('./lib/heliosDB.js');
+            this.worker = new Worker('./helios/lib/heliosDB.js');
             this.db = Q_COMM.Connection(this.worker, null, {
                 max: 1024
             });
