@@ -2870,7 +2870,8 @@ module Helios {
                 return matchCnt == valLen;
             }
 
-            static $hasAny(obj:{}, val:string[]):bool {
+            //Element comparable
+            static $has(obj:{}, val:string[]):bool {
                 var i:number = val.length,
                     tempObj:{},
                     tempProp:string;
@@ -2890,34 +2891,35 @@ module Helios {
                 return false;
             }
 
-            static $hasAll(obj:{}, val:string[]):bool {
-                var i:number = val.length,
-                    matchCnt:number = 0,
-                    tempObj:{},
-                    tempProp:string;
+            // static $hasAll(obj:{}, val:string[]):bool {
+            //     var i:number = val.length,
+            //         matchCnt:number = 0,
+            //         tempObj:{},
+            //         tempProp:string;
 
-                while (!!i) {
-                    --i;
-                    tempObj = obj;
-                    tempProp = val[i];
-                    if (tempProp.indexOf(".") > -1) {
-                        tempObj = Utils.embeddedObject(tempObj, tempProp);
-                        tempProp = tempProp.split(".").slice(-1)[0];
-                    }
-                    if (tempObj.hasOwnProperty(tempProp)) {
-                        matchCnt++;
-                    }
-                }
-                return matchCnt == val.length;
+            //     while (!!i) {
+            //         --i;
+            //         tempObj = obj;
+            //         tempProp = val[i];
+            //         if (tempProp.indexOf(".") > -1) {
+            //             tempObj = Utils.embeddedObject(tempObj, tempProp);
+            //             tempProp = tempProp.split(".").slice(-1)[0];
+            //         }
+            //         if (tempObj.hasOwnProperty(tempProp)) {
+            //             matchCnt++;
+            //         }
+            //     }
+            //     return matchCnt == val.length;
+            // }
+
+            //Element comparable
+            static $hasNot(obj:{}, val:string[]):bool {
+                return !$has(obj, val);
             }
 
-            static $notAny(obj:{}, val:string[]):bool {
-                return !$hasAny(obj, val);
-            }
-
-            static $notAll(obj:{}, val:string[]):bool {
-                return !$hasAll(obj, val);
-            }
+            // static $notAll(obj:{}, val:string[]):bool {
+            //     return !$hasAll(obj, val);
+            // }
 
         }
 
