@@ -1,5 +1,3 @@
-/// <reference path="moment.d.ts" />
-/// <reference path="helios.d.ts" />
 module Helios {
     interface IGraph {
         vertices: {};
