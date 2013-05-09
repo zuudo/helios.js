@@ -683,7 +683,7 @@ module Helios {
                                     for (var func in funcObj) {
                                         if (funcObj.hasOwnProperty(func)) {
                                             //array comparables require the whole array for comparn
-                                            if (Utils.include(['$exact', '$none', '$all'], func)) {
+                                            if (Utils.include(['$matches', '$every'], func)) {
                                                 item = items[m];
                                                 for (var it in item) {
                                                     if (item.hasOwnProperty(it)) {
@@ -817,7 +817,7 @@ module Helios {
                                     for (var func in funcObj) {
                                         if (funcObj.hasOwnProperty(func)) {
                                             //array comparables require the whole array for comparison
-                                            if (Utils.include(['$exact', '$none', '$all'], func)) {
+                                            if (Utils.include(['$matches', '$every'], func)) {
                                                 item = items[m];
                                                 for (var it in item) {
                                                     if (item.hasOwnProperty(it)) {
@@ -2748,7 +2748,7 @@ module Helios {
                 return eval(len + /^\s*(?:<|>)\=*\s*\d+|^\s*(?:!|=)\={1,2}\s*\d/.exec(val)[0]);
             }
 
-            static $in(objVal:any, val:any[]):bool {
+            static $includes(objVal:any, val:any[]):bool {
 
                 var objValIsArray:bool = Utils.isArray(objVal),
                     index:number,
@@ -2774,8 +2774,8 @@ module Helios {
                 return false;
             }
 
-            static $nin(objVal:any, val:any[]):bool {
-                return !Compare.$in(objVal, val);
+            static $excludes(objVal:any, val:any[]):bool {
+                return !Compare.$includes(objVal, val);
             }
 
             /* use $match for
@@ -2784,8 +2784,8 @@ module Helios {
               - contains
               - notContains
             */
-            //$match => takes either a string or regex or array of strings and/or regex's 
-            static $match(objVal:any, val:string[]):bool {
+            //$like => takes either a string or regex or array of strings and/or regex's 
+            static $like(objVal:any, val:string[]):bool {
                 var objValIsArray:bool = Utils.isArray(objVal),
                     index:number,
                     i:number = 0,
@@ -2807,9 +2807,9 @@ module Helios {
             }
 
             //Array comparator
-            static $all(objVal:any[], val:any[]):bool {
+            static $every(objVal:any[], val:any[]):bool {
 
-                var matches:number = 0,
+                var matchCnt:number = 0,
                     index:number = 0,
                     i:number = 0,
                     valLen:number = 0;
@@ -2830,23 +2830,18 @@ module Helios {
                                 || (!(Utils.isDate(objVal[index]) || Utils.isBoolean(objVal[index]))))
                                 && (Utils.parseValue(objVal[index]) === Utils.parseValue(val[i]))) {
 
-                                matches++;
+                                matchCnt++;
                             }
                         }
                     }
                 }
-                return matches == valLen;
-            }
+                return matchCnt == valLen;
+            }      
 
             //Array comparator
-            static $notExact(objVal:any[], val:any[]):bool {
-                return !Compare.$exact(objVal, val);
-            }            
+            static $matches(objVal:any[], val:any[]):bool {
 
-            //Array comparator
-            static $exact(objVal:any[], val:any[]):bool {
-
-                var matches:number = 0,
+                var matchCnt:number = 0,
                     index:number = 0,
                     i:number = 0,
                     valLen:number = 0;
@@ -2867,12 +2862,12 @@ module Helios {
                                 || (!(Utils.isDate(objVal[index]) || Utils.isBoolean(objVal[index]))))
                                 && (Utils.parseValue(objVal[index]) === Utils.parseValue(val[i]))) {
 
-                                matches++;
+                                matchCnt++;
                             }
                         }
                     }
                 }
-                return matches == valLen;
+                return matchCnt == valLen;
             }
 
             static $hasAny(obj:{}, val:string[]):bool {
@@ -2897,7 +2892,7 @@ module Helios {
 
             static $hasAll(obj:{}, val:string[]):bool {
                 var i:number = val.length,
-                    matches:number = 0,
+                    matchCnt:number = 0,
                     tempObj:{},
                     tempProp:string;
 
@@ -2910,10 +2905,10 @@ module Helios {
                         tempProp = tempProp.split(".").slice(-1)[0];
                     }
                     if (tempObj.hasOwnProperty(tempProp)) {
-                        matches++;
+                        matchCnt++;
                     }
                 }
-                return matches == val.length;
+                return matchCnt == val.length;
             }
 
             static $notAny(obj:{}, val:string[]):bool {
@@ -2930,7 +2925,7 @@ module Helios {
 
     class Utils {
         /*
-        //Currency regex => accepts decimal or comma separators
+        //Currency regex => accepts comma separators
 
         validCurrency.exec('$100,123,456,789.51')
         
