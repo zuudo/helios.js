@@ -2748,7 +2748,7 @@ module Helios {
                 return eval(len + /^\s*(?:<|>)\=*\s*\d+|^\s*(?:!|=)\={1,2}\s*\d/.exec(val)[0]);
             }
 
-            static $includes(objVal:any, val:any[]):bool {
+            static $in(objVal:any, val:any[]):bool {
 
                 var objValIsArray:bool = Utils.isArray(objVal),
                     index:number,
@@ -2774,8 +2774,8 @@ module Helios {
                 return false;
             }
 
-            static $excludes(objVal:any, val:any[]):bool {
-                return !Compare.$includes(objVal, val);
+            static $ex(objVal:any, val:any[]):bool {
+                return !Compare.$in(objVal, val);
             }
 
             /* use $match for
@@ -2839,7 +2839,7 @@ module Helios {
             }      
 
             //Array comparator
-            static $matches(objVal:any[], val:any[]):bool {
+            static $match(objVal:any[], val:any[]):bool {
 
                 var matchCnt:number = 0,
                     index:number = 0,
