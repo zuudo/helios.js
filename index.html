@@ -703,7 +703,7 @@ heliosjs&gt; g.V().retain(x)
 </p>
 <hr>
 
-<!--<h3 id='filter/where'>where(comparator:{}[])</h3 id='filter/where'>
+<h3 id='filter/where'>where(comparator:{}[])</h3 id='filter/where'>
 <p>Emit only incoming objects that meet the specified criteria of the comparator.
 
 </p>
@@ -719,59 +719,213 @@ heliosjs&gt; g.V().retain(x)
         </ul>
         <p>and could even be used instead of the <code>filter</code> step.</p>
         <h4>Comparator Selectors</h4>
-        
-        <h5>Comparisons</h5>
+        <p>Comparators are Object literals. In order to use comparators you create an object literal and use the key value that you would like to match as the key of the object. The value of this property is the comparator object. For example, to find an element where 'name' is equal to 'marko', you would pass in the following:</p>
+        <pre><code class="text">{name:{$eq:'marko'}}</code></pre>
+
+        <p>If a specified property does not exist in the element, the element is ignored and not included in the results.</p>
+        <p>All comparator selectors are able to access object properties, as well as embedded object properties. Use the 'dot' notation to access embedded properties, ensuring that the key is a string.</p>
+        <h5>Comparison</h5>
+        <p>Comparison selectors work with values and arrays.</p>
         <h6>$eq</h6>
-        
-        <ul>
-          <li>$eq</li>
-          <li>$neq</li>
-          <li>$lt</li>
-          <li>$lte</li>
-          <li>$gt</li>
-          <li>$gte</li>
-          <li>$btw</li>
-          <li>$type</li>
-          <li>$notType</li>
-          <li>$match</li>
-          <li>$in</li>
-          <li>$nin</li>
-</ul>
-          <h5>Array</h5>
-          <ul>
-          <li>$all</li>
-          <li>$none</li>
-          <li>$exact</li>
-          <li>$len</li>
-
-        </ul>
-        <h5>Logical</h5>
-         <ul>
-          <li>and</li>
-          <li>or</li>
-          <li>not</li>
-          <li>nor</li>
-        </ul>
-          <h5>Element</h5>
-          <ul>
-          <li>$hasAny</li>
-          <li>$hasAll</li>
-          <li>$notAny</li>
-          <li>$notAll</li>
-          </ul>
-<pre><code class="text">heliosjs&gt;
+        <p>Takes a single argument and matches values equal to the value specified.</p>
+        <pre><code class="text">heliosjs&gt; g.v().where({name:{$eq:'marko'}})
 <em>output:</em>
+[{"name":"marko","age":29,"_id":1,"_type":"vertex"}]</code></pre>
 
-
-heliosjs&gt;
+        <h6>$neq</h6>
+        <p>Takes a single argument and matches values not equal to the value specified.</p>
+<pre><code class="text">heliosjs&gt; g.v().where({name:{$neq:'marko'}})
 <em>output:</em>
+[{"name":"vadas","age":27,"_id":2,"_type":"vertex"},
+{"name":"lop","lang":"java","_id":3,"_type":"vertex"},
+{"name":"josh","age":32,"_id":4,"_type":"vertex"},
+{"name":"ripple","lang":"java","_id":5,"_type":"vertex"},
+{"name":"peter","age":35,"_id":6,"_type":"vertex"}]
+
+heliosjs&gt; g.v().where({name:{$neq:29}})
+<em>output:</em>
+[{"name":"vadas","age":27,"_id":2,"_type":"vertex"},
+{"name":"josh","age":32,"_id":4,"_type":"vertex"},
+{"name":"peter","age":35,"_id":6,"_type":"vertex"}]</code></pre>
+
+        <h6>$lt</h6>
+        <p>Takes a single argument and matches values less than to the value specified.</p>
+        <pre><code class="text">heliosjs&gt; g.v().where({name:{$lt:29}})
+<em>output:</em>
+[{"name":"vadas","age":27,"_id":2,"_type":"vertex"}]</code></pre>
+        <h6>$lte</h6>
+        <p>Takes a single argument and matches values less than or equal to to the value specified.</p>
+                <pre><code class="text">heliosjs&gt; g.v().where({name:{$lte:29}})
+<em>output:</em>
+[{"name":"marko","age":29,"_id":1,"_type":"vertex"},
+{"name":"vadas","age":27,"_id":2,"_type":"vertex"}]</code></pre>
+        <h6>$gt</h6>
+        <p>Takes a single argument and matches values greater than to the value specified.</p>
+        <pre><code class="text">heliosjs&gt; g.v().where({name:{$gt:29}})
+<em>output:</em>
+[{"name":"josh","age":32,"_id":4,"_type":"vertex"},
+{"name":"peter","age":35,"_id":6,"_type":"vertex"}]</code></pre>
+        <h6>$gte</h6>
+        <p>Takes a single argument and matches values greater than equal to the value specified.</p>
+        <pre><code class="text">heliosjs&gt; g.v().where({name:{$gte:29}})
+<em>output:</em>
+[{"name":"marko","age":29,"_id":1,"_type":"vertex"},
+{"name":"josh","age":32,"_id":4,"_type":"vertex"},
+{"name":"peter","age":35,"_id":6,"_type":"vertex"}]</code></pre>
+        <h6>$btw</h6>
+        <p>Takes an array argument with a length of 2 and matches values between and inclusive of the values specified. <em>i.e. [from, to]</em> </p>
+        <pre><code class="text">heliosjs&gt; g.v().where({name:{$btw:[29,32]}})
+<em>output:</em>
+[{"name":"marko","age":29,"_id":1,"_type":"vertex"},
+{"name":"josh","age":32,"_id":4,"_type":"vertex"}]</code></pre>
+        <h6>$in</h6>
+        <p>Takes either a single argument or an array of values and matches values equal to the values specified.</p>
+        <pre><code class="text">heliosjs&gt; g.v().where({name:{$in:[29,35]}})
+<em>output:</em>
+[{"name":"marko","age":29,"_id":1,"_type":"vertex"},
+{"name":"peter","age":35,"_id":6,"_type":"vertex"}]</code></pre>
+        <h6>$ex</h6>
+        <p>Takes either a single argument or an array of values and matches values not equal to the values specified.</p>
+<pre><code class="text">heliosjs&gt; g.v().where({name:{$ex:[29,35]}})
+<em>output:</em>
+[{"name":"vadas","age":27,"_id":2,"_type":"vertex"},
+{"name":"josh","age":32,"_id":4,"_type":"vertex"}]</code></pre>
+        <h6>$like</h6>
+        <p>Takes either a single regex argument or an array of regex values and matches values based on the values specified.</p>
+<pre><code class="text">heliosjs&gt; g.v().where({name:{$like:'ma'}})
+<em>output:</em>
+[{"name":"marko","age":29,"_id":1,"_type":"vertex"}]
+
+heliosjs&gt; g.v().where({name:{$like:['ete','das$']}})
+<em>output:</em>
+[{"name":"vadas","age":27,"_id":2,"_type":"vertex"},
+{"name":"peter","age":35,"_id":6,"_type":"vertex"}]
 </code></pre>
+        <h6>$startsWith</h6>
+        <p>Takes a single argument and matches values starting with the values specified.</p>
+        <pre><code class="text">heliosjs&gt; g.v().where({name:{$startsWith:'ma'}})
+<em>output:</em>
+[{"name":"marko","age":29,"_id":1,"_type":"vertex"}]</code></pre>
+        <h6>$endsWith</h6>
+        <p>Takes a single argument and matches values ending with the values specified.</p>
+        <pre><code class="text">heliosjs&gt; g.v().where({name:{$endsWith:'das'}})
+<em>output:</em>
+[{"name":"vadas","age":27,"_id":2,"_type":"vertex"}]</code></pre>
+        <h5>Array</h5>
+        <p>Array selectors work with arrays.</p>
+        <p>I have added some test data for these examples. You can find example data <a href="https://github.com/entrendipity/helios.js/blob/master/tests/data/graph-example-1a.json">here</a>.</p>
+          <h6>$all</h6>
+          <p>Takes an array of values and matches values if all values specified are contained in an array.</p>
+<pre><code class="text">heliosjs&gt; g.v().where({dow:{$all:['mon','wed']}})
+<em>output:</em>
+[{"name":"marko","age":29,"_id":1,"_type":"vertex","dow":["mon","tue","wed"],"dob":"1984-05-05","active":true,"budget":"$120,000","device":{"qty":3,"mobile":{"phone":["iphone","samsung"],"tablet":["galaxy"]}}},
+{"name":"vadas","age":27,"_id":2,"_type":"vertex","dow":["mon","wed"],"dob":"1986-03-12","active":false,"budget":"$100,000","device":{"qty":1,"mobile":{"phone":["iphone"]}}}]</code></pre>
+          <h6>$match</h6>
+          <p>Takes an array of values and matches values if the target array has exactly the same values.</p>
+<pre><code class="text">heliosjs&gt; g.v().where({dow:{$match:['mon','wed']}})
+<em>output:</em>
+[{"name":"marko","age":29,"_id":1,"_type":"vertex","dow":["mon","tue","wed"],"dob":"1984-05-05","active":true,"budget":"$120,000","device":{"qty":3,"mobile":{"phone":["iphone","samsung"],"tablet":["galaxy"]}}}]</code></pre>
+          <h6>$len</h6>
+          <p>Takes an integer or string comparison value and matches arrays that have a length the matches the value specified.</p>
+          <pre><code class="text">heliosjs&gt; g.v().where({dow:{$len:2}})
+<em>output:</em>
+[{"name":"vadas","age":27,"_id":2,"_type":"vertex","dow":["mon","wed"],"dob":"1986-03-12","active":false,"budget":"$100,000","device":{"qty":1,"mobile":{"phone":["iphone"]}}},
+{"name":"peter","age":35,"_id":6,"_type":"vertex","dow":["mon","fri"],"dob":"1978-12-13","active":true,"budget":"$70,000","device":{"qty":2,"mobile":{"phone":["iphone"],"tablet":["ipad"]}}}]
+
+heliosjs&gt; g.v().where({dow:{$len:'=2'}})
+<em>output:</em>
+[{"name":"vadas","age":27,"_id":2,"_type":"vertex","dow":["mon","wed"],"dob":"1986-03-12","active":false,"budget":"$100,000","device":{"qty":1,"mobile":{"phone":["iphone"]}}},
+{"name":"peter","age":35,"_id":6,"_type":"vertex","dow":["mon","fri"],"dob":"1978-12-13","active":true,"budget":"$70,000","device":{"qty":2,"mobile":{"phone":["iphone"],"tablet":["ipad"]}}}]
+
+heliosjs&gt; g.v().where({dow:{$len:'== 2'}})
+<em>output:</em>
+[{"name":"vadas","age":27,"_id":2,"_type":"vertex","dow":["mon","wed"],"dob":"1986-03-12","active":false,"budget":"$100,000","device":{"qty":1,"mobile":{"phone":["iphone"]}}},
+{"name":"peter","age":35,"_id":6,"_type":"vertex","dow":["mon","fri"],"dob":"1978-12-13","active":true,"budget":"$70,000","device":{"qty":2,"mobile":{"phone":["iphone"],"tablet":["ipad"]}}}]
+
+heliosjs&gt; g.v().where({dow:{$len:'>2'}})
+<em>output:</em>
+[{"name":"marko","age":29,"_id":1,"_type":"vertex","dow":["mon","tue","wed"],"dob":"1984-05-05","active":true,"budget":"$120,000","device":{"qty":3,"mobile":{"phone":["iphone","samsung"],"tablet":["galaxy"]}}}]
+
+heliosjs&gt; g.v().where({dow:{$len:'>= 2'}})
+<em>output:</em>
+[{"name":"marko","age":29,"_id":1,"_type":"vertex","dow":["mon","tue","wed"],"dob":"1984-05-05","active":true,"budget":"$120,000","device":{"qty":3,"mobile":{"phone":["iphone","samsung"],"tablet":["galaxy"]}}},
+{"name":"vadas","age":27,"_id":2,"_type":"vertex","dow":["mon","wed"],"dob":"1986-03-12","active":false,"budget":"$100,000","device":{"qty":1,"mobile":{"phone":["iphone"]}}},
+{"name":"peter","age":35,"_id":6,"_type":"vertex","dow":["mon","fri"],"dob":"1978-12-13","active":true,"budget":"$70,000","device":{"qty":2,"mobile":{"phone":["iphone"],"tablet":["ipad"]}}}]</code></pre>
+        <h5>Logical</h5>
+        The Logical selectors operate implicitly.
+        <h6>AND</h6>
+        Everything that is contained in a Comparator object is compared with AND logic. For example: If I wanted all elements with the name == marko AND age == 29, I would write the following:
+        <pre><code>{ 
+ name:{$eq:'marko'}, 
+ age:{$eq:29}
+}</code></pre>
+
+<pre><code class="text">heliosjs&gt; g.v().where({name:{$eq:'marko'}, age:{$eq:29}})
+<em>output:</em>
+[{"name":"marko","age":29,"_id":1,"_type":"vertex"}]</code></pre>
+
+<h6>OR</h6>
+        Subsequent Comparator objects are compared with OR logic. For example: If I wanted all elements with the name == marko OR name == vadas, I would write the following:
+<pre><code> {name:{$eq:'marko'}},
+ {name:{$eq:'vadas'}}
+</code></pre>
+
+<pre><code class="text">heliosjs&gt; g.v().where({name:{$eq:'marko'}},{name:{$eq:'vadas'}})
+<em>output:</em>
+[{"name":"marko","age":29,"_id":1,"_type":"vertex"},
+{"name":"vadas","age":27,"_id":2,"_type":"vertex"}]
+
+heliosjs&gt; g.v().where([{name:{$eq:'marko'}},{age:{$gt:'30'}}])
+<em>output:</em>
+[{"name":"marko","age":29,"_id":1,"_type":"vertex"},
+{"name":"josh","age":32,"_id":4,"_type":"vertex"},
+{"name":"peter","age":35,"_id":6,"_type":"vertex"}]</code></pre>
+
+<h6>NOT</h6>
+<p>NOT logic is handled by the inverse operators already explained above. For intance, the inverse operator for $eq is $neq.</p>
+<h6>NOR - $nor</h6>
+<p>NOR needs to be explicitly declared, so gets it's own operator ($nor). NOR returns elements that fail to meet all clauses. To use $nor, you create an object literal that holds an array of regular comparator expressions.</p>
+
+<pre><code> {$nor:[{name:{$eq:'marko'}},{name:{$eq:'vadas'}}] }</code></pre>
+
+<pre><code class="text">heliosjs&gt; g.v().where({$nor:[{name:{$eq:'marko'}},{name:{$eq:'vadas'}}]})
+<em>output:</em>
+[{"name":"lop","lang":"java","_id":3,"_type":"vertex"},
+{"name":"josh","age":32,"_id":4,"_type":"vertex"},
+{"name":"ripple","lang":"java","_id":5,"_type":"vertex"},
+{"name":"peter","age":35,"_id":6,"_type":"vertex"}]</code></pre>
+
+          <h5>Element</h5>
+          <p>Element selectors work with Element properties. However, they do not work in conjunction with the Comparators specified above.</p>
+          <h6>$has</h6>
+          <p>Takes an array of key values and matches objects which contain any of the key values specified.</p>
+        <pre><code class="text">heliosjs&gt; g.v().where({$has:['lang']})
+<em>output:</em>
+[{"name":"lop","lang":"java","_id":3,"_type":"vertex"},
+{"name":"ripple","lang":"java","_id":5,"_type":"vertex"}]
+
+heliosjs&gt; g.v().where({$has:['age', 'name']})
+<em>output:</em>
+[{"name":"marko","age":29,"_id":1,"_type":"vertex"},
+{"name":"vadas","age":27,"_id":2,"_type":"vertex"},
+{"name":"lop","lang":"java","_id":3,"_type":"vertex"},
+{"name":"josh","age":32,"_id":4,"_type":"vertex"},
+{"name":"ripple","lang":"java","_id":5,"_type":"vertex"},
+{"name":"peter","age":35,"_id":6,"_type":"vertex"}]</code></pre>
+
+<h6>$hasNot</h6>
+          <p>Takes an array of key values and matches objects which do not contain any of the key values specified.</p>
+        <pre><code class="text">heliosjs&gt; g.v().where({$hasNot:['age']})
+<em>output:</em>
+[{"name":"lop","lang":"java","_id":3,"_type":"vertex"},
+{"name":"ripple","lang":"java","_id":5,"_type":"vertex"}]</code></pre>
+
 <p><a href="#">top</a>
 
 </p>
 <hr>
 
-<h3 id='transform/cap'>cap</h3 id='transform/cap'>
+<!--<h3 id='transform/cap'>cap</h3 id='transform/cap'>
 <p>Gets the side-effect of the pipe prior.  In other words, it emits the value of the previous step and not the values that flow through it.
 
 </p>
