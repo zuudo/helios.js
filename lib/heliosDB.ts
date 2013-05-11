@@ -683,7 +683,7 @@ module Helios {
                                     for (var func in funcObj) {
                                         if (funcObj.hasOwnProperty(func)) {
                                             //array comparables require the whole array for comparn
-                                            if (Utils.include(['$matches', '$every'], func)) {
+                                            if (Utils.include(['$match', '$all'], func)) {
                                                 item = items[m];
                                                 for (var it in item) {
                                                     if (item.hasOwnProperty(it)) {
@@ -817,7 +817,7 @@ module Helios {
                                     for (var func in funcObj) {
                                         if (funcObj.hasOwnProperty(func)) {
                                             //array comparables require the whole array for comparison
-                                            if (Utils.include(['$matches', '$every'], func)) {
+                                            if (Utils.include(['$match', '$all'], func)) {
                                                 item = items[m];
                                                 for (var it in item) {
                                                     if (item.hasOwnProperty(it)) {
@@ -1809,7 +1809,7 @@ module Helios {
                         for (var prop in compObj) {
                             isIn = false;
                             if (compObj.hasOwnProperty(prop)) {
-                                //$has, $hasNot, $hasAll & $hasNone
+                                //$has, $hasNot
                                 if (prop.charAt(0) === "$") {
                                     propVals = compObj[prop];
                                     if (!Compare[prop].call(null, element.obj, propVals)) {
@@ -2753,9 +2753,11 @@ module Helios {
                 var objValIsArray:bool = Utils.isArray(objVal),
                     index:number,
                     i:number = 0,
-                    valLen:number = val.length;
+                    valLen:number;
 
                 objVal = objValIsArray ? Utils.unique(objVal) : [objVal];
+                val = Utils.flatten([val]);
+                valLen = val.length;
                 index = objVal.length;
                 while (index) {
                     --index;
@@ -2789,9 +2791,11 @@ module Helios {
                 var objValIsArray:bool = Utils.isArray(objVal),
                     index:number,
                     i:number = 0,
-                    valLen:number = val.length;
+                    valLen:number;
 
                 objVal = objValIsArray ? Utils.unique(objVal) : [objVal];
+                val = Utils.flatten([val]);
+                valLen = val.length;
                 index = objVal.length;
                 while (index) {
                     --index;
@@ -2806,8 +2810,40 @@ module Helios {
                 return false;
             }
 
+            //$startsWith => takes either a string or regex or array of strings and/or regex's 
+            static $startsWith(objVal:any, val:string):bool {
+                var objValIsArray:bool = Utils.isArray(objVal),
+                    index:number;
+
+                objVal = objValIsArray ? Utils.unique(objVal) : [objVal];
+                index = objVal.length;
+                while (index) {
+                    --index;
+                    if (Utils.isString(objVal[index]) && !(objVal[index].search('^'+val) === -1)) {
+                        return true;
+                    }
+                }
+                return false;
+            }
+
+            //$endWith => takes either a string or regex or array of strings and/or regex's 
+            static $endsWith(objVal:any, val:string):bool {
+                var objValIsArray:bool = Utils.isArray(objVal),
+                    index:number;
+
+                objVal = objValIsArray ? Utils.unique(objVal) : [objVal];
+                index = objVal.length;
+                while (index) {
+                    --index;
+                    if (Utils.isString(objVal[index]) && !(objVal[index].search(val+'$') === -1)) {
+                        return true;
+                    }
+                }
+                return false;
+            }
+
             //Array comparator
-            static $every(objVal:any[], val:any[]):bool {
+            static $all(objVal:any[], val:any[]):bool {
 
                 var matchCnt:number = 0,
                     index:number = 0,
@@ -2816,7 +2852,6 @@ module Helios {
 
                 val = Utils.unique(val);
                 objVal = Utils.unique(objVal);
-
                 valLen = val.length;
                 index = objVal.length;
                 if (valLen <= index) {
@@ -2872,10 +2907,12 @@ module Helios {
 
             //Element comparable
             static $has(obj:{}, val:string[]):bool {
-                var i:number = val.length,
+                var i:number = 0,
                     tempObj:{},
                     tempProp:string;
 
+                val = Utils.flatten([val]);
+                i = val.length;
                 while (!!i) {
                     --i;
                     tempObj = obj;
@@ -2891,38 +2928,11 @@ module Helios {
                 return false;
             }
 
-            // static $hasAll(obj:{}, val:string[]):bool {
-            //     var i:number = val.length,
-            //         matchCnt:number = 0,
-            //         tempObj:{},
-            //         tempProp:string;
-
-            //     while (!!i) {
-            //         --i;
-            //         tempObj = obj;
-            //         tempProp = val[i];
-            //         if (tempProp.indexOf(".") > -1) {
-            //             tempObj = Utils.embeddedObject(tempObj, tempProp);
-            //             tempProp = tempProp.split(".").slice(-1)[0];
-            //         }
-            //         if (tempObj.hasOwnProperty(tempProp)) {
-            //             matchCnt++;
-            //         }
-            //     }
-            //     return matchCnt == val.length;
-            // }
-
             //Element comparable
             static $hasNot(obj:{}, val:string[]):bool {
                 return !$has(obj, val);
             }
-
-            // static $notAll(obj:{}, val:string[]):bool {
-            //     return !$hasAll(obj, val);
-            // }
-
         }
-
     }
 
     class Utils {
