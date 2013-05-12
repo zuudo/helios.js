@@ -1654,44 +1654,31 @@ module Helios {
             }
 
             //Needs to be optimized
-            order(order?:number):Pipeline;
-            order(func?:() => bool):Pipeline;
-            order(order?:any):Pipeline {
-                //order => if -1 the desc else asc
-                var endPipeArray:any[] = [],
-                    isElement:bool = !!this.endPipe.length && Utils.isElement(this.endPipe[0]),
-                    type:string;
+            order(...prop:{}[]):Pipeline;
+            order(...prop:string[]):Pipeline;
+            order(...prop:any[]):Pipeline {
+                
+                 var tracing:bool = !!this.graph.traceEnabled;
+//                     pipes:any[] = tracing ? [] : undefined,
+//                     pipe:any[],
+//                     array:any[] = [],
+//                     tempObj:{},
+//                     tempProp:string,
+//                     isEmbedded:bool = prop && prop.indexOf(".") > -1,
+//                     isElement:bool = !!this.endPipe.length && Utils.isElement(this.endPipe[0]);
 
-                if (!!order && Utils.isFunction(order)) {
-                    if (isElement) {
-                        type = this.endPipe[0].Type;
-                        endPipeArray = Utils.pluck(this.endPipe, this.graph.meta.id);
-                        endPipeArray.sort(order);
-                        this.endPipe = Utils.materializeElementArray(endPipeArray, this.graph, type);
-                    } else {
-                        this.endPipe.sort(order);
-                    }
-                } else {
-                    if (isElement) {
-                        type = this.endPipe[0].Type;
-                        endPipeArray = Utils.pluck(this.endPipe, this.graph.meta.id);
-                        if (!!parseInt(endPipeArray[0])) {
-                            order == -1 ? endPipeArray.sort(function (a, b) {
-                                return b - a
-                            }) : endPipeArray.sort(function (a, b) {
-                                return a - b
-                            });
-                        } else {
-                            order == -1 ? endPipeArray.reverse() : endPipeArray.sort();
-                        }
-                        this.endPipe = Utils.materializeElementArray(endPipeArray, this.graph, type);
-                    } else {
-                        order == -1 ? this.endPipe.reverse() : this.endPipe.sort();
-                    }
+//                 if(!isElement){
+//                     this.endPipe.sort();
+//                 } else {
+//                     tempProp = isEmbedded ? prop.split(".").slice(-1)[0] : prop;
+
+                this.steps[++this.steps.currentStep] = { func: 'order', args: prop, 'exclFromPath':true };
+                if (tracing) {
+                    this.steps[this.steps.currentStep].elements = [];
+                    push.apply(this.steps[this.steps.currentStep].elements, this.pipeline);
                 }
-
+                this.endPipe.sort(Utils.dynamicSortMultiple(prop));
                 return this;
-
             }
 
             //[i..j] -> range
@@ -2500,17 +2487,17 @@ module Helios {
                 return this;
             }
 
-            store(x:any[], func?:() => any[], ...args:any[]):Pipeline {
+            // store(x:any[], func?:() => any[], ...args:any[]):Pipeline {
 
-                if (!func) {
-                    x.push.apply(x, Utils.toObjArray(this.endPipe));
-                } else {
-                    Utils.each(this.endPipe, function (element) {
-                        x.push(func.apply(element.obj, args));
-                    });
-                }
-                return this;
-            }
+            //     if (!func) {
+            //         x.push.apply(x, Utils.toObjArray(this.endPipe));
+            //     } else {
+            //         Utils.each(this.endPipe, function (element) {
+            //             x.push(func.apply(element.obj, args));
+            //         });
+            //     }
+            //     return this;
+            // }
 
 //            /***************************************************************************************************
 //             Iterate over a specified region of the path
@@ -3122,7 +3109,7 @@ module Helios {
             return indexOf.call(array, i) === -1 ? false : true;
         }
 
-        static  keys(o) {
+        static keys(o) {
             var k, r = [];
             for (k in o) {
                 if (o.hasOwnProperty(k)) {
@@ -3417,6 +3404,65 @@ module Helios {
             }
             //else just return the unchanged string
             return val;
+        }
+
+        static dynamicSort(property:any, modifier?:string = 'default') {
+            var sortOrder:number = 1,
+                tempProp:string,
+                isEmbedded:bool = property.indexOf(".") > -1,
+                modifier:string;
+
+            if(property[0] === "-") {
+                sortOrder = -1;
+                property = property.slice(1);
+            }
+            tempProp = isEmbedded ? property.split(".").slice(-1)[0] : property;
+
+            return function (a,b) {
+                var result:number,
+                    tempObj:{};
+                
+                if(Utils.isElement(a)){
+                    tempObj = isEmbedded ? Utils.embeddedObject(a.obj, property) : a.obj;
+                    if(!(tempProp in tempObj)){
+                        //if property not in obj then push to end
+                        return sortOrder;
+                    }
+                    a = tempObj;
+                }
+                if(Utils.isElement(b)){
+                    b = isEmbedded ? Utils.embeddedObject(b.obj, property) : b.obj;
+                }
+                property = tempProp;
+                switch(modifier)
+                {
+                case 'case-i':
+                  result = (a[property].toUpper() < b[property].toUpper()) ? -1 : (a[property].toUpper() > b[property].toUpper()) ? 1 : 0;
+                  break;
+                case 'case-s':
+                  result = (a[property] < b[property]) ? -1 : (a[property] > b[property]) ? 1 : 0;
+                  break;
+                default:
+                  result = (Utils.parseValue(a[property]) < Utils.parseValue(b[property])) ? -1 : (Utils.parseValue(a[property]) > Utils.parseValue(b[property])) ? 1 : 0;
+                }
+                
+                return result * sortOrder;
+            }
+        }
+
+        static dynamicSortMultiple(props:any[]) {
+            return function (obj1, obj2) {
+                var i = 0, 
+                    result = 0, 
+                    numberOfProperties = props.length,
+                    modifier:string = 'default';
+                //need to cater for passing in object => {'-name':'case-i', age:'default'}
+                while(result === 0 && i < numberOfProperties) {
+                    result = Utils.dynamicSort(props[i], modifier)(obj1, obj2);
+                    i++;
+                }
+                return result;
+            }
         }
     }
 }

@@ -147,6 +147,7 @@ var Helios;
             this.inV = this.add('inV');
             this.outE = this.add('outE');
             this.outV = this.add('outV');
+            this.order = this.add('order');
             this.id = this.add('id');
             this.label = this.add('label');
             this.property = this.add('property');

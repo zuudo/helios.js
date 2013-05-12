@@ -122,6 +122,7 @@ module Helios {
         inV:()=>Pipeline;
         outE:(...labels:string[])=>Pipeline;
         outV:()=>Pipeline;
+        order:(prop?:string, isNumeric?:bool)=>Pipeline;
         where:(...comparables:{}[])=> Pipeline;
         index:(...indices:number[])=> Pipeline;
 	    range:(start:number, end?:number)=> Pipeline;
@@ -153,7 +154,7 @@ module Helios {
 	        this.inV = this.add('inV');
 	        this.outE = this.add('outE');
 	        this.outV = this.add('outV');
-
+	        this.order = this.add('order');
 	        this.id = this.add('id');
 	        this.label = this.add('label');
 	        this.property = this.add('property');
