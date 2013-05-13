@@ -824,7 +824,7 @@ heliosjs&gt; g.v().where({name:{$like:['ete','das$']}})
           <p>Takes an array of values and matches values if the target array has exactly the same values.</p>
 <pre><code class="text">heliosjs&gt; g.v().where({dow:{$match:['mon','wed']}})
 <em>output:</em>
-[{"name":"marko","age":29,"_id":1,"_type":"vertex","dow":["mon","tue","wed"],"dob":"1984-05-05","active":true,"budget":"$120,000","device":{"qty":3,"mobile":{"phone":["iphone","samsung"],"tablet":["galaxy"]}}}]</code></pre>
+[{"name":"vadas","age":27,"_id":2,"_type":"vertex", "dow":["mon", "wed"], "dob":"1986-03-12", "active":false, "budget":"$100,000", "device":{"qty":1,"mobile":{"phone":["iphone"]}}}]</code></pre>
           <h6>$len</h6>
           <p>Takes an integer or string comparison value and matches arrays that have a length the matches the value specified.</p>
           <pre><code class="text">heliosjs&gt; g.v().where({dow:{$len:2}})
