@@ -776,12 +776,12 @@ heliosjs&gt; g.v().where({name:{$like:['ete','das$']}})
 [{"name":"vadas","age":27,"_id":2,"_type":"vertex","dow":["mon","wed"],"dob":"1986-03-12","active":false,"budget":"$100,000","device":{"qty":1,"mobile":{"phone":["iphone"]}}},
 {"name":"peter","age":35,"_id":6,"_type":"vertex","dow":["mon","fri"],"dob":"1978-12-13","active":true,"budget":"$70,000","device":{"qty":2,"mobile":{"phone":["iphone"],"tablet":["ipad"]}}}]
 
-heliosjs&gt; g.v().where({dow:{$len:'=2'}})
+heliosjs&gt; g.v().where({dow:{$len:'==2'}})
 <em>output:</em>
 [{"name":"vadas","age":27,"_id":2,"_type":"vertex","dow":["mon","wed"],"dob":"1986-03-12","active":false,"budget":"$100,000","device":{"qty":1,"mobile":{"phone":["iphone"]}}},
 {"name":"peter","age":35,"_id":6,"_type":"vertex","dow":["mon","fri"],"dob":"1978-12-13","active":true,"budget":"$70,000","device":{"qty":2,"mobile":{"phone":["iphone"],"tablet":["ipad"]}}}]
 
-heliosjs&gt; g.v().where({dow:{$len:'== 2'}})
+heliosjs&gt; g.v().where({dow:{$len:'=== 2'}})
 <em>output:</em>
 [{"name":"vadas","age":27,"_id":2,"_type":"vertex","dow":["mon","wed"],"dob":"1986-03-12","active":false,"budget":"$100,000","device":{"qty":1,"mobile":{"phone":["iphone"]}}},
 {"name":"peter","age":35,"_id":6,"_type":"vertex","dow":["mon","fri"],"dob":"1978-12-13","active":true,"budget":"$70,000","device":{"qty":2,"mobile":{"phone":["iphone"],"tablet":["ipad"]}}}]
