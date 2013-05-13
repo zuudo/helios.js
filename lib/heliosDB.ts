@@ -628,7 +628,7 @@ module Helios {
             return this;
         }
 
-        //Can pass in Object Array, but must have _type = 'vertex' || _type = 'edge'
+        //Can pass in Object Array, but must have _id
         v(...ids:string[]):Mogwai.Pipeline;  //g.v()
         v(...ids:number[]):Mogwai.Pipeline;  //g.v()
         v(...objs:{}[]):Mogwai.Pipeline;     //g.V
@@ -1658,26 +1658,19 @@ module Helios {
             order(...prop:string[]):Pipeline;
             order(...prop:any[]):Pipeline {
                 
-                 var tracing:bool = !!this.graph.traceEnabled;
-//                     pipes:any[] = tracing ? [] : undefined,
-//                     pipe:any[],
-//                     array:any[] = [],
-//                     tempObj:{},
-//                     tempProp:string,
-//                     isEmbedded:bool = prop && prop.indexOf(".") > -1,
-//                     isElement:bool = !!this.endPipe.length && Utils.isElement(this.endPipe[0]);
-
-//                 if(!isElement){
-//                     this.endPipe.sort();
-//                 } else {
-//                     tempProp = isEmbedded ? prop.split(".").slice(-1)[0] : prop;
-
                 this.steps[++this.steps.currentStep] = { func: 'order', args: prop, 'exclFromPath':true };
-                if (tracing) {
+                if (!!this.graph.traceEnabled) {
                     this.steps[this.steps.currentStep].elements = [];
                     push.apply(this.steps[this.steps.currentStep].elements, this.pipeline);
                 }
-                this.endPipe.sort(Utils.dynamicSortMultiple(prop));
+                if(!prop.length){
+                    this.endPipe.sort(Utils.defaultSort);
+                } else if(prop.length == 1 && prop[0] === '-') {
+                    this.endPipe.sort(Utils.defaultSort).reverse();
+                } else {
+                    this.endPipe.sort(Utils.dynamicSortMultiple(Utils.flatten(prop)));    
+                }
+                
                 return this;
             }
 
@@ -3406,7 +3399,7 @@ module Helios {
             return val;
         }
 
-        static dynamicSort(property:any, modifier?:string = 'default') {
+        static dynamicSort(property:any, modifier?:string = 'default'):(a: any, b: any) => number {
             var sortOrder:number = 1,
                 tempProp:string,
                 isEmbedded:bool = property.indexOf(".") > -1,
@@ -3420,49 +3413,65 @@ module Helios {
 
             return function (a,b) {
                 var result:number,
-                    tempObj:{};
+                    tempObjA:{},
+                    tempObjB:{};
                 
-                if(Utils.isElement(a)){
-                    tempObj = isEmbedded ? Utils.embeddedObject(a.obj, property) : a.obj;
-                    if(!(tempProp in tempObj)){
-                        //if property not in obj then push to end
-                        return sortOrder;
+                tempObjA = isEmbedded ? Utils.embeddedObject(a.obj, property) : a.obj;
+                tempObjB = isEmbedded ? Utils.embeddedObject(b.obj, property) : b.obj;
+                //if property not in obj
+                if(Utils.isElement(a) && Utils.isElement(b)){
+                    if(!(tempProp in tempObjA)){
+                        if(!(tempProp in tempObjB)){
+                            return 0;
+                        }
+                        return 1 * sortOrder;
                     }
-                    a = tempObj;
+                    if(!(tempProp in tempObjB)){
+                        return -1 * sortOrder;
+                    }
                 }
-                if(Utils.isElement(b)){
-                    b = isEmbedded ? Utils.embeddedObject(b.obj, property) : b.obj;
-                }
-                property = tempProp;
+
                 switch(modifier)
                 {
                 case 'case-i':
-                  result = (a[property].toUpper() < b[property].toUpper()) ? -1 : (a[property].toUpper() > b[property].toUpper()) ? 1 : 0;
+                  result = (tempObjA[tempProp].toUpperCase() < tempObjB[tempProp].toUpperCase()) ? -1 : (tempObjA[tempProp].toUpperCase() > tempObjB[tempProp].toUpperCase()) ? 1 : 0;
                   break;
                 case 'case-s':
-                  result = (a[property] < b[property]) ? -1 : (a[property] > b[property]) ? 1 : 0;
+                  result = (tempObjA[tempProp] < tempObjB[tempProp]) ? -1 : (tempObjA[tempProp] > tempObjB[tempProp]) ? 1 : 0;
                   break;
                 default:
-                  result = (Utils.parseValue(a[property]) < Utils.parseValue(b[property])) ? -1 : (Utils.parseValue(a[property]) > Utils.parseValue(b[property])) ? 1 : 0;
+                  result = (Utils.parseValue(tempObjA[tempProp]) < Utils.parseValue(tempObjB[tempProp])) ? -1 : (Utils.parseValue(tempObjA[tempProp]) > Utils.parseValue(tempObjB[tempProp])) ? 1 : 0;
                 }
                 
                 return result * sortOrder;
             }
         }
 
-        static dynamicSortMultiple(props:any[]) {
+        static dynamicSortMultiple(props:any[]):(obj1: any, obj2: any) => number {
             return function (obj1, obj2) {
-                var i = 0, 
-                    result = 0, 
-                    numberOfProperties = props.length,
-                    modifier:string = 'default';
-                //need to cater for passing in object => {'-name':'case-i', age:'default'}
+                var i:number = 0,
+                    result:number = 0, 
+                    numberOfProperties:number = props.length,
+                    prop:string,
+                    modifier:string;
+                
+                //need to cater for passing in object => {'-name':'case-i'}, age
                 while(result === 0 && i < numberOfProperties) {
-                    result = Utils.dynamicSort(props[i], modifier)(obj1, obj2);
+                    if(Utils.isObject(props[i])){
+                        prop = Utils.keys(props[i])[0];
+                        modifier = props[i][prop];
+                        result = Utils.dynamicSort(prop, modifier)(obj1, obj2);
+                    } else {
+                        result = Utils.dynamicSort(props[i])(obj1, obj2);
+                    }                    
                     i++;
                 }
                 return result;
             }
+        }
+
+        static defaultSort (obj1, obj2):number {
+            return (Utils.parseValue(obj1) < Utils.parseValue(obj2)) ? -1 : (Utils.parseValue(obj1) > Utils.parseValue(obj2)) ? 1 : 0;
         }
     }
 }
