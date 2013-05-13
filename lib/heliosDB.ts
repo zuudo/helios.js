@@ -187,8 +187,8 @@ module Helios {
             inEid: '_inE',
             outVid: '_outV',
             inVid: '_inV',
-            VOut: 'out',
-            VIn: 'in'
+            VOut: '_out',
+            VIn: '_in'
         };
 
         db:{
@@ -347,7 +347,7 @@ module Helios {
                 vertex.outE[edge.obj[edge.graph.meta.label]] = [];
             }
             edge.outV = vertex;
-            edge.obj[edge.graph.meta.VOut] = edge.outV.obj;
+            edge.obj[edge.graph.meta.VOut] = edge.outV.obj[edge.graph.meta.id];
             delete edge.obj[edge.graph.meta.outVid];
             push.call(vertex.outE[edge.obj[edge.graph.meta.label]], edge);
 
@@ -360,7 +360,7 @@ module Helios {
                 vertex.inE[edge.obj[edge.graph.meta.label]] = [];
             }
             edge.inV = vertex;
-            edge.obj[edge.graph.meta.VIn] = edge.inV.obj;
+            edge.obj[edge.graph.meta.VIn] = edge.inV.obj[edge.graph.meta.id];
             delete edge.obj[edge.graph.meta.inVid];
             push.call(vertex.inE[edge.obj[edge.graph.meta.label]], edge);
         }
