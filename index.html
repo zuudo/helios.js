@@ -224,17 +224,7 @@ heliosjs&gt; g.V({"name":"marko","_id":1},{"name":"josh","_id":4})
 
 heliosjs&gt; g.e().property("weight")
 <em>output:</em>
-[0.5,1,0.4,1,0.4,0.2]
-
-heliosjs&gt; g.E({'out.name':{$eq:'marko'}})
-<em>output:</em>
-[{"weight":0.5,"_id":7,"_type":"edge","_label":"knows","_out":1,"_in":2},
-{"weight":1,"_id":8,"_type":"edge","_label":"knows","_out":1,"_in":4},
-{"weight":0.4,"_id":9,"_type":"edge","_label":"created","_out":1,"_in":3}]
-
-heliosjs&gt; g.E({'out.name':{$eq:'marko'}}).property('weight)
-<em>output:</em>
-[0.5,1,0.4]</code></pre>
+[0.5,1,0.4,1,0.4,0.2]</code></pre>
 <h4>See Also</h4>
 <ul>
 <li><a href="#filter/where">where</a> to understand how to use the 'comparator'</li>
