@@ -3414,12 +3414,20 @@ module Helios {
             return function (a,b) {
                 var result:number,
                     tempObjA:{},
-                    tempObjB:{};
-                
-                tempObjA = isEmbedded ? Utils.embeddedObject(a.obj, property) : a.obj;
-                tempObjB = isEmbedded ? Utils.embeddedObject(b.obj, property) : b.obj;
+                    tempObjB:{},
+                    objA:{},
+                    objB:{},
+                    isAElement:bool = Utils.isElement(a),
+                    isAObject:bool = Utils.isObject(a),
+                    isBElement:bool = Utils.isElement(b),
+                    isBObject:bool = Utils.isObject(b);
+
+                objA = isAElement ? a.obj : a;
+                objB = isBElement ? b.obj : b;
+                tempObjA = isEmbedded ? Utils.embeddedObject(objA, property) : objA;
+                tempObjB = isEmbedded ? Utils.embeddedObject(objB, property) : objB;
                 //if property not in obj
-                if(Utils.isElement(a) && Utils.isElement(b)){
+                if((isAElement && isBElement) || (isAObject && isBObject)){
                     if(!(tempProp in tempObjA)){
                         if(!(tempProp in tempObjB)){
                             return 0;
