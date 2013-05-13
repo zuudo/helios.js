@@ -215,24 +215,12 @@ heliosjs&gt; g.V({"name":"marko","_id":1},{"name":"josh","_id":4})
 </p>
 <pre><code class="text">heliosjs&gt; g.E()
 <em>output:</em>
-[{"weight":0.5,"_id":7,"_type":"edge","_label":"knows",
-"out":{"name":"marko","age":29,"_id":1,"_type":"vertex"},
-"in":{"name":"vadas","age":27,"_id":2,"_type":"vertex"}},
-{"weight":1,"_id":8,"_type":"edge","_label":"knows",
-"out":{"name":"marko","age":29,"_id":1,"_type":"vertex"},
-"in":{"name":"josh","age":32,"_id":4,"_type":"vertex"}},
-{"weight":0.4,"_id":9,"_type":"edge","_label":"created",
-"out":{"name":"marko","age":29,"_id":1,"_type":"vertex"},
-"in":{"name":"lop","lang":"java","_id":3,"_type":"vertex"}},
-{"weight":1,"_id":10,"_type":"edge","_label":"created",
-"out":{"name":"josh","age":32,"_id":4,"_type":"vertex"},
-"in":{"name":"ripple","lang":"java","_id":5,"_type":"vertex"}},
-{"weight":0.4,"_id":11,"_type":"edge","_label":"created",
-"out":{"name":"josh","age":32,"_id":4,"_type":"vertex"},
-"in":{"name":"lop","lang":"java","_id":3,"_type":"vertex"}},
-{"weight":0.2,"_id":12,"_type":"edge","_label":"created",
-"out":{"name":"peter","age":35,"_id":6,"_type":"vertex"},
-"in":{"name":"lop","lang":"java","_id":3,"_type":"vertex"}}]
+[{"weight":0.5,"_id":7,"_type":"edge","_label":"knows","_out":1,"_in":2},
+{"weight":1,"_id":8,"_type":"edge","_label":"knows","_out":1,"_in":4},
+{"weight":0.4,"_id":9,"_type":"edge","_label":"created","_out":1,"_in":3},
+{"weight":1,"_id":10,"_type":"edge","_label":"created","_out":4,"_in":5},
+{"weight":0.4,"_id":11,"_type":"edge","_label":"created","_out":4,"_in":3},
+{"weight":0.2,"_id":12,"_type":"edge","_label":"created","_out":6,"_in":3}]
 
 heliosjs&gt; g.e().property("weight")
 <em>output:</em>
@@ -240,15 +228,9 @@ heliosjs&gt; g.e().property("weight")
 
 heliosjs&gt; g.E({'out.name':{$eq:'marko'}})
 <em>output:</em>
-[{"weight":0.5,"_id":7,"_type":"edge","_label":"knows",
-"out":{"name":"marko","age":29,"_id":1,"_type":"vertex"},
-"in":{"name":"vadas","age":27,"_id":2,"_type":"vertex"}},
-{"weight":1,"_id":8,"_type":"edge","_label":"knows",
-"out":{"name":"marko","age":29,"_id":1,"_type":"vertex"},
-"in":{"name":"josh","age":32,"_id":4,"_type":"vertex"}},
-{"weight":0.4,"_id":9,"_type":"edge","_label":"created",
-"out":{"name":"marko","age":29,"_id":1,"_type":"vertex"},
-"in":{"name":"lop","lang":"java","_id":3,"_type":"vertex"}}]
+[{"weight":0.5,"_id":7,"_type":"edge","_label":"knows","_out":1,"_in":2},
+{"weight":1,"_id":8,"_type":"edge","_label":"knows","_out":1,"_in":4},
+{"weight":0.4,"_id":9,"_type":"edge","_label":"created","_out":1,"_in":3}]
 
 heliosjs&gt; g.E({'out.name':{$eq:'marko'}}).property('weight)
 <em>output:</em>
@@ -311,24 +293,14 @@ heliosjs&gt;  g.v(1).out('knows')
 </p>
 <pre><code class="text">heliosjs&gt;  g.v(1).outE()
 <em>output:</em>
-[{"weight":0.5,"_id":7,"_type":"edge","_label":"knows",
-"out":{"name":"marko","age":29,"_id":1,"_type":"vertex"},
-"in":{"name":"vadas","age":27,"_id":2,"_type":"vertex"}},
-{"weight":1,"_id":8,"_type":"edge","_label":"knows",
-"out":{"name":"marko","age":29,"_id":1,"_type":"vertex"},
-"in":{"name":"josh","age":32,"_id":4,"_type":"vertex"}},
-{"weight":0.4,"_id":9,"_type":"edge","_label":"created",
-"out":{"name":"marko","age":29,"_id":1,"_type":"vertex"},
-"in":{"name":"lop","lang":"java","_id":3,"_type":"vertex"}}]
+[{"weight":0.5,"_id":7,"_type":"edge","_label":"knows","_out":1,"_in":2},
+{"weight":1,"_id":8,"_type":"edge","_label":"knows","_out":1,"_in":4},
+{"weight":0.4,"_id":9,"_type":"edge","_label":"created","_out":1,"_in":3}]
 
 heliosjs&gt;  g.v(1).outE('knows')
 <em>output:</em>
-[{"weight":0.5,"_id":7,"_type":"edge","_label":"knows",
-"out":{"name":"marko","age":29,"_id":1,"_type":"vertex"},
-"in":{"name":"vadas","age":27,"_id":2,"_type":"vertex"}},
-{"weight":1,"_id":8,"_type":"edge","_label":"knows",
-"out":{"name":"marko","age":29,"_id":1,"_type":"vertex"},
-"in":{"name":"josh","age":32,"_id":4,"_type":"vertex"}}]</code></pre>
+[{"weight":0.5,"_id":7,"_type":"edge","_label":"knows","_out":1,"_in":2},
+{"weight":1,"_id":8,"_type":"edge","_label":"knows","_out":1,"_in":4}]</code></pre>
 <p><a href="#">top</a>
 
 </p>
@@ -387,27 +359,15 @@ heliosjs&gt; g.v(4).both([&#39;knows&#39;, &#39;created&#39;])
 </p>
 <pre><code class="text">heliosjs&gt; g.v(4).bothE()
 <em>output:</em>
-[{"weight":1,"_id":10,"_type":"edge","_label":"created",
-"out":{"name":"josh","age":32,"_id":4,"_type":"vertex"},
-"in":{"name":"ripple","lang":"java","_id":5,"_type":"vertex"}},
-{"weight":0.4,"_id":11,"_type":"edge","_label":"created",
-"out":{"name":"josh","age":32,"_id":4,"_type":"vertex"},
-"in":{"name":"lop","lang":"java","_id":3,"_type":"vertex"}},
-{"weight":1,"_id":8,"_type":"edge","_label":"knows",
-"out":{"name":"marko","age":29,"_id":1,"_type":"vertex"},
-"in":{"name":"josh","age":32,"_id":4,"_type":"vertex"}}]
+[{"weight":1,"_id":10,"_type":"edge","_label":"created","_out":4,"_in":5},
+{"weight":0.4,"_id":11,"_type":"edge","_label":"created","_out":4,"_in":3},
+{"weight":1,"_id":8,"_type":"edge","_label":"knows","_out":1,"_in":4}]
 
 heliosjs&gt;  g.v(4).bothE('knows','created')
 <em>output:</em>
-[{"weight":1,"_id":10,"_type":"edge","_label":"created",
-"out":{"name":"josh","age":32,"_id":4,"_type":"vertex"},
-"in":{"name":"ripple","lang":"java","_id":5,"_type":"vertex"}},
-{"weight":0.4,"_id":11,"_type":"edge","_label":"created",
-"out":{"name":"josh","age":32,"_id":4,"_type":"vertex"},
-"in":{"name":"lop","lang":"java","_id":3,"_type":"vertex"}},
-{"weight":1,"_id":8,"_type":"edge","_label":"knows",
-"out":{"name":"marko","age":29,"_id":1,"_type":"vertex"},
-"in":{"name":"josh","age":32,"_id":4,"_type":"vertex"}}]</code></pre>
+[{"weight":1,"_id":10,"_type":"edge","_label":"created","_out":4,"_in":5},
+{"weight":0.4,"_id":11,"_type":"edge","_label":"created","_out":4,"_in":3},
+{"weight":1,"_id":8,"_type":"edge","_label":"knows","_out":1,"_in":4}]</code></pre>
 <p><a href="#">top</a>
 
 </p>
@@ -505,19 +465,13 @@ g.v(1).out().path('it.id','id.name')
 heliosjs&gt; g.v(1).outE().inV().property('name').path()
 <em>output:</em>
 [[{"name":"marko","age":29,"_id":1,"_type":"vertex"},
-{"weight":0.5,"_id":7,"_type":"edge","_label":"knows",
-"out":{"name":"marko","age":29,"_id":1,"_type":"vertex"},
-"in":{"name":"vadas","age":27,"_id":2,"_type":"vertex"}},
+{"weight":0.5,"_id":7,"_type":"edge","_label":"knows","_out":1,"_in":2},
 {"name":"vadas","age":27,"_id":2,"_type":"vertex"},"vadas"],
 [{"name":"marko","age":29,"_id":1,"_type":"vertex"},
-{"weight":1,"_id":8,"_type":"edge","_label":"knows",
-"out":{"name":"marko","age":29,"_id":1,"_type":"vertex"},
-"in":{"name":"josh","age":32,"_id":4,"_type":"vertex"}},
+{"weight":1,"_id":8,"_type":"edge","_label":"knows","_out":1,"_in":4},
 {"name":"josh","age":32,"_id":4,"_type":"vertex"},"josh"],
 [{"name":"marko","age":29,"_id":1,"_type":"vertex"},
-{"weight":0.4,"_id":9,"_type":"edge","_label":"created",
-"out":{"name":"marko","age":29,"_id":1,"_type":"vertex"},
-"in":{"name":"lop","lang":"java","_id":3,"_type":"vertex"}},
+{"weight":0.4,"_id":9,"_type":"edge","_label":"created","_out":1,"_in":3},
 {"name":"lop","lang":"java","_id":3,"_type":"vertex"},"lop"]]</code></pre>
 <p><a href="#">top</a>
 
