@@ -1664,9 +1664,17 @@ module Helios {
                     push.apply(this.steps[this.steps.currentStep].elements, this.pipeline);
                 }
                 if(!prop.length){
-                    this.endPipe.sort(Utils.defaultSort);
+                    if(!!this.endPipe.length && Utils.isElement(this.endPipe[0])){
+                        this.endPipe.sort(Utils.dynamicSortMultiple([this.graph.meta.id]));
+                    } else {
+                        this.endPipe.sort(Utils.defaultSort);        
+                    }
                 } else if(prop.length == 1 && prop[0] === '-') {
-                    this.endPipe.sort(Utils.defaultSort).reverse();
+                    if(!!this.endPipe.length && Utils.isElement(this.endPipe[0])){
+                        this.endPipe.sort(Utils.dynamicSortMultiple(['-' + this.graph.meta.id]));
+                    } else {
+                        this.endPipe.sort(Utils.defaultSort).reverse();
+                    }
                 } else {
                     this.endPipe.sort(Utils.dynamicSortMultiple(Utils.flatten(prop)));    
                 }
@@ -2578,8 +2586,9 @@ module Helios {
                         }
                     }
                 }
-                
-                this.endPipe = endPipeArray;
+                if(closure){
+                    this.endPipe = endPipeArray;
+                }
                 return this;
             }
             
