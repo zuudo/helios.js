@@ -99,7 +99,7 @@ g.loadGraphSON('https://github.com/entrendipity/helios.js/blob/master/tests/data
         </p>
         <ul>
           <li>'it' is a predefined variable that can be passed in (and almost always is) to a closure. It is a little like the 'this' variable in javascript. 'it' refers to the object that is being passed to it from in the previous step. The output of the closure will then be passed to the next step.</li>
-          <li>closures are passed in as a string parameter without the curly braces (javascript needs those)</li>
+          <li>closures are passed in as a string argument without the curly braces (javascript needs those)</li>
         </ul>
         <p>
           It'll become a little clearer once you take a look at a few examples below.
@@ -311,6 +311,24 @@ heliosjs&gt;  g.v(4).in('knows')
 </p>
 <hr>
 
+<h3 id='transform/ine'>inE(...labels:string[])</h3 id='transform/ine'>
+<p>Gets the incoming edges of the vertex.
+
+</p>
+<pre><code class="text">heliosjs&gt; g.v(4).inE()
+<em>output:</em>
+[{"weight":1,"_id":8,"_type":"edge","_label":"knows","_out":1,"_in":4}]
+
+heliosjs&gt; g.v(4).inE('knows')
+<em>output:</em>
+[{"weight":1,"_id":8,"_type":"edge","_label":"knows","_out":1,"_in":4}]
+</code></pre>
+<p><a href="#">top</a>
+
+</p>
+<hr>
+
+
 <h3 id='transform/both'>both(...labels:string[])</h3 id='transform/both'>
 <p>Get both adjacent vertices of the vertex, the in and the out.
 
@@ -506,6 +524,127 @@ heliosjs&gt;  g.v(1).as(&#39;x&#39;).out(&#39;knows&#39;).as(&#39;y&#39;).select
 </p>
 <hr>
 
+
+
+<h3 id='transform/stringify'>stringify()</h3 id='transform/stringify'>
+<p>Returns a JavaScript Object Notation (JSON) string.
+
+</p>
+<pre><code class="text">heliosjs&gt; g.v(1).stringify().then(function(r){return console.log(r)});
+<em>output:</em>
+[{"name":"marko","age":29,"_id":1,"_type":"vertex"}]</code></pre>
+<p><a href="#">top</a>
+
+</p>
+<hr>
+
+<h3 id='transform/hash'>hash()</h3 id='transform/hash'>
+<p>Returns a hash Object with the ids as the key.
+
+</p>
+<pre><code class="text">heliosjs&gt; g.v(1,4).hash()
+<em>output:</em>
+{"1":{"name":"marko","age":29,"_id":1,"_type":"vertex"},
+"4":{"name":"josh","age":32,"_id":4,"_type":"vertex"}}</code></pre>
+<p><a href="#">top</a>
+
+</p>
+<hr>
+<h3 id='transform/order'>order()</h3 id='transform/order'>
+<h3 id='transform/order'>order(desc:string)</h3 id='transform/order'>
+<h3 id='transform/order'>order(...properties:any[])</h3 id='transform/order'>
+<p>Order the items in the stream according to the criteria if provided. If no criteria is provided, then a default sort order is used. The default sort order is ascending, case-sensitive with values that are numeric in nature sorted as numbers (i.e. '$20.05' is treated as 20.05). If the incoming values are elements then the elements will be sorted on id. The desc argument is a minus sign passed as a string to indicate descending order.</p>
+
+<p>The properties parameter can be passed in as a list or an array and accepts either a property name or a sort object (eg. {'key':'default'}). To set descending order, prefix the property name with '-' (e.g. '-name'). Sort objects provide more information to the order step, as mentioned above, use the property name as the key and one of </p>
+  <ul>
+    <li>'default' - default sort order</li>
+    <li>'case-i' - case insensitive sort</li>
+    <li>'case-s' - case sensitive sort</li>
+  </ul>
+  <p>If a preperty specified does not exist in the object the default action is to place the object at the bottom (top if order descending)</p>
+<pre><code class="text">heliosjs&gt; g.v(1).out().order()
+<em>output:</em>
+[{"name":"vadas","age":27,"_id":2,"_type":"vertex"},
+{"name":"lop","lang":"java","_id":3,"_type":"vertex"},
+{"name":"josh","age":32,"_id":4,"_type":"vertex"}]
+
+heliosjs&gt; g.v(1).out('-').order()
+<em>output:</em>
+[{"name":"josh","age":32,"_id":4,"_type":"vertex"},
+{"name":"lop","lang":"java","_id":3,"_type":"vertex"},
+{"name":"vadas","age":27,"_id":2,"_type":"vertex"}]
+
+heliosjs&gt; g.v(1).out().property('name').order()
+<em>output:</em>
+["josh","lop","vadas"]
+
+heliosjs&gt; g.v(1).out('-').property('name').order()
+<em>output:</em>
+["vadas","lop","josh"]
+
+</code></pre>
+
+<p>Test data for the follow order() examples can be found <a href="https://github.com/entrendipity/helios.js/blob/master/tests/data/graph-example-1o.json">here</a>.</p>
+
+<pre><code class="text">heliosjs&gt; g.v().map('name','age')
+<em>output:</em>
+[{"age":29,"name":"marko"},
+{"age":27,"name":"vadas"},
+{"name":"lop"},
+{"age":29,"name":"Marko"},
+{"name":"ripple"},
+{"age":35,"name":"peter"}]
+
+heliosjs&gt; g.v().map('name','age').order('name')
+<em>output:</em>
+[{"age":29,"name":"Marko"},
+{"name":"lop"},
+{"age":29,"name":"marko"},
+{"age":35,"name":"peter"},
+{"name":"ripple"},
+{"age":27,"name":"vadas"}]
+
+heliosjs&gt; g.v().map('name','age').order('-name')
+<em>output:</em>
+[{"age":27,"name":"vadas"},
+{"name":"ripple"},
+{"age":35,"name":"peter"},
+{"age":29,"name":"marko"},
+{"name":"lop"},
+{"age":29,"name":"Marko"}]
+
+heliosjs&gt; g.v().map('name','age').order({'-name':'case-i'})
+<em>output:</em>
+[{"age":27,"name":"vadas"},
+{"name":"ripple"},
+{"age":35,"name":"peter"},
+{"age":29,"name":"marko"},
+{"age":29,"name":"Marko"},
+{"name":"lop"}]
+
+heliosjs&gt; g.v().map('name','age').order('age','name')
+<em>output:</em>
+[{"age":27,"name":"vadas"},
+{"age":29,"name":"Marko"},
+{"age":29,"name":"marko"},
+{"age":35,"name":"peter"},
+{"name":"lop"},
+{"name":"ripple"}]
+
+heliosjs&gt; g.v().map('name','age').order('age',{'name':'case-i'})
+<em>output:</em>
+[{"age":27,"name":"vadas"},
+{"age":29,"name":"marko"},
+{"age":29,"name":"Marko"},
+{"age":35,"name":"peter"},
+{"name":"lop"},
+{"name":"ripple"}]</code></pre>
+
+<p><a href="#">top</a>
+
+</p>
+<hr>
+
 <h2 id='filter'>Filter</h2 id='filter'>
 <p>Filter steps decide whether to allow an object to pass to the next step or not.
 
@@ -555,7 +694,7 @@ heliosjs&gt; g.V().range(2).property('name')
 <hr>
 
 
-        <h3 id='filter/back'>back(steps:number)</h3 id='filter/back'>
+        <h3 id='filter/back'>back(backSteps:number)</h3 id='filter/back'>
         <h3>back(namedStep:string)</h3>
 <p>Go back to the results from n-steps ago, where the preceding step is step 0, or go back to the results of a named step.
 </p>
@@ -757,7 +896,7 @@ heliosjs&gt; g.v().where({name:{$like:['ete','das$']}})
 [{"name":"vadas","age":27,"_id":2,"_type":"vertex"}]</code></pre>
         <h5>Array</h5>
         <p>Array selectors work with arrays.</p>
-        <p>I have added some test data for these examples. You can find example data <a href="https://github.com/entrendipity/helios.js/blob/master/tests/data/graph-example-1a.json">here</a>.</p>
+        <p>Test data for these examples can be found <a href="https://github.com/entrendipity/helios.js/blob/master/tests/data/graph-example-1a.json">here</a>.</p>
           <h6>$all</h6>
           <p>Takes an array of values and matches values if all values specified are contained in an array.</p>
 <pre><code class="text">heliosjs&gt; g.v().where({dow:{$all:['mon','wed']}})
@@ -868,481 +1007,68 @@ heliosjs&gt; g.v().where({$has:['age', 'name']})
 
 </p>
 <hr>
-
-<!--<h3 id='transform/cap'>cap</h3 id='transform/cap'>
-<p>Gets the side-effect of the pipe prior.  In other words, it emits the value of the previous step and not the values that flow through it.
-
-</p>
-<pre><code class="text">heliosjs&gt; g.V(&#39;lang&#39;, &#39;java&#39;).in(&#39;created&#39;).name.groupCount
-==&gt;marko
-==&gt;josh
-==&gt;peter
-==&gt;josh
-heliosjs&gt; g.V(&#39;lang&#39;, &#39;java&#39;).in(&#39;created&#39;).name.groupCount.cap
-==&gt;{marko=1, peter=1, josh=2}</code></pre>
-<p><a href="#">top</a>
-
-</p>
-<hr>
-
-<h3 id='transform/gather'>gather</h3 id='transform/gather'>
-<p>Collect all objects up to that step and process the gathered list with the provided closure.
-
-</p>
-<pre><code class="text">heliosjs&gt; g.v(1).out
-==&gt;v[2]
-==&gt;v[4]
-==&gt;v[3]
-heliosjs&gt; g.v(1).out.gather
-==&gt;[v[2], v[4], v[3]]
-heliosjs&gt; g.v(1).out.gather{it.size()}
-==&gt;3</code></pre>
-<h4>See Also</h4>
-<ul>
-<li><a href="#transform/scatter">scatter</a></li>
-</ul>
-<p><a href="#">top</a>
-
-</p>
-<hr>
-
-
-<h3 id='transform/ine'>inE</h3 id='transform/ine'>
-<p>Gets the incoming edges of the vertex.
-
-</p>
-<pre><code class="text">heliosjs&gt; v = g.v(4)
-==&gt;v[4]
-heliosjs&gt; v.inE.outV
-==&gt;v[1]
-heliosjs&gt; v.in
-==&gt;v[1]
-heliosjs&gt; v = g.v(3)
-==&gt;v[3]
-heliosjs&gt; v.in(&quot;created&quot;)
-==&gt;v[1]
-==&gt;v[4]
-==&gt;v[6]
-heliosjs&gt; v.inE(&quot;created&quot;).outV
-==&gt;v[1]
-==&gt;v[4]
-==&gt;v[6]</code></pre>
-<p><a href="#">top</a>
-
-</p>
-<hr>
-
-
-
-<h3 id='transform/linkboth-in-out'>linkBoth[In/Out]</h3 id='transform/linkboth-in-out'>
-<p>An element-centric mutation that takes every incoming vertex and creates an edge to the provided vertex. It can be used with both a Vertex object or a named step.
-
-</p>
-<pre><code class="text">heliosjs&gt; marko = g.v(1)
-==&gt;v[1]
-heliosjs&gt; g.V.except([marko]).linkBoth(&#39;connected&#39;,marko)
-==&gt;v[3]
-==&gt;v[2]
-==&gt;v[6]
-==&gt;v[5]
-==&gt;v[4]
-heliosjs&gt; marko.outE(&#39;connected&#39;)
-==&gt;e[2][1-connected-&gt;2]
-==&gt;e[0][1-connected-&gt;3]
-==&gt;e[6][1-connected-&gt;5]
-==&gt;e[4][1-connected-&gt;6]
-==&gt;e[14][1-connected-&gt;4]
-heliosjs&gt; g.V.except([marko]).outE(&#39;connected&#39;)
-==&gt;e[1][3-connected-&gt;1]
-==&gt;e[3][2-connected-&gt;1]
-==&gt;e[5][6-connected-&gt;1]
-==&gt;e[13][5-connected-&gt;1]
-==&gt;e[15][4-connected-&gt;1]
-heliosjs&gt; g.v(1).as(&#39;x&#39;).out(&#39;created&#39;).in(&#39;created&#39;).except([g.v(1)]).linkBoth(&#39;cocreator&#39;,&#39;x&#39;)
-==&gt;v[4]
-==&gt;v[6]
-heliosjs&gt; g.E.has(&#39;label&#39;,&#39;cocreator&#39;)
-==&gt;e[3][6-cocreator-&gt;1]
-==&gt;e[2][1-cocreator-&gt;6]
-==&gt;e[1][4-cocreator-&gt;1]
-==&gt;e[0][1-cocreator-&gt;4]</code></pre>
-<p><a href="#">top</a>
-
-</p>
-<hr>
-
-<h3 id='transform/memoize'>memoize</h3 id='transform/memoize'>
-<p>Remembers a particular mapping from input to output.  Long or expensive expressions with no side effects can use this step to remember a mapping, which helps reduce load when previously processed objects are passed into it.
-
-</p>
-<p>For situations where memoization may consume large amounts of RAM, consider using an embedded key-value store like <a href="http://code.google.com/p/jdbm2/">JDBM</a> or some other persistent Map implementation.
-
-</p>
-<pre><code class="text">heliosjs&gt; g.V.out.out.memoize(1).name
-==&gt;ripple
-==&gt;lop
-heliosjs&gt; g.V.out.as(&#39;here&#39;).out.memoize(&#39;here&#39;).name
-==&gt;ripple
-==&gt;lop
-heliosjs&gt; m = [:]
-heliosjs&gt; g.V.out.out.memoize(1,m).name
-==&gt;ripple
-==&gt;lop</code></pre>
-<p><a href="#">top</a>
-
-</p>
-<hr>
-<h3 id='transform/order'>order</h3 id='transform/order'>
-<p>Order the items in the stream according to the closure if provided.  If no closure is provided, then a default sort order is used.
-
-</p>
-<pre><code class="text">heliosjs&gt; g.V.name.order
-==&gt;josh
-==&gt;lop
-==&gt;marko
-==&gt;peter
-==&gt;ripple
-==&gt;vadas
-heliosjs&gt;  g.V.name.order{it.b &lt;=&gt; it.a}
-==&gt;vadas
-==&gt;ripple
-==&gt;peter
-==&gt;marko
-==&gt;lop
-==&gt;josh
-heliosjs&gt; g.V.order{it.b.name &lt;=&gt; it.a.name}.out(&#39;knows&#39;)
-==&gt;v[2]
-==&gt;v[4]</code></pre>
-<p><a href="#">top</a>
-
-</p>
-<hr>
-<h3 id='transform/ordermap'>orderMap</h3 id='transform/ordermap'>
-<p>For every incoming map, sort with supplied closure or <code>T.decr</code> or <code>T.incr</code> and emit keys.
-
-</p>
-<pre><code class="text">heliosjs&gt; g.V.both.groupCount.cap.next()
-==&gt;v[3]=3
-==&gt;v[2]=1
-==&gt;v[1]=3
-==&gt;v[6]=1
-==&gt;v[5]=1
-==&gt;v[4]=3
-heliosjs&gt; g.V.both.groupCount.cap.orderMap(T.decr)
-==&gt;v[3]
-==&gt;v[1]
-==&gt;v[4]
-==&gt;v[2]
-==&gt;v[6]
-==&gt;v[5]
-heliosjs&gt; g.V.both.groupCount.cap.orderMap(T.decr)[0..1]
-==&gt;v[3]
-==&gt;v[1]
-heliosjs&gt; g.V.both.groupCount.cap.orderMap(T.decr)[0..1].name
-==&gt;lop
-==&gt;marko</code></pre>
-<p><a href="#">top</a>
-
-</p>
-<hr>
-
-
-
-
-<h3 id='transform/scatter'>scatter</h3 id='transform/scatter'>
-<p>Unroll all objects in the iterable at that step. Gather/Scatter is good for breadth-first traversals where the gather closure filters out unwanted elements at the current radius.
-
-</p>
-<pre><code class="text">heliosjs&gt; g.v(1).out
-==&gt;v[2]
-==&gt;v[4]
-==&gt;v[3]
-heliosjs&gt; g.v(1).out.gather{it[1..2]}
-==&gt;[v[4], v[3]]
-heliosjs&gt; g.v(1).out.gather{it[1..2]}.scatter
-==&gt;v[4]
-==&gt;v[3]</code></pre>
-<h4>See Also</h4>
-<ul>
-<li><a href="#transform/gather">gather</a></li>
-</ul>
-<p><a href="#">top</a>
-
-</p>
-<hr>
-
-<h3 id='transform/shuffle'>shuffle</h3 id='transform/shuffle'>
-<p>Collect all objects up to that step into a list and randomize their order.
-
-</p>
-<pre><code class="text">heliosjs&gt; g.v(1).out.shuffle
-==&gt;v[2]
-==&gt;v[3]
-==&gt;v[4]
-heliosjs&gt; g.v(1).out.shuffle
-==&gt;v[3]
-==&gt;v[2]
-==&gt;v[4]</code></pre>
-<h4>See Also</h4>
-<ul>
-<li><a href="#filter/random">random</a></li>
-</ul>
-<p><a href="#">top</a>
-
-</p>
-<hr>
-
-
-
-<h3 id='filter/and'>and</h3 id='filter/and'>
-<p>Takes a collection of pipes and emits incoming objects that are true for all of the pipes.
-
-</p>
-<pre><code class="text">heliosjs&gt; g.v(1).outE.and(_().has(&#39;weight&#39;, T.gt, 0.4f), _().has(&#39;weight&#39;, T.lt, 0.8f))
-==&gt;e[7][1-knows-&gt;2]
-heliosjs&gt; g.V.and(_().both(&quot;knows&quot;), _().both(&quot;created&quot;))
-==&gt;v[1]
-==&gt;v[4]</code></pre>
-<p><a href="#">top</a>
-
-</p>
-<hr>
-
-
-<h3 id='filter/has'>has</h3 id='filter/has'>
-<p>Allows an element if it has a particular property.  Utilizes several options for comparisons through <code>T</code>:
-
-</p>
-<ul>
-<li>T.gt - greater than </li>
-<li>T.gte - greater than or equal to</li>
-<li>T.eq - equal to</li>
-<li>T.neq - not equal to</li>
-<li>T.lte - less than or equal to</li>
-<li>T.lt - less than</li>
-</ul>
-<p>It is worth noting that the syntax of <code>has</code> is similar to <code>g.V(&quot;name&quot;, &quot;marko&quot;)</code>, which has the difference of being a <a href="https://github.com/tinkerpop/blueprints/wiki/Graph-Indices">key index</a> lookup and as such will perform faster. In contrast, this line, <code>g.V.has(&quot;name&quot;, &quot;marko&quot;)</code>, will iterate over all vertices checking the <code>name</code> property of each vertex for a match and will be significantly slower than the key index approach.
-
-</p>
-<pre><code class="text">heliosjs&gt; g.V.has(&quot;name&quot;, &quot;marko&quot;).name
-==&gt;marko
-heliosjs&gt; g.v(1).outE.has(&quot;weight&quot;, T.gte, 0.5f).weight
-==&gt;0.5
-==&gt;1.0
-heliosjs&gt; g.V.has(&quot;age&quot;, null).name
-==&gt;lop
-==&gt;ripple</code></pre>
-<h4>See Also</h4>
-<ul>
-<li><a href="#filter/hasnot">hasNot</a></li>
-</ul>
-<p><a href="#">top</a>
-
-</p>
-<hr>
-<h3 id='filter/hasnot'>hasNot</h3 id='filter/hasnot'>
-<p>Allows an element if it does not have a particular property.  Utilizes several options for comparisons on through <code>T</code>:
-
-</p>
-<ul>
-<li>T.gt - greater than </li>
-<li>T.gte - greater than or equal to</li>
-<li>T.eq - equal to</li>
-<li>T.neq - not equal to</li>
-<li>T.lte - less than or equal to</li>
-<li>T.lt - less than</li>
-</ul>
-<pre><code class="text">heliosjs&gt; g.v(1).outE.hasNot(&quot;weight&quot;, T.eq, 0.5f).weight
-==&gt;1.0
-==&gt;0.4
-heliosjs&gt; g.V.hasNot(&quot;age&quot;, null).name
-==&gt;vadas
-==&gt;marko
-==&gt;peter
-==&gt;josh</code></pre>
-<p><a href="#">top</a>
-
-</p>
-<hr>
-<h3 id='filter/interval'>interval</h3 id='filter/interval'>
-<p>Allow elements to pass that have their property in the provided start and end interval.
-
-</p>
-<pre><code class="text">heliosjs&gt; g.E.interval(&quot;weight&quot;, 0.3f, 0.9f).weight
-==&gt;0.5
-==&gt;0.4
-==&gt;0.4</code></pre>
-<h4>See Also</h4>
-<ul>
-<li><a href="#filter/has">has</a></li>
-</ul>
-<p><a href="#">top</a>
-
-</p>
-<hr>
-<h3 id='filter/or'>or</h3 id='filter/or'>
-<p>Takes a collection of pipes and emits incoming objects that are true for any of the pipes.
-
-</p>
-<pre><code class="text">heliosjs&gt; g.v(1).outE.or(_().has(&#39;id&#39;, T.eq, &quot;9&quot;), _().has(&#39;weight&#39;, T.lt, 0.6f))
-==&gt;e[7][1-knows-&gt;2]
-==&gt;e[9][1-created-&gt;3]</code></pre>
-<p><a href="#">top</a>
-
-</p>
-<hr>
-<h3 id='filter/random'>random</h3 id='filter/random'>
-<p>Emits the incoming object if biased coin toss is heads.
-
-</p>
-<pre><code class="text">heliosjs&gt; g.V.random(0.5)
-==&gt;v[3]
-==&gt;v[1]
-==&gt;v[6]
-heliosjs&gt; g.V.random(0.5)
-==&gt;v[2]
-==&gt;v[5]
-==&gt;v[4]</code></pre>
-<p><a href="#">top</a>
-
-</p>
-<hr>
-
-<h3 id='filter/simplepath'>simplePath</h3 id='filter/simplepath'>
-<p>Emit the object only if the current path has no repeated elements.
-
-</p>
-<pre><code class="text">heliosjs&gt; g.v(1).out.in
-==&gt;v[1]
-==&gt;v[1]
-==&gt;v[1]
-==&gt;v[4]
-==&gt;v[6]
-heliosjs&gt; g.v(1).out.in.simplePath
-==&gt;v[4]
-==&gt;v[6]</code></pre>
-<p><a href="#">top</a>
-
-</p>
-<hr>
 <h2 id='side-effect'>Side Effect</h2 id='side-effect'>
 <p>Side Effect steps pass the object, but yield some kind of side effect while doing so.
 
 </p>
-<h3 id='side-effect/aggregate'>aggregate</h3 id='side-effect/aggregate'>
-<p>Emits input, but adds input in collection, where provided closure processes input prior to insertion (greedy). In being &quot;greedy&quot;, &#39;aggregate&#39; will exhaust all the items that come to it from previous steps before emitting the next element.
+<h3 id='side-effect/count'>count()</h3 id='side-effect/count'>
+<p>Counts the number of elements.
 
 </p>
-<pre><code class="text">heliosjs&gt; x = []
-heliosjs&gt; g.v(1).out.aggregate(x).next()
-==&gt;v[2]
-heliosjs&gt; x
-==&gt;v[2]
-==&gt;v[4]
-==&gt;v[3]</code></pre>
-<h4>See Also</h4>
-<ul>
-<li><a href="#side-effect/store">store</a></li>
-<li><a href="#methods/pipe-fill">fill</a></li>
-</ul>
+<pre><code class="text">heliosjs&gt; g.V().out(&#39;knows&#39;).count()
+<em>output:</em>
+2</code></pre>
 <p><a href="#">top</a>
 
 </p>
 <hr>
-<h3 id='side-effect/as'>as</h3 id='side-effect/as'>
+
+<h3 id='side-effect/as'>as(name:string)</h3 id='side-effect/as'>
 <p>Emits input, but names the previous step.
 
 </p>
-<pre><code class="text">heliosjs&gt; g.V.out(&#39;knows&#39;).has(&#39;age&#39;, T.gt, 30).back(2).age
-==&gt;29
-heliosjs&gt; g.V.as(&#39;x&#39;).outE(&#39;knows&#39;).inV.has(&#39;age&#39;, T.gt, 30).back(&#39;x&#39;).age
-==&gt;29</code></pre>
+<pre><code class="text">heliosjs&gt; g.v().out('knows').where({age:{$gt:30}}).back(2).property('age')
+<em>output:</em>
+[29]
+
+heliosjs&gt; g.v().as('x').out('knows').where({age:{$gt:30}}).back('x').property('age')
+<em>output:</em>
+[29]</code></pre>
 <p><a href="#">top</a>
 
 </p>
 <hr>
-<h3 id='side-effect/groupby'>groupBy</h3 id='side-effect/groupby'>
-<p>Emits input, but groups input after processing it by provided key-closure and value-closure.  It is also possible to supply an optional reduce-closure.
 
-</p>
-<pre><code class="text">heliosjs&gt; g.V.groupBy{it}{it.out}.cap
-==&gt;{v[3]=[], v[2]=[], v[1]=[v[2], v[4], v[3]], v[6]=[v[3]], v[5]=[], v[4]=[v[5], v[3]]}
-heliosjs&gt; g.V.groupBy{it}{it.out}{it.size()}.cap
-==&gt;{v[3]=0, v[2]=0, v[1]=3, v[6]=1, v[5]=0, v[4]=2}
-heliosjs&gt; m = [:]
-heliosjs&gt; g.V.groupBy(m){it}{it.out}.iterate();null;
-==&gt;null
-heliosjs&gt; m
-==&gt;v[3]=[]
-==&gt;v[2]=[]
-==&gt;v[1]=[v[2], v[4], v[3]]
-==&gt;v[6]=[v[3]]
-==&gt;v[5]=[]
-==&gt;v[4]=[v[5], v[3]]
-heliosjs&gt; g.V.out.groupBy{it.name}{it.in}{it.unique().findAll{i -&gt; i.age &gt; 30}.name}.cap
-==&gt;{lop=[josh, peter], ripple=[josh], josh=[], vadas=[]}</code></pre>
-<h4>See Also</h4>
-<ul>
-<li><a href="#side-effect/groupcount">groupCount</a></li>
-</ul>
-<p><a href="#">top</a>
-
-</p>
-<hr>
-<h3 id='side-effect/groupcount'>groupCount</h3 id='side-effect/groupcount'>
-<p>Emits input, but updates a map for each input, where closures provides generic map update.
-
-</p>
-<pre><code class="text">heliosjs&gt; g.V.out.groupCount(m)
-==&gt;v[2]
-==&gt;v[4]
-==&gt;v[3]
-==&gt;v[3]
-==&gt;v[5]
-==&gt;v[3]
-heliosjs&gt; m
-==&gt;v[2]=1
-==&gt;v[4]=1
-==&gt;v[3]=3
-==&gt;v[5]=1
-heliosjs&gt; g.v(1).out.groupCount(m){it}{it.b+1.0}.out.groupCount(m){it}{it.b+0.5}
-==&gt;v[5]
-==&gt;v[3]
-heliosjs&gt; m
-==&gt;v[2]=1.0
-==&gt;v[4]=1.0
-==&gt;v[5]=0.5
-==&gt;v[3]=1.5</code></pre>
-<h4>See Also</h4>
-<ul>
-<li><a href="#side-effect/groupby">groupBy</a></li>
-</ul>
-<p><a href="#">top</a>
-
-</p>
-<hr>
-<h3 id='side-effect/optional'>optional</h3 id='side-effect/optional'>
+<h3 id='side-effect/optional'>optional(backSteps:number)</h3 id='side-effect/optional'>
+        <h3>optional(namedStep:string)</h3>
 <p>Behaves similar to <code>back</code> except that it does not filter. It will go down a particular path and back up to where it left off. As such, its useful for yielding a sideeffect down a particular branch.
 
 </p>
-<pre><code class="text">heliosjs&gt; g.V.out(&#39;knows&#39;).has(&#39;age&#39;, T.gt, 30).back(2)
-==&gt;v[1]
-heliosjs&gt; g.V.out(&#39;knows&#39;).has(&#39;age&#39;, T.gt, 30).optional(2)
-==&gt;v[3]
-==&gt;v[2]
-==&gt;v[1]
-==&gt;v[6]
-==&gt;v[5]
-==&gt;v[4]
-heliosjs&gt; g.V.as(&#39;x&#39;).outE(&#39;knows&#39;).inV.has(&#39;age&#39;, T.gt, 30).back(&#39;x&#39;)
-==&gt;v[1]
-heliosjs&gt; g.V.as(&#39;x&#39;).outE(&#39;knows&#39;).inV.has(&#39;age&#39;, T.gt, 30).optional(&#39;x&#39;)
-==&gt;v[3]
-==&gt;v[2]
-==&gt;v[1]
-==&gt;v[6]
-==&gt;v[5]
-==&gt;v[4]</code></pre>
+<pre><code class="text">heliosjs&gt; heliosjs&gt; g.v().out('knows').where({age:{$gt:30}}).back(2)
+<em>output:</em>
+[{"name":"marko","age":29,"_id":1,"_type":"vertex"}]
+
+heliosjs&gt; g.v().out('knows').where({age:{$gt:30}}).optional(2)
+<em>output:</em>
+[{"name":"marko","age":29,"_id":1,"_type":"vertex"},
+{"name":"vadas","age":27,"_id":2,"_type":"vertex"},
+{"name":"lop","lang":"java","_id":3,"_type":"vertex"},
+{"name":"josh","age":32,"_id":4,"_type":"vertex"},
+{"name":"ripple","lang":"java","_id":5,"_type":"vertex"},
+{"name":"peter","age":35,"_id":6,"_type":"vertex"}]
+
+heliosjs&gt; g.v().as('x').out('knows').where({age:{$gt:30}}).back('x')
+<em>output:</em>
+[{"name":"marko","age":29,"_id":1,"_type":"vertex"}]
+
+heliosjs&gt; g.v().as('x').out('knows').where({age:{$gt:30}}).optional('x')
+<em>output:</em>
+[{"name":"marko","age":29,"_id":1,"_type":"vertex"},
+{"name":"vadas","age":27,"_id":2,"_type":"vertex"},
+{"name":"lop","lang":"java","_id":3,"_type":"vertex"},
+{"name":"josh","age":32,"_id":4,"_type":"vertex"},
+{"name":"ripple","lang":"java","_id":5,"_type":"vertex"},
+{"name":"peter","age":35,"_id":6,"_type":"vertex"}]</code></pre>
 <h4>See Also</h4>
 <ul>
 <li><a href="#filter/back">back</a></li>
@@ -1351,515 +1077,50 @@ heliosjs&gt; g.V.as(&#39;x&#39;).outE(&#39;knows&#39;).inV.has(&#39;age&#39;, T.
 
 </p>
 <hr>
-<h3 id='side-effect/sideeffect'>sideEffect</h3 id='side-effect/sideeffect'>
-<p>Emits input, but calls a side effect closure on each input.
 
-</p>
-<pre><code class="text">heliosjs&gt; youngest = Integer.MAX_VALUE
-==&gt;2147483647
-heliosjs&gt; g.V.hasNot(&#39;age&#39;, null).sideEffect{youngest=youngest&gt;it.age?it.age:youngest}
-==&gt;v[2]
-==&gt;v[1]
-==&gt;v[6]
-==&gt;v[4]
-heliosjs&gt; youngest
-==&gt;27</code></pre>
-<p><a href="#">top</a>
 
-</p>
-<hr>
-<h3 id='side-effect/store'>store</h3 id='side-effect/store'>
-<p>Emits input, but adds input to collection, where provided closure processes input prior to insertion (lazy).  In being &quot;lazy&quot;, &#39;store&#39; will keep element as they are being requested.
-
-</p>
-<pre><code class="text">heliosjs&gt; x = []
-heliosjs&gt; g.v(1).out.store(x).next()
-==&gt;v[2]
-heliosjs&gt; x
-==&gt;v[2]</code></pre>
-<h4>See Also</h4>
-<ul>
-<li><a href="#side-effect/aggregate">aggregate</a></li>
-<li><a href="#methods/pipe-fill">fill</a></li>
-</ul>
-<p><a href="#">top</a>
-
-</p>
-<hr>
-<h3 id='side-effect/table'>table</h3 id='side-effect/table'>
-<p>Emits input, but stores row of as values (constrained by column names if provided) in a table.  Accepts an optional set of closures that are applied in round-robin fashion to each column of the table.
-
-</p>
-<pre><code class="text">heliosjs&gt; t = new Table()
-heliosjs&gt; g.V.name.as(&#39;name&#39;).back(1).age.as(&#39;age&#39;).table(t)
-==&gt;null
-==&gt;27
-==&gt;29
-==&gt;35
-==&gt;null
-==&gt;32
-heliosjs&gt; t
-==&gt;[name:lop, age:null]
-==&gt;[name:vadas, age:27]
-==&gt;[name:marko, age:29]
-==&gt;[name:peter, age:35]
-==&gt;[name:ripple, age:null]
-==&gt;[name:josh, age:32]
-heliosjs&gt; t = new Table()
-heliosjs&gt; g.V.hasNot(&#39;age&#39;, null).name.as(&#39;name&#39;).back(1).age.as(&#39;age&#39;).table(t){it}{it&gt;30 ? &#39;over thirty&#39; : &#39;under thirty&#39;}
-==&gt;27
-==&gt;29
-==&gt;35
-==&gt;32
-heliosjs&gt; t
-==&gt;[name:vadas, age:under thirty]
-==&gt;[name:marko, age:under thirty]
-==&gt;[name:peter, age:over thirty]
-==&gt;[name:josh, age:over thirty]
-heliosjs&gt; t.get(0,&#39;name&#39;)
-==&gt;vadas</code></pre>
-<h3 id='side-effect/tree'>tree</h3 id='side-effect/tree'>
-<p><a href="#">top</a>
-
-</p>
-<hr>
-<p>Emit input, but stores the tree formed by the traversal as a map.  Accepts an optional set of closures to be applied in round-robin fashion over each level of the tree.
-
-</p>
-<pre><code class="text">heliosjs&gt; g.v(1).out.out.tree.cap
-==&gt;{v[1]={v[4]={v[3]={}, v[5]={}}}}
-heliosjs&gt; g.v(1).out.out.tree{it.name}.cap
-==&gt;{marko={josh={lop={}, ripple={}}}}
-heliosjs&gt; g.v(1).out.out.tree{it.name}{&quot;child1:&quot; + it.name}{&quot;child2:&quot; + it.name}.cap
-==&gt;{marko={child1:josh={child2:lop={}, child2:ripple={}}}}
-heliosjs&gt; t = new Tree()
-heliosjs&gt; g.v(1).out.out.tree(t){it.name}{&quot;child1:&quot; + it.name}{&quot;child2:&quot; + it.name}
-==&gt;v[5]
-==&gt;v[3]
-heliosjs&gt; t.get(&#39;marko&#39;)
-==&gt;child1:josh={child2:lop={}, child2:ripple={}}</code></pre>
-<h2 id='branch'>Branch</h2 id='branch'>
-<p>Branch steps decide which step to take.
-
-</p>
-<h3 id='branch/copysplit'>copySplit</h3 id='branch/copysplit'>
-<p>Copies incoming object to internal pipes.
-
-</p>
-<pre><code class="text">heliosjs&gt; g.v(1).out(&#39;knows&#39;).copySplit(_().out(&#39;created&#39;).name, _().age).fairMerge
-==&gt;ripple
-==&gt;27
-==&gt;lop
-==&gt;32
-heliosjs&gt; g.v(1).out(&#39;knows&#39;).copySplit(_().out(&#39;created&#39;).name, _().age).exhaustMerge
-==&gt;ripple
-==&gt;lop
-==&gt;27
-==&gt;32</code></pre>
-<h4>See Also</h4>
-<ul>
-<li><a href="#branch/exhaustmerge">exhaustMerge</a></li>
-<li><a href="#branch/fairmerge">fairMerge</a></li>
-</ul>
-<p><a href="#">top</a>
-
-</p>
-<hr>
-<h3 id='branch/exhaustmerge'>exhaustMerge</h3 id='branch/exhaustmerge'>
-<p>Used in combination with a <code>copySplit</code>, merging the parallel traversals by exhaustively getting the objects of the first, then the second, etc.
-
-</p>
-<pre><code class="text">heliosjs&gt; g.v(1).out(&#39;knows&#39;).copySplit(_().out(&#39;created&#39;).name, _().age).exhaustMerge
-==&gt;ripple
-==&gt;lop
-==&gt;27
-==&gt;32</code></pre>
-<h4>See Also</h4>
-<ul>
-<li><a href="#branch/copysplit">copySplit</a></li>
-<li><a href="#branch/fairmerge">fairMerge</a></li>
-</ul>
-<p><a href="#">top</a>
-
-</p>
-<hr>
-<h3 id='branch/fairmerge'>fairMerge</h3 id='branch/fairmerge'>
-<p>Used in combination with a <code>copySplit</code>, merging the parallel traversals in a round-robin fashion.
-
-</p>
-<pre><code class="text">heliosjs&gt; g.v(1).out(&#39;knows&#39;).copySplit(_().out(&#39;created&#39;).name, _().age).fairMerge
-==&gt;ripple
-==&gt;27
-==&gt;lop
-==&gt;32</code></pre>
-<h4>See Also</h4>
-<ul>
-<li><a href="#branch/copysplit">copySplit</a></li>
-<li><a href="#branch/exhaustmerge">exaustMerge</a></li>
-</ul>
-<p><a href="#">top</a>
-
-</p>
-<hr>
-<h3 id='branch/ifthenelse'>ifThenElse</h3 id='branch/ifthenelse'>
+<h3 id='branch/ifthenelse'>ifThenElse(ifClosure:string, thenClosure:string, elseClosure:string)</h3 id='branch/ifthenelse'>
 <p>Allows for if-then-else conditional logic.
 
 </p>
-<pre><code class="text">heliosjs&gt; g.v(1).out.ifThenElse{it.name==&#39;josh&#39;}{it.age}{it.name}
-==&gt;vadas
-==&gt;32
-==&gt;lop</code></pre>
+<pre><code class="text">heliosjs&gt; g.v(1).out().ifThenElse("it.name=='josh'","it.age","it.name")
+<em>output:</em>
+["vadas",32,"lop"]</code></pre>
 <p><a href="#">top</a>
 
 </p>
 <hr>
-<h3 id='branch/loop'>loop</h3 id='branch/loop'>
-<p>Loop over a particular set of steps in the pipeline.  The first argument is either the number of steps back in the pipeline to go or a named step.  The second argument is a while closure evaluating the current object.  The <code>it</code> component of the loop step closure has three properties that are accessible. These properties can be used to reason about when to break out of the loop.
+<h3 id='branch/loop'>loop(backSteps:number, iterations:number, closure?:string)</h3 id='branch/loop'>
+<h3>loop(namedStep:string, iterations:number, closure?:string)</h3>
+
+<p>Loop over a particular set of steps in the pipeline.  The first argument is either the number of steps back in the pipeline to go, where the preceding step is back 1 step, or a named step.  The second argument is the number of iterations to loop. The final argument is known as the &quot;emit&quot; closure. This boolean-based closure will determine wether the current object in the loop structure is emitted or not. As such, it is possible to emit intermediate objects, not simply those at the end of the loop.
 
 </p>
-<ul>
-<li><code>it.object</code>: the current object of the traverser.</li>
-<li><code>it.path</code>: the current path of the traverser.</li>
-<li><code>it.loops</code>: the number of times the traverser has looped through the loop section.</li>
-</ul>
-<p>The final argument is known as the &quot;emit&quot; closure. This boolean-based closure will determine wether the current object in the loop structure is emitted or not. As such, it is possible to emit intermediate objects, not simply those at the end of the loop.
+<pre><code class="text">heliosjs&gt; g.v(1).out().out()
+<em>output:</em>
+[{"name":"ripple","lang":"java","_id":5,"_type":"vertex"},
+{"name":"lop","lang":"java","_id":3,"_type":"vertex"}]
 
-</p>
-<pre><code class="text">heliosjs&gt; g.v(1).out.out
-==&gt;v[5]
-==&gt;v[3]
-heliosjs&gt; g.v(1).out.loop(1){it.loops&lt;3}
-==&gt;v[5]
-==&gt;v[3]
-heliosjs&gt; g.v(1).out.loop(1){it.loops&lt;3}{it.object.name==&#39;josh&#39;}
-==&gt;v[4]</code></pre>
+heliosjs&gt; g.v(1).out().loop(1,2)
+<em>output:</em>
+[{"name":"ripple","lang":"java","_id":5,"_type":"vertex"},
+{"name":"lop","lang":"java","_id":3,"_type":"vertex"}]
+
+heliosjs&gt; g.v(1).out().loop(1,2,"it.name=='josh'")
+<em>output:</em>
+[{"name":"josh","age":32,"_id":4,"_type":"vertex"}]
+
+heliosjs&gt; g.v(1).out().in().out().in().id()
+<em>output:</em>
+[1,1,1,4,6,1,1,1,4,6,1,1,1,4,6,4,1,4,6,1,4,6]
+
+heliosjs&gt; g.v(1).out().as('x').in().loop('x',2).id()
+<em>output:</em>
+[1,1,1,4,6,1,1,1,4,6,1,1,1,4,6,4,1,4,6,1,4,6]</code></pre>
 <p><a href="#">top</a>
 
 </p>
 <hr>
-<h2 id='methods'>Methods</h2 id='methods'>
-<p>Methods represent functions that make it faster and easier to work with <a href="http://blueprints.tinkerpop.com">Blueprints</a> and <a href="http://pipes.tinkerpop.com">Pipes</a> APIs.  It is important to keep in mind that the full <a href="http://download.oracle.com/javase/6/docs/api/">Java API</a> and <a href="http://groovy.codehaus.org/groovy-jdk">Groovy API</a> are accessible from Gremlin.
-
-</p>
-<h3 id='methods/element-keys'>Element.keys</h3 id='methods/element-keys'>
-<p>Get the property keys of an element.
-
-</p>
-<pre><code class="text">heliosjs&gt; g.v(1).keys()
-==&gt;name
-==&gt;age</code></pre>
-<p><a href="#">top</a>
-
-</p>
-<hr>
-<h3 id='methods/element-remove'>Element.remove</h3 id='methods/element-remove'>
-<p>Remove an element from the graph.
-
-</p>
-<pre><code class="text">heliosjs&gt; g.E.weight
-==&gt;1.0
-==&gt;0.5
-==&gt;0.4
-==&gt;1.0
-==&gt;0.4
-==&gt;0.2
-heliosjs&gt; g.E.has(&quot;weight&quot;,T.lt,0.5f).remove()
-==&gt;null
-heliosjs&gt; g.E.weight
-==&gt;1.0
-==&gt;0.5
-==&gt;1.0</code></pre>
-<p><a href="#">top</a>
-
-</p>
-<hr>
-<h3 id='methods/element-values'>Element.values</h3 id='methods/element-values'>
-<p>Gets the property values of an element.
-
-</p>
-<pre><code class="text">heliosjs&gt; g.v(1).values()
-==&gt;marko
-==&gt;29</code></pre>
-<p><a href="#">top</a>
-
-</p>
-<hr>
-<h3 id='methods/graph-addedge'>Graph.addEdge</h3 id='methods/graph-addedge'>
-<p>Adds an edge to the graph.  Note that most graph implementations ignore the identifier supplied to <code>addEdge</code>.
-
-</p>
-<pre><code class="text">heliosjs&gt; g = new TinkerGraph()
-==&gt;tinkergraph[vertices:0 edges:0]
-heliosjs&gt; v1 = g.addVertex(100)
-==&gt;v[100]
-heliosjs&gt; v2 = g.addVertex(200)
-==&gt;v[200]
-heliosjs&gt; g.addEdge(v1,v2,&#39;friend&#39;)
-==&gt;e[0][100-friend-&gt;200]
-heliosjs&gt; g.addEdge(1000,v1,v2,&#39;buddy&#39;)
-==&gt;e[1000][100-buddy-&gt;200]
-heliosjs&gt; g.addEdge(null,v1,v2,&#39;pal&#39;,[weight:0.75f])
-==&gt;e[1][100-pal-&gt;200]</code></pre>
-<p><a href="#">top</a>
-
-</p>
-<hr>
-<h3 id='methods/graph-addvertex'>Graph.addVertex</h3 id='methods/graph-addvertex'>
-<p>Adds a vertex to the graph.  Note that most graph implementations ignore the identifier supplied to <code>addVertex</code>.
-
-</p>
-<pre><code class="text">heliosjs&gt; g = new TinkerGraph()
-==&gt;tinkergraph[vertices:0 edges:0]
-heliosjs&gt; g.addVertex()
-==&gt;v[0]
-heliosjs&gt; g.addVertex(100)
-==&gt;v[100]
-heliosjs&gt; g.addVertex(null,[name:&quot;stephen&quot;])
-==&gt;v[1]</code></pre>
-<p><a href="#">top</a>
-
-</p>
-<hr>
-<h3 id='methods/graph-e'>Graph.e</h3 id='methods/graph-e'>
-<p>Get an edge or set of edges by providing one or more edge identifiers.  The identifiers must be the identifiers assigned by the underlying graph implementation.
-
-</p>
-<pre><code class="text">heliosjs&gt; g.e(10)
-==&gt;e[10][4-created-&gt;5]
-heliosjs&gt; g.e(10,11,12)
-==&gt;e[10][4-created-&gt;5]
-==&gt;e[11][4-created-&gt;3]
-==&gt;e[12][6-created-&gt;3]
-heliosjs&gt; ids = [10,11,12]
-==&gt;10
-==&gt;11
-==&gt;12
-heliosjs&gt; g.e(ids.toArray())
-==&gt;e[10][4-created-&gt;5]
-==&gt;e[11][4-created-&gt;3]
-==&gt;e[12][6-created-&gt;3]</code></pre>
-<h4>See Also</h4>
-<ul>
-<li><a href="#methods/graph-v">Graph.v</a></li>
-</ul>
-<p><a href="#">top</a>
-
-</p>
-<hr>
-<h3 id='methods/graph-idx-string'>Graph.idx(String)</h3 id='methods/graph-idx-string'>
-<p>Get an manual index by its name.
-
-</p>
-<pre><code class="text">heliosjs&gt; g.createIndex(&quot;my-index&quot;, Vertex.class)
-==&gt;index[my-index:Vertex]
-heliosjs&gt; myIdx = g.idx(&quot;my-index&quot;).put(&quot;name&quot;, &quot;marko&quot;, g.v(1))
-==&gt;null
-heliosjs&gt; myIdx.getIndexName()
-==&gt;my-index</code></pre>
-<h4>See Also</h4>
-<ul>
-<li><a href="#methods/index-map-entry">Index[Map.Entry]</a></li>
-</ul>
-<p><a href="#">top</a>
-
-</p>
-<hr>
-<h3 id='methods/graph-load'>Graph.load</h3 id='methods/graph-load'>
-<p>Load a file from one of several standard formats such as <a href="http://graphml.graphdrawing.org/">GraphML</a>, <a href="http://www.fim.uni-passau.de/en/fim/faculty/chairs/theoretische-informatik/projects.html">GML</a>, or <a href="https://github.com/tinkerpop/blueprints/wiki/GraphSON-Reader-and-Writer-Library">GraphSON</a>.
-
-</p>
-<pre><code class="text">heliosjs&gt; g = new TinkerGraph()
-==&gt;tinkergraph[vertices:0 edges:0]
-heliosjs&gt; g.loadGraphML(&#39;data/graph-example-1.xml&#39;)
-==&gt;null
-heliosjs&gt; g.V
-==&gt;v[3]
-==&gt;v[2]
-==&gt;v[1]
-==&gt;v[6]
-==&gt;v[5]
-==&gt;v[4]</code></pre>
-<h4>See Also</h4>
-<ul>
-<li><a href="#methods/graph-save">Graph.save</a></li>
-</ul>
-<p><a href="#">top</a>
-
-</p>
-<hr>
-<h3 id='methods/graph-removeedge'>Graph.removeEdge</h3 id='methods/graph-removeedge'>
-<p>Remove an edge.
-
-</p>
-<pre><code class="text">heliosjs&gt; g = new TinkerGraph()
-==&gt;tinkergraph[vertices:0 edges:0]
-heliosjs&gt; v1 = g.addVertex()
-==&gt;v[100]
-heliosjs&gt; v2 = g.addVertex()
-==&gt;v[200]
-heliosjs&gt; g.addEdge(v1,v2,&#39;friend&#39;)
-==&gt;e[0][100-friend-&gt;200]
-heliosjs&gt; g.removeEdge(g.e(0))
-==&gt;null</code></pre>
-<p><a href="#">top</a>
-
-</p>
-<hr>
-<h3 id='methods/graph-removevertex'>Graph.removeVertex</h3 id='methods/graph-removevertex'>
-<p>Remove a vertex.
-
-</p>
-<pre><code class="text">heliosjs&gt; g.addVertex()
-==&gt;v[128]
-heliosjs&gt; g.removeVertex(g.v(128))
-==&gt;null</code></pre>
-<p><a href="#">top</a>
-
-</p>
-<hr>
-<h3 id='methods/graph-save'>Graph.save</h3 id='methods/graph-save'>
-<p>Save a graph to file given one of several standard formats such as <a href="http://graphml.graphdrawing.org/">GraphML</a>, <a href="http://www.fim.uni-passau.de/en/fim/faculty/chairs/theoretische-informatik/projects.html">GML</a>, or <a href="https://github.com/tinkerpop/blueprints/wiki/GraphSON-Reader-and-Writer-Library">GraphSON</a>.
-
-</p>
-<pre><code class="text">heliosjs&gt; g.saveGraphML(&#39;data/graph.xml&#39;)
-==&gt;null</code></pre>
-<h4>See Also</h4>
-<ul>
-<li><a href="#methods/graph-load">Graph.load</a></li>
-</ul>
-<p><a href="#">top</a>
-
-</p>
-<hr>
-<h3 id='methods/graph-v'>Graph.v</h3 id='methods/graph-v'>
-<p>Get a vertex or set of vertices by providing one or more vertex identifiers.  The identifiers must be the identifiers assigned by the underlying graph implementation.
-
-</p>
-<pre><code class="text">heliosjs&gt; g.v(1)
-==&gt;v[1]
-heliosjs&gt; g.v(1,2,3)
-==&gt;v[1]
-==&gt;v[2]
-==&gt;v[3]
-heliosjs&gt; ids = [1,2,3]
-==&gt;1
-==&gt;2
-==&gt;3
-heliosjs&gt; g.v(ids.toArray())
-==&gt;v[1]
-==&gt;v[2]
-==&gt;v[3]</code></pre>
-<h4>See Also</h4>
-<ul>
-<li><a href="#methods/graph-e">Graph.e</a></li>
-</ul>
-<p><a href="#">top</a>
-
-</p>
-<hr>
-<h3 id='methods/index-map-entry'>Index[Map.Entry]</h3 id='methods/index-map-entry'>
-<p>Look up a value in an index.
-
-</p>
-<pre><code class="text">heliosjs&gt; g.createIndex(&quot;my-index&quot;, Vertex.class)
-==&gt;index[my-index:Vertex]
-heliosjs&gt; g.idx(&quot;my-index&quot;).put(&quot;name&quot;, &quot;marko&quot;, g.v(1))
-==&gt;null
-heliosjs&gt; g.idx(&quot;my-index&quot;)[[name:&quot;marko&quot;]]
-==&gt;v[1]</code></pre>
-<h4>See Also</h4>
-<ul>
-<li><a href="#methods/graph-idx-string">Graph.idx(String)</a></li>
-</ul>
-<p><a href="#">top</a>
-
-</p>
-<hr>
-<h3 id='methods/pipe-fill'>Pipe.fill</h3 id='methods/pipe-fill'>
-<p>Takes all the results in the pipeline and puts them into the provided collection.
-
-</p>
-<pre><code class="text">heliosjs&gt; m = []
-heliosjs&gt; g.v(1).out.fill(m)
-==&gt;v[2]
-==&gt;v[4]
-==&gt;v[3]
-heliosjs&gt; m
-==&gt;v[2]
-==&gt;v[4]
-==&gt;v[3]</code></pre>
-<h4>See Also</h4>
-<ul>
-<li><a href="#side-effect/aggregate">aggregate</a></li>
-<li><a href="#side-effect/store">store</a></li>
-</ul>
-<p><a href="#">top</a>
-
-</p>
-<hr>
-<h3 id='methods/pipe-iterate'>Pipe.iterate</h3 id='methods/pipe-iterate'>
-<p>Calls <a href="#methods/pipe-next">Pipe.next</a> for all objects in the pipe. This is an important notion to follow when considering the behavior of the Gremlin Console.  The Gremlin Console iterates through the pipeline automatically and outputs the results.  Outside of the Gremlin Console or if more than one statement is present on a single line of the Gremlin Console, iterating the pipe must be done manually.  Read more about this topic in the Gremlin Wiki <a href="https://github.com/tinkerpop/gremlin/wiki/Troubleshooting">Troubleshooting Page</a>.
-
-</p>
-<p>There are some important things to note in the example below.  Had the the first line of Gremlin been executed separately, as opposed to being placed on the same line separated by a semi-colon, the names of all the vertices would have changed because the Gremlin Console would have automatically iterated the pipe and processed the side-effects.
-
-</p>
-<pre><code class="text">heliosjs&gt; g.V.sideEffect{it.name=&quot;same-again&quot;};g.V.name
-==&gt;lop
-==&gt;vadas
-==&gt;marko
-==&gt;peter
-==&gt;ripple
-==&gt;josh
-heliosjs&gt; g.V.sideEffect{it.name=&quot;same&quot;}.iterate();g.V.name
-==&gt;same
-==&gt;same
-==&gt;same
-==&gt;same
-==&gt;same
-==&gt;same</code></pre>
-<h4>See Also</h4>
-<ul>
-<li><a href="#methods/pipe-next">Pipe.next</a></li>
-</ul>
-<p><a href="#">top</a>
-
-</p>
-<hr>
-<h3 id='methods/pipe-next'>Pipe.next</h3 id='methods/pipe-next'>
-<p>Gets the next object in the pipe or the next <em>n</em> objects.  This is an important notion to follow when considering the behavior of the Gremlin Console.  The Gremlin Console iterates through the pipeline automatically and outputs the results.  Outside of the Gremlin Console or if more than one statement is present on a single line of the Gremlin Console, iterating the pipe must be done manually.  Read more about this topic in the Gremlin Wiki <a href="https://github.com/tinkerpop/gremlin/wiki/Troubleshooting">Troubleshooting Page</a>.
-
-</p>
-<p>There are some important things to note in the example below.  Had the the first line of Gremlin been executed separately, as opposed to being placed on the same line separated by a semi-colon, the name of the vertex would have changed because the Gremlin Console would have automatically iterated the pipe and processed the side-effect.
-
-</p>
-<pre><code class="text">heliosjs&gt; g.v(1).sideEffect{it.name=&quot;same&quot;};g.v(1).name
-==&gt;marko
-heliosjs&gt; g.v(1).sideEffect{it.name=&quot;same&quot;}.next();g.v(1).name
-==&gt;same
-heliosjs&gt; g.V.sideEffect{it.name=&quot;same-again&quot;}.next(3);g.V.name
-==&gt;same-again
-==&gt;same-again
-==&gt;same-again
-==&gt;peter
-==&gt;ripple
-==&gt;josh</code></pre>
-<h4>See Also</h4>
-<ul>
-<li><a href="#methods/pipe-iterate">Pipe.iterate</a></li>
-</ul>
-<p><a href="#">top</a>
-
-</p> -->
-
-
-
-
-
-
-
-
-
 
 
         <h2>License</h2>
