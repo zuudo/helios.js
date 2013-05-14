@@ -7,10 +7,10 @@ In order to traverse the graph, HeliosJS uses a [Gremlin](http://gremlin.tinkerp
 __Please see the [website](http://entrendipity.github.com/helios.js/) for full documentation.__
 
 ##TODO
-*indexing
-*CRUD
-*more testing
-*reduce code base 
+* indexing
+* CRUD
+* more testing
+* reduce code base 
 
 ##License  
 
