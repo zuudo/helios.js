@@ -9,6 +9,7 @@ __Please see the [website](http://entrendipity.github.com/helios.js/) for full d
 ##TODO
 * indexing
 * CRUD
+* more steps -> groupBy, countBy etc.
 * more testing
 * reduce code base 
 
