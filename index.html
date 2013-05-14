@@ -1122,6 +1122,102 @@ heliosjs&gt; g.v(1).out().as('x').in().loop('x',2).id()
 </p>
 <hr>
 
+<h2 id='db-methods'>Database Methods</h2 id='db-methods'>
+<p>Methods that operate on the database and do not directly travese the graph.</p>
+
+<h3 id='db-methods/pin'>pin()</h3 id='db-methods/pin'>
+<p>Pins the traversal to a point in the graph.</p>
+
+<p>If you assign a traversal command to a variable, the variable holds a reference to that point in the graph. You can continue traversing the graph using the stored position, however the variable will store the last place reached during the last traversal. Pin ensures that the variable keeps the reference to the initial point in the graph.</p>
+
+<pre><code class="text">heliosjs&gt; g.v(1).out().in().in().then(function(r){return console.log(JSON.stringify(r))});
+<em>output:</em>
+[{"name":"marko","age":29,"_id":1,"_type":"vertex"}]
+
+heliosjs&gt; var dynamic = g.v(1).out();
+heliosjs&gt; dynamic.in().then(function(r){return console.log(JSON.stringify(r))});
+<em>output:</em>
+[{"name":"marko","age":29,"_id":1,"_type":"vertex"},
+{"name":"marko","age":29,"_id":1,"_type":"vertex"},
+{"name":"marko","age":29,"_id":1,"_type":"vertex"},
+{"name":"josh","age":32,"_id":4,"_type":"vertex"},
+{"name":"peter","age":35,"_id":6,"_type":"vertex"}]
+
+heliosjs&gt; dynamic.in().then(function(r){return console.log(JSON.stringify(r))});
+<em>output:</em>
+[{"name":"marko","age":29,"_id":1,"_type":"vertex"}]
+
+heliosjs&gt; var pinned = g.v(1).out().pin();
+heliosjs&gt; pinned.in().then(function(r){return console.log(JSON.stringify(r))});
+<em>output:</em>
+[{"name":"marko","age":29,"_id":1,"_type":"vertex"},
+{"name":"marko","age":29,"_id":1,"_type":"vertex"},
+{"name":"marko","age":29,"_id":1,"_type":"vertex"},
+{"name":"josh","age":32,"_id":4,"_type":"vertex"},
+{"name":"peter","age":35,"_id":6,"_type":"vertex"}]
+
+heliosjs&gt; pinned.in().then(function(r){return console.log(JSON.stringify(r))});
+<em>output:</em>
+[{"name":"marko","age":29,"_id":1,"_type":"vertex"},
+{"name":"marko","age":29,"_id":1,"_type":"vertex"},
+{"name":"marko","age":29,"_id":1,"_type":"vertex"},
+{"name":"josh","age":32,"_id":4,"_type":"vertex"},
+{"name":"peter","age":35,"_id":6,"_type":"vertex"}]</code></pre>
+<h4>See Also</h4>
+<ul>
+<li><a href="#db-methods/unpin">unpin</a></li>
+</ul>
+<p><a href="#">top</a>
+
+</p>
+<hr>
+<h3 id='db-methods/unpin'>unpin()</h3 id='db-methods/unpin'>
+
+<p>Restores default traversal behaviour on a previously <a href="#db-methods/pin">pin</a>ned variable.
+
+</p>
+<pre><code class="text">heliosjs&gt; var pinned = g.v(1).out().pin();
+heliosjs&gt; pinned.in().then(function(r){return console.log(JSON.stringify(r))});
+<em>output:</em>
+[{"name":"marko","age":29,"_id":1,"_type":"vertex"},
+{"name":"marko","age":29,"_id":1,"_type":"vertex"},
+{"name":"marko","age":29,"_id":1,"_type":"vertex"},
+{"name":"josh","age":32,"_id":4,"_type":"vertex"},
+{"name":"peter","age":35,"_id":6,"_type":"vertex"}]
+
+heliosjs&gt; pinned.unpin();
+
+heliosjs&gt; pinned.in().then(function(r){return console.log(JSON.stringify(r))});
+<em>output:</em>
+[{"name":"marko","age":29,"_id":1,"_type":"vertex"},
+{"name":"marko","age":29,"_id":1,"_type":"vertex"},
+{"name":"marko","age":29,"_id":1,"_type":"vertex"},
+{"name":"josh","age":32,"_id":4,"_type":"vertex"},
+{"name":"peter","age":35,"_id":6,"_type":"vertex"}]
+
+heliosjs&gt; pinned.in().then(function(r){return console.log(JSON.stringify(r))});
+<em>output:</em>
+[{"name":"marko","age":29,"_id":1,"_type":"vertex"}]</code></pre>
+<h4>See Also</h4>
+<ul>
+<li><a href="#db-methods/pin">pin</a></li>
+</ul>
+<p><a href="#">top</a>
+
+</p>
+<hr>
+
+<h3 id='db-methods/close'>close()</h3 id='db-methods/close'>
+
+<p>Closes the database.</p>
+<pre><code class="text">heliosjs&gt; g.close();
+</code></pre>
+<p><a href="#">top</a>
+
+</p>
+<hr>
+
+
 
         <h2>License</h2>
 
