@@ -227,7 +227,7 @@ module Helios {
             this._ = new Mogwai.Pipeline(this);
         }
 
-        close():void {
+        shutdown():void {
             this.vertices = {};
             this.edges = {};
             this.v_idx = {};

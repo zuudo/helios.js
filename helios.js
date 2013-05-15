@@ -110,11 +110,11 @@ var Helios;
             }
             return new Pipeline('e', args, this);
         };
-        GraphDatabase.prototype.close = function () {
+        GraphDatabase.prototype.shutdown = function () {
             var worker = this.worker;
             this.db.invoke("dbCommand", [
                 {
-                    method: 'close',
+                    method: 'shutdown',
                     parameters: []
                 }
             ]).then(function (message) {

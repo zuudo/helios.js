@@ -87,9 +87,9 @@ module Helios {
     		return new Pipeline('e', args, this);
 		}
 
-		close():void{
+		shutdown():void{
 			var worker = this.worker;
-			this.db.invoke("dbCommand", [{method:'close', parameters:[]}]).then(function (message) {
+			this.db.invoke("dbCommand", [{method:'shutdown', parameters:[]}]).then(function (message) {
 				worker.terminate();
                 console.log('Closed');
             })
