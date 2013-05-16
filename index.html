@@ -561,7 +561,7 @@ heliosjs&gt;  g.v(1).as(&#39;x&#39;).out(&#39;knows&#39;).as(&#39;y&#39;).select
     <li>'case-i' - case insensitive sort</li>
     <li>'case-s' - case sensitive sort</li>
   </ul>
-  <p>If a preperty specified does not exist in the object the default action is to place the object at the bottom (top if order descending)</p>
+  <p>If a specified property does not exist in the object the default action is to place the object at the bottom (top if order descending)</p>
 <pre><code class="text">heliosjs&gt; g.v(1).out().order()
 <em>output:</em>
 [{"name":"vadas","age":27,"_id":2,"_type":"vertex"},
@@ -1208,7 +1208,7 @@ heliosjs&gt; pinned.in().then(function(r){return console.log(JSON.stringify(r))}
 <hr>
 <h3 id='db-methods/loadgraphson'>loadGraphSON(jsonData:string)</h3 id='db-methods/loadgraphson'>
 
-<p>Loads GraphSON formatted data into the database.</p>
+<p>Loads <a href="https://github.com/tinkerpop/blueprints/wiki/GraphSON-Reader-and-Writer-Library">GraphSON</a> formatted data, in "NORMAL" mode, into the database.</p></p>
 <pre><code class="text">heliosjs&gt; g.loadGraphSON('http://path/to/graphson.json');
 </code></pre>
 <p><a href="#">top</a>
