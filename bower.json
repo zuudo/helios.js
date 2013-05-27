@@ -1,6 +1,6 @@
 {
   "name": "helios",
-  "version": "0.0.0",
+  "version": "0.1.0b",
   "main": "helios.js",
   "dependencies": {
     "collections": "~0.1.17",
