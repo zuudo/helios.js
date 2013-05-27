@@ -2,12 +2,6 @@
   "name": "helios",
   "version": "0.1.0b",
   "main": "helios.js",
-  "dependencies": {
-    "collections": "~0.1.17",
-    "q": "~0.9.3",
-    "q-connection": "~0.5.2",
-    "sax": "~undefined"
-  },
   "ignore": [
     "**/.*",
     "node_modules",
