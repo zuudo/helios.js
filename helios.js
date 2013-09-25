@@ -1,3 +1,4 @@
+/* version = 0.1.1 */
 var Helios;
 (function (Helios) {
     var GraphDatabase = (function () {
