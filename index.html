@@ -56,12 +56,12 @@
 <p>Now create a graph database and load some data.</p>
 <pre><code>var g = new Helios.GraphDatabase();
 g.loadGraphSON('./location/to/json/data/file/graph-example-1.json');</code></pre>
-</p>
-<p>You are also able to specify the location of heliosDB.js. This is the file that the web worker uses to create the Helios graph. The default location is './helios/lib/heliosDB.js'. If for some reason you need to move the location of that file, you will need to pass in the new location so Helios knows where to find the file. GraphDatabase takes an object with a property key of 'heliosDBPath'. For example:
+
+<p>You are also able to specify the location of heliosDB.js. This is the file that the web worker uses to create the Helios graph. The default location is './helios/lib/heliosDB.js'. If for some reason you need to move the location of that file, you will need to pass in the new location so Helios knows where to find the file. GraphDatabase takes an object with a property key of 'heliosDBPath'. For example:</p>
 <pre>
   <code>var g = new Helios.GraphDatabase({heliosDBPath:'./new/directory/location/heliosDB.js'});</code>
 </pre>
-</p>
+
 
 <p>Then travese the graph.</p>
 <pre><code>g.V().out('knows').then(function(result){console.log(JSON.stringify(result))});
