@@ -2,14 +2,15 @@ var Helios;
 (function (Helios) {
     var GraphDatabase = (function () {
         function GraphDatabase(options) {
-	    var heliosDBPath = ('heliosDBPath' in options) ? options['heliosDBPath'] : './helios/lib/heliosDB.js';
+            var heliosDBPath = options && ('heliosDBPath' in options) ? options['heliosDBPath'] : './helios/lib/heliosDB.js';
             this.worker = new Worker(heliosDBPath);
             this.db = Q_COMM.Connection(this.worker, null, {
                 max: 1024
             });
             this.V = this.v;
             this.E = this.e;
-            this.db.invoke("init", options).then(function (message) {
+            /*Currently don't want to send options to heliosDB.js*/
+            this.db.invoke("init", undefined/*options*/).then(function (message) {
                 console.log(message);
             }).end();
         }
