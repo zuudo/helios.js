@@ -6,13 +6,6 @@ In order to traverse the graph, HeliosJS uses a [Gremlin](http://gremlin.tinkerp
 
 __Please see the [website](http://entrendipity.github.com/helios.js/) for full documentation of the current version (0.2.0).__
 
-##TODO
-* indexing
-* CRUD
-* more steps -> groupBy, countBy etc.
-* more testing
-* reduce code base 
-
 ##License  
 
 (MIT License)
