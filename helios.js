@@ -1,33 +1,37 @@
-/* version = 0.1.1 */
+/* version = 0.2.0 */
 var Helios;
 (function (Helios) {
     var GraphDatabase = (function () {
         function GraphDatabase(options) {
             var heliosDBPath = options && ('heliosDBPath' in options) ? options['heliosDBPath'] : './helios/lib/heliosDB.js';
-            this.worker = new Worker(heliosDBPath);
-            this.db = Q_COMM.Connection(this.worker, null, {
-                max: 1024
-            });
-            this.V = this.v;
-            this.E = this.e;
-            /*Currently don't want to send options to heliosDB.js*/
-            this.db.invoke("init", undefined/*options*/).then(function (message) {
-                console.log(message);
-            }).end();
+            try {
+                this.worker = new Worker(heliosDBPath);
+                this.db = Q_COMM.Connection(this.worker, null, {
+                    max: 1024
+                });
+            } catch(err){
+                throw new Error(err.message);
+            }
         }
+        
         GraphDatabase.prototype.setConfiguration = function (options) {
-            this.db.invoke("dbCommand", [
+            var self = this;
+            return this.db.invoke("dbCommand", [
                 {
                     method: 'setConfiguration',
                     parameters: [
                         options
                     ]
                 }
-            ]).then(function (message) {
-                console.log(message);
-            }).end();
+            ]).then(function (success) {
+                if(!success){
+                    throw new Error("Error setting Configuration.");
+                }
+                return self;
+            });
         };
-        GraphDatabase.prototype.createVIndex = function (idxName) {
+
+        /*GraphDatabase.prototype.createVIndex = function (idxName) {
             this.db.invoke("dbCommand", [
                 {
                     method: 'createVIndex',
@@ -74,45 +78,64 @@ var Helios;
             ]).then(function (message) {
                 console.log(message);
             }).end();
-        };
+        };*/
+
         GraphDatabase.prototype.loadGraphSON = function (jsonData) {
-            this.db.invoke("dbCommand", [
+            var self = this;
+            return this.db.invoke("dbCommand", [
                 {
                     method: 'loadGraphSON',
                     parameters: [
                         jsonData
                     ]
                 }
-            ]).then(function (message) {
-                console.log(message);
-            }).end();
+            ]).then(function (success) {
+                if(!success){
+                    throw new Error("Error loading GraphSON.");
+                }
+                GraphDatabase.prototype.v = _v;
+                GraphDatabase.prototype.V = _v;
+                GraphDatabase.prototype.e = _e;
+                GraphDatabase.prototype.E = _e;
+                return self;
+            });
         };
         GraphDatabase.prototype.loadGraphML = function (xmlData) {
-            this.db.invoke("dbCommand", [
+            var self = this;
+            return this.db.invoke("dbCommand", [
                 {
                     method: 'loadGraphML',
                     parameters: [
                         xmlData
                     ]
                 }
-            ]).then(function (message) {
-                console.log(message);
-            }).end();
+            ]).then(function (success) {
+                if(!success){
+                    throw new Error("Error loading GraphML.");
+                }
+                GraphDatabase.prototype.v = _v;
+                GraphDatabase.prototype.V = _v;
+                GraphDatabase.prototype.e = _e;
+                GraphDatabase.prototype.E = _e;
+                return self;
+            });            
         };
-        GraphDatabase.prototype.v = function () {
+
+        function _v() {
             var args = [];
             for (var _i = 0; _i < (arguments.length - 0); _i++) {
                 args[_i] = arguments[_i + 0];
             }
             return new Pipeline('v', args, this);
         };
-        GraphDatabase.prototype.e = function () {
+        function _e() {
             var args = [];
             for (var _i = 0; _i < (arguments.length - 0); _i++) {
                 args[_i] = arguments[_i + 0];
             }
             return new Pipeline('e', args, this);
         };
+
         GraphDatabase.prototype.shutdown = function () {
             var worker = this.worker;
             this.db.invoke("dbCommand", [

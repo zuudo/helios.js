@@ -4,7 +4,7 @@ HeliosJS is an in-memory graph database for modern browsers. It employs a non-bl
 
 In order to traverse the graph, HeliosJS uses a [Gremlin](http://gremlin.tinkerpop.com) inspired graph traversal language to query, analyze and manipulate the graph. Gremlin is an open source project maintained by [TinkerPop](http://tinkerpop.com). For more information on Gremlin, see the [Gremlin wiki](https://github.com/tinkerpop/gremlin/wiki).
 
-__Please see the [website](http://entrendipity.github.com/helios.js/) for full documentation of the current version (0.1.1).__
+__Please see the [website](http://entrendipity.github.com/helios.js/) for full documentation of the current version (0.2.0).__
 
 ##TODO
 * indexing
