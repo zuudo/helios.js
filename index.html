@@ -53,25 +53,30 @@
 </p>
 
 <!-- <h2>Your First Query</h2> -->
-<p>Now create a graph database and load some data.</p>
-<pre><code>var g = new Helios.GraphDatabase();
-g.loadGraphSON('./location/to/json/data/file/graph-example-1.json');</code></pre>
+<p>Now create a graph database.</p>
+<pre><code>var graph = new Helios.GraphDatabase();</code></pre>
 <hr>
 <p><em>N.B. GraphDatabase also takes a parameter which specifies the location of heliosDB.js. This is the file that the web worker uses to create the Helios graph. The default location is './helios/lib/heliosDB.js'. However, if you need to move the file to a different location, you will need to pass the new location to GraphDatabase so Helios knows where to find the file. GraphDatabase takes an object with a property key of 'heliosDBPath'. For example:</em></p>
 <pre>
-  <code>var g = new Helios.GraphDatabase({heliosDBPath:'./new/directory/location/heliosDB.js'});</code>
+  <code>var graph = new Helios.GraphDatabase({heliosDBPath:'./new/directory/location/heliosDB.js'});</code>
 </pre>
 <hr>
 
-<p>Then travese the graph.</p>
-<pre><code>g.V().out('knows').then(function(result){console.log(JSON.stringify(result))});
+<p>Load some data. Then travese the graph.</p>
+<pre><code>
+graph.loadGraphSON('./location/to/json/data.json')
+  .then(funciton(g){
+    g.V().out('knows').then(function(result){console.log(JSON.stringify(result))});
+  }, function(err){
+    console.error(err);
+  });
 <em>output:</em>
 [{"name":"vadas","age":27,"_id":2,"_type":"vertex"}
 ,{"name":"josh","age":32,"_id":4,"_type":"vertex"}]</code></pre>
 
-<p>Lets break this down. The first step creates a variable 'g' that references the graph database. All calls against the database will start with this variable.</p>
-<p>The next step loads data into the database using the loadGraphSON function. This function accepts <a href="https://github.com/tinkerpop/blueprints/wiki/GraphSON-Reader-and-Writer-Library">GraphSON</a> "NORMAL" mode format.</p>
-<p>Once the data is loaded we travese the graph. What the query is doing is retrieving all 'out' going vertices that 'knows' a related vertex. Once the data is retrieved 'then' return the result. The return value, in this instance, is an array of Vertex objects.</p>
+<p>Lets break this down. The first step creates a variable 'graph' that references the graph database.</p>
+<p>The next step loads data into the database using the loadGraphSON function. This function accepts <a href="https://github.com/tinkerpop/blueprints/wiki/GraphSON-Reader-and-Writer-Library">GraphSON</a> "NORMAL" mode format. If this call is successful it returns a reference to the graph 'g'. All calls against the database will be made with this variable.</p>
+<p>We then travese the graph. What the above query is doing is retrieving all 'out' going vertices that 'knows' a related vertex. Once the data is retrieved 'then' returns the result. The return value, in this instance, is an array of Vertex objects.</p>
 
 <p>Function calls are able to be chained, because each call returns a Pipeline object, which is the object that pipes the data through each of the function calls. Once 'then' is called, the pipeline is closed and the result is emitted.</p>
 
@@ -1265,7 +1270,7 @@ heliosjs&gt; pinned.in().then(function(r){return console.log(JSON.stringify(r))}
         <p><small>Hosted on <a href="https://pages.github.com">GitHub Pages</a> using the Dinky theme</small></p>
       </footer>
     </div>
-    <!--[if !IE]><script>fixScale(document);</script><!--<![endif]-->
+    <!--[if !IE]><script>fixScale(document);</script><!--[endif]>
 
   </body>
 </html>
