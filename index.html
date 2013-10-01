@@ -64,7 +64,7 @@
 
 <p>Load some data. Then travese the graph.</p>
 <pre><code>graph.loadGraphSON('./location/to/json/data.json')
-  .then(funciton(g){
+  .then(function(g){
     g.V().out('knows').then(function(result){console.log(JSON.stringify(result))});
   }, function(err){
     console.error(err);
