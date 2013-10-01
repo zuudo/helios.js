@@ -1,8 +1,8 @@
-var expect = chai.expect;
-
+var expect = require('./chai.js').expect;
+var Helios = require('../lib/heliosDB.js').Helios;
 var g;
 before(function(){
-    g = new Helios.GraphDatabase();
+    var g = new Helios.GraphDatabase();
     var testData = {
       "graph": {
         "mode":"NORMAL",
