@@ -196,6 +196,9 @@ var Helios;
             this.except = this.add('except');
             this.retain = this.add('retain');
             this.path = this.add('path', true);
+
+            this.sum = this.add('sum');
+            this.group = this.add('group');
         }
         Pipeline.prototype.add = function (func, trace) {
             return function () {
@@ -225,7 +228,7 @@ var Helios;
         };
         Pipeline.prototype.then = function (success, error) {
             var ctx = this;
-            this.db.invoke("run", this.messages).then(function (result) {
+            this.db.invoke("run", ctx.messages).then(function (result) {
                 if(ctx.placeholder > -1) {
                     ctx.messages.length = ctx.placeholder;
                 }
