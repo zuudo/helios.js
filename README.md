@@ -1,4 +1,4 @@
-#HeliosJS  
+# HeliosJS  
 HeliosJS is an in-memory graph database for modern browsers. It employs a non-blocking asynchronous architecture through the use of Promises and Web Workers. This enables HeliosJS to download and process large data sets without blocking the UI.
 
 
@@ -6,7 +6,7 @@ In order to traverse the graph, HeliosJS uses a [Gremlin](http://gremlin.tinkerp
 
 __Please see the [website](http://entrendipity.github.com/helios.js/) for full documentation of the current version (0.2.0).__
 
-##License  
+## License  
 
 (MIT License)
 

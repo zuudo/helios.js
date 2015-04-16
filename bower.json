@@ -1,0 +1,25 @@
+{
+    "name": "helios.js",
+    "main": "helios.js",
+    "version": "0.2.0",
+    "homepage": "https://github.com/entrendipity/helios.js",
+    "authors": [
+	"Frank Panetta"
+    ],
+    "keywords": [
+	"graph",
+	"database",
+	"browser",
+	"graphdb",
+	"gremlin"
+    ],
+    "description": "In-memory graph database for modern browsers",
+    "license": "MIT",
+    "ignore": [
+	"**/.*",
+	"node_modules",
+	"bower_components",
+	"test",
+	"tests"
+    ]
+}
