@@ -844,43 +844,43 @@ heliosjs&gt; g.v().where({age:{$neq:29}})
 
         <h6>$lt</h6>
         <p>Takes a single argument and matches values less than to the value specified.</p>
-        <pre><code class="text">heliosjs&gt; g.v().where({name:{$lt:29}})
+        <pre><code class="text">heliosjs&gt; g.v().where({age:{$lt:29}})
 <em>output:</em>
 [{"name":"vadas","age":27,"_id":2,"_type":"vertex"}]</code></pre>
         <h6>$lte</h6>
         <p>Takes a single argument and matches values less than or equal to to the value specified.</p>
-                <pre><code class="text">heliosjs&gt; g.v().where({name:{$lte:29}})
+                <pre><code class="text">heliosjs&gt; g.v().where({age:{$lte:29}})
 <em>output:</em>
 [{"name":"marko","age":29,"_id":1,"_type":"vertex"},
 {"name":"vadas","age":27,"_id":2,"_type":"vertex"}]</code></pre>
         <h6>$gt</h6>
         <p>Takes a single argument and matches values greater than to the value specified.</p>
-        <pre><code class="text">heliosjs&gt; g.v().where({name:{$gt:29}})
+        <pre><code class="text">heliosjs&gt; g.v().where({age:{$gt:29}})
 <em>output:</em>
 [{"name":"josh","age":32,"_id":4,"_type":"vertex"},
 {"name":"peter","age":35,"_id":6,"_type":"vertex"}]</code></pre>
         <h6>$gte</h6>
         <p>Takes a single argument and matches values greater than equal to the value specified.</p>
-        <pre><code class="text">heliosjs&gt; g.v().where({name:{$gte:29}})
+        <pre><code class="text">heliosjs&gt; g.v().where({age:{$gte:29}})
 <em>output:</em>
 [{"name":"marko","age":29,"_id":1,"_type":"vertex"},
 {"name":"josh","age":32,"_id":4,"_type":"vertex"},
 {"name":"peter","age":35,"_id":6,"_type":"vertex"}]</code></pre>
         <h6>$btw</h6>
         <p>Takes an array argument with a length of 2 and matches values between and inclusive of the values specified. <em>i.e. [from, to]</em> </p>
-        <pre><code class="text">heliosjs&gt; g.v().where({name:{$btw:[29,32]}})
+        <pre><code class="text">heliosjs&gt; g.v().where({age:{$btw:[29,32]}})
 <em>output:</em>
 [{"name":"marko","age":29,"_id":1,"_type":"vertex"},
 {"name":"josh","age":32,"_id":4,"_type":"vertex"}]</code></pre>
         <h6>$in</h6>
         <p>Takes either a single argument or an array of values and matches values equal to the values specified.</p>
-        <pre><code class="text">heliosjs&gt; g.v().where({name:{$in:[29,35]}})
+        <pre><code class="text">heliosjs&gt; g.v().where({age:{$in:[29,35]}})
 <em>output:</em>
 [{"name":"marko","age":29,"_id":1,"_type":"vertex"},
 {"name":"peter","age":35,"_id":6,"_type":"vertex"}]</code></pre>
         <h6>$ex</h6>
         <p>Takes either a single argument or an array of values and matches values not equal to the values specified.</p>
-<pre><code class="text">heliosjs&gt; g.v().where({name:{$ex:[29,35]}})
+<pre><code class="text">heliosjs&gt; g.v().where({age:{$ex:[29,35]}})
 <em>output:</em>
 [{"name":"vadas","age":27,"_id":2,"_type":"vertex"},
 {"name":"josh","age":32,"_id":4,"_type":"vertex"}]</code></pre>
